@@ -1,0 +1,33 @@
+## [CRITICAL] Security: Ignore configuration files
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.*.json
+
+## IDE specific files
+**/.vs/
+**/.idea/
+*.user
+*.userosscache
+*.sln.docstates
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+
+## .NET Core specific
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.binlog
+
+## Testing (xUnit)
+[Tt]est[Rr]esult*/
+CodeCoverage/
+*.VisualState.xml
+TestResult.xml
+
+## OS specific files
+.DS_Store
+Thumbs.db
