@@ -10,7 +10,7 @@ namespace ScanToOrder.Api.Extensions
                 .FromAssemblies(
                     typeof(ScanToOrder.Application.Mappings.GeneralProfile).Assembly,
                     typeof(ScanToOrder.Domain.Interfaces.IGenericRepository).Assembly,
-                    typeof(ScanToOrder.Infrastructure.Context.DbContext).Assembly
+                    typeof(ScanToOrder.Infrastructure.Context.AppDbContext).Assembly
                 )
                 .AddClasses(classes => classes.Where(type =>
                     !typeof(IHostedService).IsAssignableFrom(type) &&
