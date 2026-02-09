@@ -12,7 +12,9 @@ namespace ScanToOrder.Api.Extensions
                     typeof(ScanToOrder.Domain.Interfaces.IGenericRepository).Assembly,
                     typeof(ScanToOrder.Infrastructure.Context.DbContext).Assembly
                 )
-                .AddClasses(classes => classes.Where(type => !typeof(IHostedService).IsAssignableFrom(type)))
+                .AddClasses(classes => classes.Where(type =>
+                    !typeof(IHostedService).IsAssignableFrom(type) &&
+                    !typeof(Exception).IsAssignableFrom(type)))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
             );
