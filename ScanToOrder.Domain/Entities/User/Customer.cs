@@ -9,6 +9,7 @@ public partial class Customer
     public Guid AccountId { get; set; }
 
     public DateOnly? Dob { get; set; }
+    public string Name { get; set; } = null!;
 
     public virtual AuthenticationUser Account { get; set; } = null!;
 }

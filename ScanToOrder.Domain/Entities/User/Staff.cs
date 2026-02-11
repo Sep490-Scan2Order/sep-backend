@@ -10,6 +10,9 @@ public partial class Staff
     public Guid AccountId { get; set; }
 
     public Guid RestaurantId { get; set; }
+    public string Name { get; set; } = null!;
+
+    public string? Avatar { get; set; }
 
     public virtual AuthenticationUser Account { get; set; } = null!;
 

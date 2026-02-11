@@ -18,7 +18,8 @@ public partial class Tenant
     public string? Phone { get; set; }
 
     public string Status { get; set; } = null!;
+    public string? Name { get; set; }
 
     public virtual AuthenticationUser Account { get; set; } = null!;
-    public virtual ICollection<Restaurant> Restaurant { get; set; } = new List<Restaurant>();
+    public virtual ICollection<Restaurant> Restaurants { get; set; } = new List<Restaurant>();
 }

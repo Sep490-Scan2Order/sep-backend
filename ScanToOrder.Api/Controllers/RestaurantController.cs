@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ScanToOrder.Application.Services.Def;
+using ScanToOrder.Application.Interfaces;
 
 namespace ScanToOrder.Api.Controllers
 {

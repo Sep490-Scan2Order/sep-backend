@@ -44,7 +44,9 @@ public partial class AppDbContext : DbContext
             .HasPostgresEnum("storage", "buckettype", new[] { "STANDARD", "ANALYTICS", "VECTOR" })
             .HasPostgresExtension("extensions", "pg_stat_statements")
             .HasPostgresExtension("extensions", "pgcrypto")
+            .HasPostgresExtension("extensions", "postgis")
             .HasPostgresExtension("extensions", "uuid-ossp")
+            .HasPostgresExtension("extensions", "vector")
             .HasPostgresExtension("graphql", "pg_graphql")
             .HasPostgresExtension("vault", "supabase_vault");
 
@@ -61,7 +63,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(now() AT TIME ZONE 'utc'::text)")
+                .HasColumnName("created_at");
             entity.Property(e => e.Email).HasColumnName("email");
             entity.Property(e => e.Password).HasColumnName("password");
             entity.Property(e => e.Phone).HasColumnName("phone");
@@ -86,6 +90,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.Dob).HasColumnName("dob");
+            entity.Property(e => e.Name).HasColumnName("name");
 
             entity.HasOne(d => d.Account).WithOne(p => p.Customer)
                 .HasForeignKey<Customer>(d => d.AccountId)
@@ -131,7 +136,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("total_order");
 
-            entity.HasOne(d => d.Tenant).WithMany(p => p.Restaurant)
+            entity.HasOne(d => d.Tenant).WithMany(p => p.Restaurants)
                 .HasForeignKey(d => d.TenantId)
                 .HasConstraintName("restaurants_tenant_id_fkey");
         });
@@ -148,6 +153,8 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Avatar).HasColumnName("avatar");
+            entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
 
             entity.HasOne(d => d.Account).WithOne(p => p.Staff)
@@ -175,6 +182,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.BankName).HasColumnName("bank_name");
             entity.Property(e => e.CardNumber).HasColumnName("card_number");
+            entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Phone).HasColumnName("phone");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'ONBOARDING'::text")

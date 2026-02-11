@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.Restaurant;
-using ScanToOrder.Application.Services.Def;
+using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Interfaces;
 
-namespace ScanToOrder.Application.Services.Impl
+namespace ScanToOrder.Application.Services
 {
     public class RestaurantService : IRestaurantService
     {
