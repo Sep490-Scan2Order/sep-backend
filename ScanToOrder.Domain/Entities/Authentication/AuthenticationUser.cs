@@ -24,5 +24,7 @@ namespace ScanToOrder.Domain.Entities.Authentication
         public DateTime CreatedAt { get; set; }
 
         public virtual Tenant Tenant { get; set; } = null!;
+        public virtual Staff Staff { get; set; } = null!;
+        public virtual Customer Customer { get; set; } = null!;
     }
 }

@@ -10,7 +10,6 @@
     <Folder Include="DTOs\Auth\" />
     <Folder Include="DTOs\Common\" />
     <Folder Include="Validators\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
   <ItemGroup>

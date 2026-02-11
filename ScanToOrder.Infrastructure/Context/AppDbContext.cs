@@ -2,6 +2,8 @@
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
 
+using ScanToOrder.Domain.Entities.Restaurants;
+
 namespace ScanToOrder.Infrastructure.Context;
 
 public partial class AppDbContext : DbContext
@@ -16,6 +18,12 @@ public partial class AppDbContext : DbContext
     }
 
     public virtual DbSet<AuthenticationUser> AuthenticationUsers { get; set; }
+
+    public virtual DbSet<Customer> Customers { get; set; }
+
+    public virtual DbSet<Restaurant> Restaurants { get; set; }
+
+    public virtual DbSet<Staff> Staffs { get; set; }
 
     public virtual DbSet<Tenant> Tenants { get; set; }
 
@@ -63,6 +71,92 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Verified)
                 .HasDefaultValue(false)
                 .HasColumnName("verified");
+        });
+
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("customers_pkey");
+
+            entity.ToTable("customers");
+
+            entity.HasIndex(e => e.AccountId, "customers_account_id_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.Dob).HasColumnName("dob");
+
+            entity.HasOne(d => d.Account).WithOne(p => p.Customer)
+                .HasForeignKey<Customer>(d => d.AccountId)
+                .HasConstraintName("customers_account_id_fkey");
+        });
+
+        modelBuilder.Entity<Restaurant>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("restaurants_pkey");
+
+            entity.ToTable("restaurants");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Address).HasColumnName("address");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("timezone('utc'::text, now())")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Image).HasColumnName("image");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.IsOpened)
+                .HasDefaultValue(false)
+                .HasColumnName("is_opened");
+            entity.Property(e => e.IsReceivingOrders)
+                .HasDefaultValue(true)
+                .HasColumnName("is_receiving_orders");
+            entity.Property(e => e.Latitude)
+                .HasPrecision(9, 6)
+                .HasColumnName("latitude");
+            entity.Property(e => e.Longitude)
+                .HasPrecision(9, 6)
+                .HasColumnName("longitude");
+            entity.Property(e => e.Phone).HasColumnName("phone");
+            entity.Property(e => e.ProfileUrl).HasColumnName("profile_url");
+            entity.Property(e => e.QrMenu).HasColumnName("qr_menu");
+            entity.Property(e => e.RestaurantName).HasColumnName("restaurant_name");
+            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+            entity.Property(e => e.TotalOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("total_order");
+
+            entity.HasOne(d => d.Tenant).WithMany(p => p.Restaurant)
+                .HasForeignKey(d => d.TenantId)
+                .HasConstraintName("restaurants_tenant_id_fkey");
+        });
+
+        modelBuilder.Entity<Staff>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("staffs_pkey");
+
+            entity.ToTable("staffs");
+
+            entity.HasIndex(e => e.AccountId, "staffs_account_id_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.RestaurantId).HasColumnName("restaurant_id");
+
+            entity.HasOne(d => d.Account).WithOne(p => p.Staff)
+                .HasForeignKey<Staff>(d => d.AccountId)
+                .HasConstraintName("staffs_account_id_fkey");
+
+            entity.HasOne(d => d.Restaurant).WithMany(p => p.Staff)
+                .HasForeignKey(d => d.RestaurantId)
+                .HasConstraintName("staffs_restaurant_id_fkey");
         });
 
         modelBuilder.Entity<Tenant>(entity =>
