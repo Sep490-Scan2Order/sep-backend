@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Settings;
@@ -28,10 +28,7 @@ namespace ScanToOrder.Application.Services
             new(ClaimTypes.MobilePhone, user.Phone ?? string.Empty)
         };
 
-            if (!string.IsNullOrEmpty(user.Role))
-            {
-                claims.Add(new Claim(ClaimTypes.Role, user.Role));
-            }
+            claims.Add(new Claim(ClaimTypes.Role, user.Role.ToString()));
 
             return CreateToken(claims, _settings.AccessSecretKey, _settings.AccessExpiration);
         }

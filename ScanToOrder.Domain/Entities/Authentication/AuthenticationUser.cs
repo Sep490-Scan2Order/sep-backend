@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Authentication
 {
@@ -17,7 +18,7 @@ namespace ScanToOrder.Domain.Entities.Authentication
 
         public string? Password { get; set; }
 
-        public string Role { get; set; } = null!;
+        public Role Role { get; set; }
 
         public bool Verified { get; set; }
 

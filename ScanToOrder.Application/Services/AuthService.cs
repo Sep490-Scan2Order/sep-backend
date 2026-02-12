@@ -6,6 +6,7 @@ using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Application.Services
 {
@@ -70,7 +71,7 @@ namespace ScanToOrder.Application.Services
                 Id = Guid.NewGuid(),
                 Phone = request.Phone,
                 Email = string.Empty,
-                Role = "Customer",
+                Role = Role.Customer,
                 CreatedAt = DateTime.UtcNow,
                 Verified = true
             };
