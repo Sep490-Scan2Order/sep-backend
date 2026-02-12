@@ -11,7 +11,12 @@ namespace ScanToOrder.Api.Extensions
         {
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
+                    o =>
+                    {
+                        o.UseNetTopologySuite();
+                        o.UseVector();          
+                    });
             });
 
             services.Scan(scan => scan

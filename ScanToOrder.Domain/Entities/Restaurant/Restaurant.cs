@@ -1,20 +1,18 @@
-﻿using ScanToOrder.Domain.Entities.User;
+﻿using NetTopologySuite.Geometries;
+using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.User;
 
 namespace ScanToOrder.Domain.Entities.Restaurants;
 
-public partial class Restaurant
+public partial class Restaurant : BaseEntity
 {
-    public Guid Id { get; set; }
-
     public Guid TenantId { get; set; }
 
     public string RestaurantName { get; set; } = null!;
 
     public string? Address { get; set; }
 
-    public decimal? Longitude { get; set; }
-
-    public decimal? Latitude { get; set; }
+    public Point? Location { get; set; }
 
     public string? Image { get; set; }
 
@@ -33,8 +31,6 @@ public partial class Restaurant
     public bool? IsReceivingOrders { get; set; }
 
     public int? TotalOrder { get; set; }
-
-    public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 
