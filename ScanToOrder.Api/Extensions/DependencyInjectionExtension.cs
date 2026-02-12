@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Mappings;
+using ScanToOrder.Application.Settings;
 using ScanToOrder.Infrastructure.Context;
+using ScanToOrder.Infrastructure.Services;
 
 namespace ScanToOrder.Api.Extensions
 {
@@ -15,7 +17,8 @@ namespace ScanToOrder.Api.Extensions
                     o =>
                     {
                         o.UseNetTopologySuite();
-                        o.UseVector();          
+                        o.UseVector();
+                        o.CommandTimeout(120);
                     });
             });
 
@@ -31,6 +34,11 @@ namespace ScanToOrder.Api.Extensions
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
             );
+            services.Configure<EsmsSettings>(configuration.GetSection("EsmsSettings"));
+
+            services.AddHttpClient<ISmsSender, EsmsSender>();
+
+            services.AddMemoryCache();
 
             services.AddHttpContextAccessor();
             services.AddAutoMapper(typeof(GeneralProfile).Assembly);

@@ -1,0 +1,19 @@
+﻿namespace ScanToOrder.Application.DTOs.Auth
+{
+    public class SendOtpRequest
+    {
+        public string Phone { get; set; } = string.Empty;
+    }
+
+    public class LoginRequest
+    {
+        public string Phone { get; set; } = string.Empty;
+        public string Otp { get; set; } = string.Empty;
+    }
+
+    public class AuthResponse
+    {
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+}
