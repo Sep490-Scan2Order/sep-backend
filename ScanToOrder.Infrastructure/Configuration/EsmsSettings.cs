@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ScanToOrder.Application.Settings;
+namespace ScanToOrder.Infrastructure.Configuration;
 
 public class EsmsSettings
 {

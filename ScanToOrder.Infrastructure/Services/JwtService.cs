@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Application.Settings;
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Infrastructure.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Mappings;
-using ScanToOrder.Application.Settings;
+using ScanToOrder.Infrastructure.Configuration;
 using ScanToOrder.Infrastructure.Context;
 using ScanToOrder.Infrastructure.Services;
 

@@ -1,6 +1,4 @@
-﻿
-
-namespace ScanToOrder.Application.Settings
+﻿namespace ScanToOrder.Infrastructure.Configuration
 {
     public class JwtSettings
     {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using ScanToOrder.Application.Settings;
+using ScanToOrder.Infrastructure.Configuration;
 using System.Text;
 
 namespace ScanToOrder.Api.Extensions
