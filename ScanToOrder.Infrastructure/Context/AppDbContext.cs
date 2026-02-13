@@ -67,5 +67,9 @@ public class AppDbContext : DbContext
             .HasForeignKey<PointHistory>(ph => ph.MemberVoucherId)
             .OnDelete(DeleteBehavior.SetNull);
 
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Status)
+            .HasConversion<string>();
     }
 }
