@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Vouchers;
@@ -9,6 +9,7 @@ using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Wallet;
 using System.Reflection;
+using ScanToOrder.Domain.Entities.Points;
 
 namespace ScanToOrder.Infrastructure.Context;
 
@@ -20,6 +21,7 @@ public class AppDbContext : DbContext
 
     public DbSet<AuthenticationUser> AuthenticationUsers { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
+    public DbSet<MemberPoint> MemberPoints { get; set; } = null!;
     public DbSet<Restaurant> Restaurants { get; set; } = null!;
     public DbSet<Staff> Staffs { get; set; } = null!;
     public DbSet<Tenant> Tenants { get; set; } = null!;
@@ -47,5 +49,23 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Voucher>()
             .Property(v => v.Status)
             .HasConversion<string>();
+
+        modelBuilder.Entity<MemberPoint>()
+        .HasOne(mp => mp.Customer)         
+        .WithMany(c => c.MemberPoints)     
+        .HasForeignKey(mp => mp.CustomerId) 
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PointHistory>()
+            .HasOne(ph => ph.MemberPoint)
+            .WithMany(mp => mp.PointHistories)
+            .HasForeignKey(ph => ph.MemberPointId);
+
+        modelBuilder.Entity<PointHistory>()
+            .HasOne(ph => ph.MemberVoucher)
+            .WithOne(mv => mv.PointHistory)
+            .HasForeignKey<PointHistory>(ph => ph.MemberVoucherId)
+            .OnDelete(DeleteBehavior.SetNull);
+
     }
 }

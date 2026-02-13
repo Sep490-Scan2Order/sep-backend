@@ -1,4 +1,5 @@
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.User;
 
@@ -11,6 +12,8 @@ namespace ScanToOrder.Domain.Interfaces
         IGenericRepository<Staff> Staffs { get; }
         IGenericRepository<Restaurant> Restaurants { get; }
         IGenericRepository<Customer> Customers { get; }
+        IGenericRepository<PointHistory> PointHistories { get; }
+        IGenericRepository<MemberPoint> MemberPoints { get; }
         Task SaveAsync();
     }
 }
