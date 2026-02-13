@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Entities.Wallet
 {
-    public class WalletTransaction : BaseEntity
+    public class WalletTransaction : BaseEntity<int>
     {
         public Guid TenantId { get; set; }
         public Tenant Tenant { get; set; } = null!;

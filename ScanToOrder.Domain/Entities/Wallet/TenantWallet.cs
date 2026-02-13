@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Entities.Wallet
 {
-    public class TenantWallet : BaseEntity 
+    public class TenantWallet : BaseEntity<int>
     {
         public Guid TenantId { get; set; }
         public virtual Tenant Tenant { get; set; } = null!;

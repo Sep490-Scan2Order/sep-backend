@@ -5,7 +5,7 @@ using ScanToOrder.Domain.Entities.User;
 
 namespace ScanToOrder.Domain.Entities.Restaurants;
 
-public partial class Restaurant : BaseEntity
+public partial class Restaurant : BaseEntity<int>
 {
     public Guid TenantId { get; set; }
 

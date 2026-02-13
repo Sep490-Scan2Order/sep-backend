@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Entities.SubscriptionPlan
 {
-    public class Subscription : BaseEntity
+    public class Subscription : BaseEntity<int>
     {
         public Guid TenantId { get; set; }
         public virtual Tenant Tenant { get; set; } = null!;

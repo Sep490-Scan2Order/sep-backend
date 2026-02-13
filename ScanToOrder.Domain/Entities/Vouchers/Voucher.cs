@@ -6,16 +6,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScanToOrder.Domain.Entities.MemberVoucher
+namespace ScanToOrder.Domain.Entities.Vouchers
 {
-    public class Voucher : BaseEntity
+    public class Voucher : BaseEntity<int>
     {
-        public string Name { get; set; } = null!; 
+        public string Name { get; set; } = null!;
         public string Description { get; set; } = string.Empty;
         public decimal DiscountValue { get; set; }
         public decimal MaxDiscountValue { get; set; }
         public decimal MinOrderAmount { get; set; }
-        public int PointRequire { get; set; } 
+        public int PointRequire { get; set; }
         public VoucherStatus Status { get; set; }
 
         public virtual ICollection<MemberVoucher> MemberVouchers { get; set; } = new List<MemberVoucher>();

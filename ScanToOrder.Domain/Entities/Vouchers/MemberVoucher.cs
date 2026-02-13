@@ -5,11 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScanToOrder.Domain.Entities.MemberVoucher
+namespace ScanToOrder.Domain.Entities.Vouchers
 {
-    public class MemberVoucher : BaseEntity
+    public class MemberVoucher : BaseEntity<int>
     {
-        public Guid UserId { get; set; } 
+        public Guid UserId { get; set; }
         public int VoucherId { get; set; }
 
         public bool IsUsed { get; set; } = false;

@@ -8,9 +8,8 @@ using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Authentication
 {
-    public class AuthenticationUser
+    public class AuthenticationUser : Base.BaseEntity<Guid>
     {
-        public Guid Id { get; set; }
 
         public string Email { get; set; } = null!;
 
@@ -21,8 +20,6 @@ namespace ScanToOrder.Domain.Entities.Authentication
         public Role Role { get; set; }
 
         public bool Verified { get; set; }
-
-        public DateTime CreatedAt { get; set; }
 
         public virtual Tenant Tenant { get; set; } = null!;
         public virtual Staff Staff { get; set; } = null!;
