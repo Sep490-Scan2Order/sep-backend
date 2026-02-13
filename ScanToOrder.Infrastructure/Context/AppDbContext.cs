@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
-using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Entities.MemberVoucher;
 using ScanToOrder.Domain.Entities.Restaurants;
-using System.Reflection;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
+using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Wallet;
+using System.Reflection;
 
 namespace ScanToOrder.Infrastructure.Context;
 
@@ -32,6 +33,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<AuthenticationUser>()
             .Property(u => u.Role)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Voucher>()
+            .Property(v => v.Status)
             .HasConversion<string>();
     }
 }
