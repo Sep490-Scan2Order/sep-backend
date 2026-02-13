@@ -1,5 +1,6 @@
 ﻿using NetTopologySuite.Geometries;
 using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.User;
 
 namespace ScanToOrder.Domain.Entities.Restaurants;
@@ -35,4 +36,6 @@ public partial class Restaurant : BaseEntity
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 
     public virtual Tenant Tenant { get; set; } = null!;
+
+    public virtual ICollection<BranchDishConfig> BranchDishConfig { get; set; } = new List<BranchDishConfig>();
 }
