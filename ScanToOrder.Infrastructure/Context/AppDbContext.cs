@@ -47,5 +47,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Voucher>()
             .Property(v => v.Status)
             .HasConversion<string>();
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Status)
+            .HasConversion<string>();
     }
 }

@@ -3,6 +3,7 @@ using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.Vouchers;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Orders
 {
@@ -23,6 +24,7 @@ namespace ScanToOrder.Domain.Entities.Orders
         public decimal VoucherDiscount { get; set; }
         public decimal PromotionDiscount { get; set; }
         public decimal FinalAmount { get; set; }
+        public OrderStatus Status { get; set; }
 
         public virtual AuthenticationUser? User { get; set; }
 
