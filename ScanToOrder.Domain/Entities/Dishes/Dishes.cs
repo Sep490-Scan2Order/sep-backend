@@ -11,7 +11,7 @@ namespace ScanToOrder.Domain.Entities.Dishes
     {
         public int CategoryId { get; set; }
         public string DishName { get; set; } = null!;
-        public int Price { get; set; }
+        public decimal Price { get; set; }
 
         public string Description { get; set; } = null!;
 

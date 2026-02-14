@@ -1,0 +1,23 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ScanToOrder.Application.DTOs.User
+{
+    public class TenantDto
+    {
+        public Guid Id { get; set; }
+        public Guid AccountId { get; set; }
+        public required string Name { get; set; }
+        public required string Phone { get; set; }
+        public required string TaxNumber { get; set; }
+        public required string BankName { get; set; }
+        public required string CardNumber { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public int TotalRestaurants { get; set; } = 0;
+        public int TotalDishes { get; set; } = 0;
+        public int TotalCategories { get; set; } = 0;
+    }
+}

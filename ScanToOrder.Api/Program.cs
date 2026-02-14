@@ -12,6 +12,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerConfig();
 builder.Services.AddDIConfig(builder.Configuration);
 builder.Services.AddAuthConfig(builder.Configuration);
+builder.Services.AddN8NServices(builder.Configuration);
+
 var app = builder.Build();
 app.UseMiddleware<HandleExceptionMiddleware>();
 // Configure the HTTP request pipeline.

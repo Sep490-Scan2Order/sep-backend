@@ -20,6 +20,7 @@ public partial class Tenant
 
     public string Status { get; set; } = null!;
     public string? Name { get; set; }
+
     public int TotalRestaurants { get; set; }
     public int TotalDishes { get; set; }
     public int TotalCategories { get; set; }
