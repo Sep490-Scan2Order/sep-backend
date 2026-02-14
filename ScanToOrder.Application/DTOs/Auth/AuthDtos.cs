@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.DTOs.Auth
+namespace ScanToOrder.Application.DTOs.Auth
 {
     public class SendOtpRequest
     {
@@ -8,6 +8,13 @@
     public class LoginRequest
     {
         public string Phone { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class RegisterRequest
+    {
+        public string Phone { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
         public string Otp { get; set; } = string.Empty;
     }
 

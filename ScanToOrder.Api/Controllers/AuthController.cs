@@ -42,7 +42,7 @@ public class AuthController : BaseController
     }
 
     [HttpPost("register-phone")]
-    public async Task<IActionResult> Register([FromBody] LoginRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         try
         {

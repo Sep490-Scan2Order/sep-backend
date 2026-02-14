@@ -8,6 +8,6 @@ namespace ScanToOrder.Application.Interfaces
 
         Task<AuthResponse> VerifyAndLoginAsync(LoginRequest request);
 
-        Task<AuthResponse> RegisterAsync(LoginRequest request);
+        Task<AuthResponse> RegisterAsync(RegisterRequest request);
     }
 }
