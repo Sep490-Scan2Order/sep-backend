@@ -14,8 +14,19 @@ builder.Services.AddDIConfig(builder.Configuration);
 builder.Services.AddAuthConfig(builder.Configuration);
 builder.Services.AddN8NServices(builder.Configuration);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 app.UseMiddleware<HandleExceptionMiddleware>();
+app.UseCors("AllowFrontend");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
