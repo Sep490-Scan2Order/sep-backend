@@ -1,4 +1,5 @@
 ﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Points;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace ScanToOrder.Domain.Entities.Vouchers
         public DateTime? ExpiredAt { get; set; }
 
         public virtual Voucher Voucher { get; set; } = null!;
+        public virtual PointHistory? PointHistory { get; set; }
 
         public bool IsExpired(DateTime now)
         {

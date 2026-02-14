@@ -15,15 +15,18 @@ namespace ScanToOrder.Application.Services
         private readonly IMemoryCache _cache;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
+        private readonly ISmsSender _smsSender;
 
         public AuthService(
             IMemoryCache cache,
             IUnitOfWork unitOfWork,
-            IJwtService jwtService)
+            IJwtService jwtService,
+            ISmsSender smsSender)
         {
             _cache = cache;
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
+            _smsSender = smsSender;
         }
 
         public async Task<string> SendOtpAsync(string phone)
@@ -32,7 +35,7 @@ namespace ScanToOrder.Application.Services
 
             _cache.Set("OTP_" + phone, otpCode, TimeSpan.FromMinutes(3));
 
-            //await _smsSender.SendAsync(phone, otpCode);
+            await _smsSender.SendAsync(phone, otpCode);
 
             return otpCode;
         }
