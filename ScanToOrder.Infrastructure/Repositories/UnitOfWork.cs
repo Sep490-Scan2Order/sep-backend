@@ -1,5 +1,6 @@
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
@@ -19,6 +20,8 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IGenericRepository<PointHistory> PointHistories { get; }
         public IGenericRepository<MemberPoint> MemberPoints { get; }
 
+        public IGenericRepository<Plan> Plans { get; }
+
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
@@ -29,6 +32,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             Customers = new GenericRepository<Customer>(_context);
             PointHistories = new GenericRepository<PointHistory>(_context);
             MemberPoints = new GenericRepository<MemberPoint>(_context);
+            Plans = new GenericRepository<Plan>(_context);
         }
 
         public async Task SaveAsync()
