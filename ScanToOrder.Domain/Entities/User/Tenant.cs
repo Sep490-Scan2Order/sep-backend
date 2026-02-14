@@ -20,6 +20,9 @@ public partial class Tenant
 
     public string Status { get; set; } = null!;
     public string? Name { get; set; }
+    public int TotalRestaurants { get; set; }
+    public int TotalDishes { get; set; }
+    public int TotalCategories { get; set; }
 
     public virtual AuthenticationUser Account { get; set; } = null!;
     public virtual ICollection<Restaurant> Restaurants { get; set; } = new List<Restaurant>();

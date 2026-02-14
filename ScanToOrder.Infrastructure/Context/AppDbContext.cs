@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<Staff> Staffs { get; set; } = null!;
     public DbSet<Tenant> Tenants { get; set; } = null!;
     public DbSet<Plan> Plans { get; set; } = null!;
+    public DbSet<AddOn> AddOns { get; set; } = null!;
     public DbSet<Subscription> Subscriptions { get; set; } = null!;
     public DbSet<AdminWallet> AdminWallet { get; set; } = null!;
     public DbSet<TenantWallet> TenantWallets { get; set; } = null!;
