@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Vouchers;
@@ -9,6 +9,8 @@ using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Wallet;
 using System.Reflection;
+using ScanToOrder.Domain.Entities.CashReport;
+using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.Points;
 
 namespace ScanToOrder.Infrastructure.Context;
@@ -37,6 +39,10 @@ public class AppDbContext : DbContext
     public DbSet<Promotion> Promotions { get; set; } = null!;
     public DbSet<Voucher> Vouchers { get; set; } = null!;
     public DbSet<MemberVoucher> MemberVouchers { get; set; } = null!;
+    public DbSet<CashDrawerReport> CashDrawerReports { get; set; } = null!;
+    public DbSet<MenuTemplate> MenuTemplates { get; set; } = null!;
+    public DbSet<MenuRestaurant> MenuRestaurants { get; set; } = null!;
+    public DbSet<RestaurantPromotion> RestaurantPromotions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
