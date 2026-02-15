@@ -35,20 +35,28 @@ namespace ScanToOrder.Application.Services
 
             _cache.Set("OTP_" + phone, otpCode, TimeSpan.FromMinutes(3));
 
-            await _smsSender.SendAsync(phone, otpCode);
+            //await _smsSender.SendAsync(phone, otpCode);
 
             return otpCode;
         }
 
         public async Task<AuthResponse> VerifyAndLoginAsync(LoginRequest request)
         {
-            ValidateOtpOrThrow(request.Phone, request.Otp);
-
             var user = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
 
             if (user == null)
             {
                 throw new DomainException("Tài khoản chưa được đăng ký.");
+            }
+
+            if (string.IsNullOrEmpty(user.Password))
+            {
+                throw new DomainException("Tài khoản chưa đặt mật khẩu. Vui lòng đăng ký lại với mật khẩu.");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            {
+                throw new DomainException("Số điện thoại hoặc mật khẩu không đúng.");
             }
 
             return new AuthResponse
@@ -58,9 +66,8 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        public async Task<AuthResponse> RegisterAsync(LoginRequest request)
+        public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
-
             ValidateOtpOrThrow(request.Phone, request.Otp);
 
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
@@ -69,10 +76,13 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException("Số điện thoại này đã được đăng ký.");
             }
 
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
             var user = new AuthenticationUser
             {
                 Id = Guid.NewGuid(),
                 Phone = request.Phone,
+                Password = passwordHash,
                 Email = string.Empty,
                 Role = Role.Customer,
                 CreatedAt = DateTime.UtcNow,
@@ -85,7 +95,7 @@ namespace ScanToOrder.Application.Services
             {
                 Id = Guid.NewGuid(),
                 AccountId = user.Id,
-                Name = string.Empty,       
+                Name = string.Empty,
                 Dob = null
             };
 

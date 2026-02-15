@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214055127_AddTenantPlanFieldsAndAddOn")]
+    partial class AddTenantPlanFieldsAndAddOn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,50 +62,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AuthenticationUsers");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.CashReport.CashDrawerReport", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("ActualCashAmount")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("Difference")
-                        .HasColumnType("numeric");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateOnly>("ReportDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("RestaurantId")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("StaffId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TotalCashOrder")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RestaurantId");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("CashDrawerReports");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.BranchDishConfig", b =>
@@ -228,73 +187,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("Dishes");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuRestaurant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("MenuTemplateId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RestaurantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MenuTemplateId");
-
-                    b.HasIndex("RestaurantId");
-
-                    b.ToTable("MenuRestaurants");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuTemplate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FontFamily")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("LayoutConfigJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("TemplateName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ThemeColor")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MenuTemplates");
-                });
-
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -404,67 +296,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("OrderDetails");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.MemberPoint", b =>
-                {
-                    b.Property<int>("MemberPointId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MemberPointId"));
-
-                    b.Property<int>("CurrentPoint")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("RedeemAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("MemberPointId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("MemberPoints");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.PointHistory", b =>
-                {
-                    b.Property<int>("PointHistoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PointHistoryId"));
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("MemberPointId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("MemberVoucherId")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Point")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("PointHistoryId");
-
-                    b.HasIndex("MemberPointId");
-
-                    b.HasIndex("MemberVoucherId")
-                        .IsUnique();
-
-                    b.ToTable("PointHistory");
-                });
-
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.Promotion", b =>
                 {
                     b.Property<int>("Id")
@@ -528,38 +359,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Promotions");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.RestaurantPromotion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("PromotionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RestaurantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PromotionId");
-
-                    b.HasIndex("RestaurantId");
-
-                    b.ToTable("RestaurantPromotions");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
@@ -1060,25 +859,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("WalletTransactions");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.CashReport.CashDrawerReport", b =>
-                {
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
-                        .WithMany()
-                        .HasForeignKey("RestaurantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.User.Staff", "Staff")
-                        .WithMany()
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Restaurant");
-
-                    b.Navigation("Staff");
-                });
-
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.BranchDishConfig", b =>
                 {
                     b.HasOne("ScanToOrder.Domain.Entities.Dishes.Dish", "Dish")
@@ -1118,25 +898,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuRestaurant", b =>
-                {
-                    b.HasOne("ScanToOrder.Domain.Entities.Menu.MenuTemplate", "MenuTemplate")
-                        .WithMany("MenuRestaurants")
-                        .HasForeignKey("MenuTemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
-                        .WithMany()
-                        .HasForeignKey("RestaurantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MenuTemplate");
-
-                    b.Navigation("Restaurant");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Order", b =>
@@ -1185,54 +946,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Dish");
 
                     b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.MemberPoint", b =>
-                {
-                    b.HasOne("ScanToOrder.Domain.Entities.User.Customer", "Customer")
-                        .WithMany("MemberPoints")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.PointHistory", b =>
-                {
-                    b.HasOne("ScanToOrder.Domain.Entities.Points.MemberPoint", "MemberPoint")
-                        .WithMany("PointHistories")
-                        .HasForeignKey("MemberPointId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.Vouchers.MemberVoucher", "MemberVoucher")
-                        .WithOne("PointHistory")
-                        .HasForeignKey("ScanToOrder.Domain.Entities.Points.PointHistory", "MemberVoucherId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("MemberPoint");
-
-                    b.Navigation("MemberVoucher");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.RestaurantPromotion", b =>
-                {
-                    b.HasOne("ScanToOrder.Domain.Entities.Promotions.Promotion", "Promotion")
-                        .WithMany()
-                        .HasForeignKey("PromotionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
-                        .WithMany()
-                        .HasForeignKey("RestaurantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Promotion");
-
-                    b.Navigation("Restaurant");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
@@ -1381,16 +1094,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("BranchDishConfig");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuTemplate", b =>
-                {
-                    b.Navigation("MenuRestaurants");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.MemberPoint", b =>
-                {
-                    b.Navigation("PointHistories");
-                });
-
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
                 {
                     b.Navigation("BranchDishConfig");
@@ -1408,21 +1111,11 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Subscriptions");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.User.Customer", b =>
-                {
-                    b.Navigation("MemberPoints");
-                });
-
             modelBuilder.Entity("ScanToOrder.Domain.Entities.User.Tenant", b =>
                 {
                     b.Navigation("Category");
 
                     b.Navigation("Restaurants");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Vouchers.MemberVoucher", b =>
-                {
-                    b.Navigation("PointHistory");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Vouchers.Voucher", b =>

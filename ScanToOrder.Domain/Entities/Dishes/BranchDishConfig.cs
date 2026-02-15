@@ -13,7 +13,7 @@ namespace ScanToOrder.Domain.Entities.Dishes
         public int RestaurantId { get; set; }
         public int DishId { get; set; }
         public bool IsSelling { get; set; } = true;
-        public int Price { get; set; }
+        public decimal Price { get; set; }
         public bool IsSoldOut { get; set; } = false;
         public virtual Restaurant Restaurant { get; set; } = null!;
         public virtual Dish Dish { get; set; } = null!;
