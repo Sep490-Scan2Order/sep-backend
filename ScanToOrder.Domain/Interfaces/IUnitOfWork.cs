@@ -1,4 +1,7 @@
-using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Blogs;
+using ScanToOrder.Domain.Entities.Configuration;
+using ScanToOrder.Domain.Entities.Notifications;
+using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
@@ -16,6 +19,10 @@ namespace ScanToOrder.Domain.Interfaces
         IGenericRepository<PointHistory> PointHistories { get; }
         IGenericRepository<MemberPoint> MemberPoints { get; }
         IGenericRepository<Plan> Plans { get; }
+        IGenericRepository<Configurations> Configurations { get; }
+        IGenericRepository<SystemBlog> SystemBlogs { get; }
+        IGenericRepository<NotifyTenant> NotifyTenants { get; }
+        IGenericRepository<Notification> Notifications { get; }
         Task SaveAsync();
     }
 }

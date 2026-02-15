@@ -1,17 +1,21 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Blogs;
+using ScanToOrder.Domain.Entities.CashReport;
+using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
-using ScanToOrder.Domain.Entities.Vouchers;
+using ScanToOrder.Domain.Entities.Menu;
+using ScanToOrder.Domain.Entities.Notifications;
+using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Orders;
+using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Entities.Wallet;
 using System.Reflection;
-using ScanToOrder.Domain.Entities.CashReport;
-using ScanToOrder.Domain.Entities.Menu;
-using ScanToOrder.Domain.Entities.Points;
 
 namespace ScanToOrder.Infrastructure.Context;
 
@@ -43,6 +47,11 @@ public class AppDbContext : DbContext
     public DbSet<MenuTemplate> MenuTemplates { get; set; } = null!;
     public DbSet<MenuRestaurant> MenuRestaurants { get; set; } = null!;
     public DbSet<RestaurantPromotion> RestaurantPromotions { get; set; } = null!;
+    public DbSet<PointHistory> PointHistories { get; set; } = null!;
+    public DbSet<Configurations> Configurations { get; set; } = null!;
+    public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;
+    public DbSet<NotifyTenant> NotifyTenants { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,5 +87,30 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Order>()
             .Property(o => o.Status)
             .HasConversion<string>();
+
+        modelBuilder.Entity<Configurations>(entity =>
+        {
+            entity.HasNoKey(); 
+        });
+
+        modelBuilder.Entity<SystemBlog>()
+        .Property(b => b.BlogType)
+        .HasConversion<string>();
+
+        modelBuilder.Entity<NotifyTenant>(entity =>
+        {
+            entity.ToTable("NotifyTenant");
+            entity.HasKey(e => e.NotifyTenantId);
+
+            entity.HasOne(d => d.Notification)
+                  .WithMany(p => p.NotifyTenants)
+                  .HasForeignKey(d => d.NotificationId)
+                  .OnDelete(DeleteBehavior.Cascade); 
+
+            entity.HasOne(d => d.Tenant)
+                  .WithMany()
+                  .HasForeignKey(d => d.TenantId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

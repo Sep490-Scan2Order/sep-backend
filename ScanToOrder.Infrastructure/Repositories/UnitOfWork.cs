@@ -1,3 +1,7 @@
+using ScanToOrder.Domain.Entities.Blogs;
+using ScanToOrder.Domain.Entities.Configuration;
+using ScanToOrder.Domain.Entities.Notifications;
+using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
@@ -19,7 +23,10 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IGenericRepository<Customer> Customers { get; }
         public IGenericRepository<PointHistory> PointHistories { get; }
         public IGenericRepository<MemberPoint> MemberPoints { get; }
-
+        public IGenericRepository<Configurations> Configurations { get; }
+        public IGenericRepository<SystemBlog> SystemBlogs { get; }
+        public IGenericRepository<NotifyTenant> NotifyTenants { get; }
+        public IGenericRepository<Notification> Notifications { get; }
         public IGenericRepository<Plan> Plans { get; }
 
         public UnitOfWork(AppDbContext context)
@@ -32,7 +39,11 @@ namespace ScanToOrder.Infrastructure.Repositories
             Customers = new GenericRepository<Customer>(_context);
             PointHistories = new GenericRepository<PointHistory>(_context);
             MemberPoints = new GenericRepository<MemberPoint>(_context);
+            Configurations = new GenericRepository<Configurations>(_context);
+            SystemBlogs = new GenericRepository<SystemBlog>(_context);
             Plans = new GenericRepository<Plan>(_context);
+            NotifyTenants = new NotifyTenantRepository(_context);
+            Notifications = new NotificationRepository(_context);
         }
 
         public async Task SaveAsync()
