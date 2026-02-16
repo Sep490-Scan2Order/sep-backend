@@ -14,6 +14,7 @@ builder.Services.AddSwaggerConfig();
 builder.Services.AddDIConfig(builder.Configuration);
 builder.Services.AddAuthConfig(builder.Configuration);
 builder.Services.AddN8NServices(builder.Configuration);
+builder.Services.AddRedisCloudServices(builder.Configuration);
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("scan2order.io.vn"));
 
 builder.Services.AddCors(options =>

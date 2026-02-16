@@ -1,28 +1,50 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ScanToOrder.Application.DTOs.Otp;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Domain.Interfaces;
+using ScanToOrder.Application.Message;
 
 namespace ScanToOrder.Api.Controllers
 {
     public class OtpController : BaseController
     {
-        private readonly IOtpService _otpService;
-        public OtpController(IOtpService otpService)
+        private readonly IOtpRedisService _otpRedisService;
+        public OtpController(IOtpRedisService otpRedisService)
         {
-            _otpService = otpService;
+            _otpRedisService = otpRedisService;
         }
-        [HttpPost("generate")]
-        public async Task<IActionResult> GenerateOtp([FromBody] string email)
+
+        [HttpGet("verify-register")]
+        public async Task<IActionResult> VerifyOtp([FromQuery] string email, [FromQuery] string inputOtp)
         {
-            var otpCode = await _otpService.GenerateOtpAsync(email);
-            return Ok(otpCode);
+            var savedOtp = await _otpRedisService.GetOtpAsync(email, OtpMessage.OTP_REGISTER);
+
+            if (string.IsNullOrEmpty(savedOtp))
+            {
+                return BadRequest(new { message = "Mã OTP đã hết hạn hoặc không tồn tại." });
+            }
+
+            if (savedOtp != inputOtp)
+            {
+                return BadRequest(new { message = "Mã OTP không chính xác." });
+            }
+
+            await _otpRedisService.DeleteOtpAsync(email, OtpMessage.OTP_REGISTER);
+
+            return Ok(new { message = "Xác thực OTP thành công!" });
         }
-        [HttpPost("validate")]
-        public async Task<IActionResult> ValidateOtp([FromBody] OtpValidationRequest request)
+
+        [HttpPost("send-register")]
+        public async Task<IActionResult> SendOtp([FromQuery] string email)
         {
-            bool isValid = await _otpService.ValidateOtpAsync(request.Email, request.Otp);
-            return Ok(isValid);
+            if (string.IsNullOrEmpty(email))
+                return BadRequest("Email không được để trống.");
+
+            string resultMessage = await _otpRedisService.GenerateAndSaveOtpAsync(email, OtpMessage.OTP_REGISTER);
+
+            return Ok(new
+            {
+                message = resultMessage,
+                expires_in = "30 minutes"
+            });
         }
     }
 }

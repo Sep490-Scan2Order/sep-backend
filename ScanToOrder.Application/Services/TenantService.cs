@@ -1,11 +1,10 @@
 ﻿using AutoMapper;
-using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Interfaces;
-using System.Net.Http.Json;
 
 namespace ScanToOrder.Application.Services
 {
@@ -13,24 +12,26 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly ITaxService _taxService; 
-        private readonly IOtpService _otpService;
+        private readonly ITaxService _taxService;
+        private readonly IOtpRedisService _otpRedisService; 
 
-        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, ITaxService taxService, IOtpService otpService)
+        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, ITaxService taxService, IOtpRedisService otpRedisService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _taxService = taxService;
-            _otpService = otpService;
+            _otpRedisService = otpRedisService;
         }
 
         public async Task<TenantDto> RegisterTenantAsync(RegisterTenantRequest request)
         {
-            var isOtpValid = await _otpService.ValidateOtpAsync(request.Email, request.OtpCode);
-            if (!isOtpValid)
+            var savedOtp = await _otpRedisService.GetOtpAsync(request.Email, OtpMessage.OTP_REGISTER);
+
+            if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
             {
                 throw new Exception("Mã OTP không chính xác hoặc đã hết hạn.");
             }
+
             if (!string.IsNullOrEmpty(request.TaxNumber))
             {
                 var isValid = await _taxService.IsTaxCodeValidAsync(request.TaxNumber);
@@ -42,13 +43,13 @@ namespace ScanToOrder.Application.Services
             userEntity.Verified = true;
 
             var tenantEntity = _mapper.Map<Tenant>(request);
-
             tenantEntity.AccountId = userEntity.Id;
 
             await _unitOfWork.AuthenticationUsers.AddAsync(userEntity);
             await _unitOfWork.Tenants.AddAsync(tenantEntity);
-
             await _unitOfWork.SaveAsync();
+
+            await _otpRedisService.DeleteOtpAsync(request.Email, "Register");
 
             return _mapper.Map<TenantDto>(tenantEntity);
         }

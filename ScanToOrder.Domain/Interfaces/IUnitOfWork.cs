@@ -1,7 +1,6 @@
 using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Notifications;
-using ScanToOrder.Domain.Entities.OTPs;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
@@ -26,7 +25,6 @@ namespace ScanToOrder.Domain.Interfaces
         IGenericRepository<Notification> Notifications { get; }
         IGenericRepository<Voucher> Vouchers { get; }          
         IGenericRepository<MemberVoucher> MemberVouchers { get; }
-        IGenericRepository<OTP> OTPs { get; }
         Task SaveAsync();
     }
 }

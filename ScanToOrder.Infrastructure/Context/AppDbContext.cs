@@ -7,7 +7,6 @@ using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Orders;
-using ScanToOrder.Domain.Entities.OTPs;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
@@ -52,7 +51,6 @@ public class AppDbContext : DbContext
     public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;
     public DbSet<NotifyTenant> NotifyTenants { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
-    public DbSet<OTP> OTPs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -113,9 +111,5 @@ public class AppDbContext : DbContext
                   .HasForeignKey(d => d.TenantId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
-
-        modelBuilder.Entity<OTP>()
-            .Property(o => o.Purpose)
-            .HasConversion<string>();
     }
 }
