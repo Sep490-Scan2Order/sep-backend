@@ -28,5 +28,10 @@ namespace ScanToOrder.Application.Services
                 TenantId = notifyTenant.TenantId
             };
         }
+
+        public async Task<IEnumerable<NotifyTenant>> GetNotifyTenantsByTenantIdAsync()
+        {
+            return await _unitOfWork.NotifyTenants.GetAllAsync();
+        }
     }
 }

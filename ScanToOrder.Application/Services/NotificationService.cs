@@ -1,5 +1,6 @@
 ﻿using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services
@@ -29,6 +30,11 @@ namespace ScanToOrder.Application.Services
                 SystemBlogUrl = notification.SystemBlogUrl,
                 SentAt = notification.SentAt
             };
+        }
+
+        public async Task<IEnumerable<Notification>> GetNotificationsByTenantIdAsync()
+        {
+            return await _unitOfWork.Notifications.GetAllAsync();
         }
     }
 }

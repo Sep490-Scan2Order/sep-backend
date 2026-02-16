@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Domain.Entities.User;
+﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.User;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -6,7 +7,7 @@ namespace ScanToOrder.Domain.Entities.Notifications
 {
 
     [Table("NotifyTenant")]
-    public class NotifyTenant
+    public class NotifyTenant : BaseEntity<int>
     {
         [Key]
         public int NotifyTenantId { get; set; }
@@ -23,5 +24,12 @@ namespace ScanToOrder.Domain.Entities.Notifications
 
         [NotMapped]
         public bool IsDeleted { get; set; }
+        [NotMapped]
+        public DateTime CreatedAt { get; set; }
+        [NotMapped]
+        public int Id { get; set; }
+        [NotMapped]
+        public DateTime? UpdatedAt { get; set; }
+
     }
 }

@@ -17,5 +17,11 @@ namespace ScanToOrder.Api.Controllers
             var result = await _notificationService.CreateNotificationAsync(request);
             return Ok(result);
         }
+        [HttpGet]
+        public async Task<IActionResult> GetNotificationsByTenantId()
+        {
+            var result = await _notificationService.GetNotificationsByTenantIdAsync();
+            return Ok(result);
+        }
     }
 }
