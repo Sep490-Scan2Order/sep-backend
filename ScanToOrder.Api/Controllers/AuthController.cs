@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Auth;
 using ScanToOrder.Application.Interfaces;
@@ -53,6 +54,13 @@ public class AuthController : BaseController
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        return Success<object?>(null, "Đăng xuất thành công.");
     }
 }
 
