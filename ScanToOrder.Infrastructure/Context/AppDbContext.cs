@@ -6,7 +6,6 @@ using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.Notifications;
-using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;

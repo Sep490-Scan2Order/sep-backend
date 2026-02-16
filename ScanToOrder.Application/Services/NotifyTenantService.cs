@@ -1,6 +1,6 @@
 ﻿using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
+using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services

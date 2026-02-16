@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
+﻿using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 

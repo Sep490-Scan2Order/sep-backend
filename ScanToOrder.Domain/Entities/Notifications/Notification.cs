@@ -1,5 +1,4 @@
 ﻿using ScanToOrder.Domain.Entities.Base;
-using ScanToOrder.Domain.Entities.Notifications.ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
