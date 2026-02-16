@@ -5,6 +5,7 @@ using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Entities.Vouchers;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -22,6 +23,8 @@ namespace ScanToOrder.Domain.Interfaces
         IGenericRepository<SystemBlog> SystemBlogs { get; }
         IGenericRepository<NotifyTenant> NotifyTenants { get; }
         IGenericRepository<Notification> Notifications { get; }
+        IGenericRepository<Voucher> Vouchers { get; }          
+        IGenericRepository<MemberVoucher> MemberVouchers { get; }
         Task SaveAsync();
     }
 }

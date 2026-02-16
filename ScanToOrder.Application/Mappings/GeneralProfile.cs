@@ -2,8 +2,10 @@
 using NetTopologySuite.Geometries;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.DTOs.Restaurant;
+using ScanToOrder.Application.DTOs.Voucher;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
+using ScanToOrder.Domain.Entities.Vouchers;
 
 namespace ScanToOrder.Application.Mappings
 {
@@ -24,6 +26,12 @@ namespace ScanToOrder.Application.Mappings
                     : null));
 
             CreateMap<Plan, PlanDto>().ReverseMap();
+
+            CreateMap<CreateVoucherDto, Voucher>()
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src =>$"PHIẾU GIẢM GIÁ {src.Name} ĐỔI TỪ ĐIỂM TÍCH LŨY"))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description ?? string.Empty));
+
+            CreateMap<Voucher, VoucherResponseDto>();
         }
     }
 }
