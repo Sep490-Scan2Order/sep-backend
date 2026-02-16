@@ -77,5 +77,52 @@ namespace ScanToOrder.Infrastructure.Services
                 };
             }
         }
+
+        public async Task<ApiResponse<bool>> SendEmailWithTemplateAsync(
+                string to,
+                string subject,
+                string templateId,
+                object templateParams)
+        {
+            try
+            {
+                var requestData = new
+                {
+                    from = _emailSettings.FromEmail,
+                    to = new[] { to },
+                    subject,
+                    template = new
+                    {
+                        id = templateId,
+                        variables = templateParams
+                    }
+                };
+
+                var json = JsonSerializer.Serialize(requestData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_emailSettings.ApiKey}");
+
+                var response = await _httpClient.PostAsync("https://api.resend.com/emails", content);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation($"Email sent successfully via template to {to}");
+                    return new ApiResponse<bool> { IsSuccess = true, Data = true };
+                }
+                else
+                {
+                    _logger.LogError($"Resend Error: {responseBody}");
+                    return new ApiResponse<bool> { IsSuccess = false, Message = responseBody };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception in SendEmailWithTemplateAsync");
+                return new ApiResponse<bool> { IsSuccess = false, Message = ex.Message };
+            }
+        }
     }
 }

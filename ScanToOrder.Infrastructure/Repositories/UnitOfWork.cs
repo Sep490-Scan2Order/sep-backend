@@ -1,6 +1,7 @@
 using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Notifications;
+using ScanToOrder.Domain.Entities.OTPs;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
@@ -30,6 +31,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IGenericRepository<Plan> Plans { get; }
         public IGenericRepository<Voucher> Vouchers { get; } 
         public IGenericRepository<MemberVoucher> MemberVouchers { get; }
+        public IGenericRepository<OTP> OTPs { get; }
 
         public UnitOfWork(AppDbContext context)
         {
@@ -48,6 +50,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             Notifications = new NotificationRepository(_context);
             Vouchers = new GenericRepository<Voucher>(_context);
             MemberVouchers = new GenericRepository<MemberVoucher>(_context);
+            OTPs = new GenericRepository<OTP>(_context);
         }
 
         public async Task SaveAsync()

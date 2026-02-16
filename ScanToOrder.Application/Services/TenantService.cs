@@ -14,16 +14,23 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ITaxService _taxService; 
+        private readonly IOtpService _otpService;
 
-        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, ITaxService taxService)
+        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, ITaxService taxService, IOtpService otpService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _taxService = taxService;
+            _otpService = otpService;
         }
 
         public async Task<TenantDto> RegisterTenantAsync(RegisterTenantRequest request)
         {
+            var isOtpValid = await _otpService.ValidateOtpAsync(request.Email, request.OtpCode);
+            if (!isOtpValid)
+            {
+                throw new Exception("Mã OTP không chính xác hoặc đã hết hạn.");
+            }
             if (!string.IsNullOrEmpty(request.TaxNumber))
             {
                 var isValid = await _taxService.IsTaxCodeValidAsync(request.TaxNumber);
@@ -32,6 +39,7 @@ namespace ScanToOrder.Application.Services
 
             var userEntity = _mapper.Map<AuthenticationUser>(request);
             userEntity.Password = request.Password;
+            userEntity.Verified = true;
 
             var tenantEntity = _mapper.Map<Tenant>(request);
 
