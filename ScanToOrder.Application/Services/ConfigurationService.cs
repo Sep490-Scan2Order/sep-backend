@@ -1,4 +1,5 @@
 ﻿using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Interfaces;
 
@@ -11,12 +12,16 @@ namespace ScanToOrder.Application.Services
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<Configurations> GetConfigurationsAsync()
+        public async Task<ApiResponse<Configurations>> GetConfigurationsAsync()
         {
             var configurations = await _unitOfWork.Configurations.GetAllAsync();
-            return configurations.FirstOrDefault() ?? new Configurations();
+            return new ApiResponse<Configurations>
+            {
+                IsSuccess = true,
+                Data = configurations.FirstOrDefault() ?? new Configurations()
+            };
         }
-        public async Task<Configurations> UpdateConfigurationsAsync(Configurations configurations)
+        public async Task<ApiResponse<Configurations>> UpdateConfigurationsAsync(Configurations configurations)
         {
             var existingConfig = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
             if (existingConfig == null)
@@ -33,7 +38,11 @@ namespace ScanToOrder.Application.Services
                 _unitOfWork.Configurations.Update(existingConfig);
             }
             await _unitOfWork.SaveAsync();
-            return configurations;
+            return new ApiResponse<Configurations>
+            {
+                IsSuccess = true,
+                Data = configurations
+            };
         }
     }
 }

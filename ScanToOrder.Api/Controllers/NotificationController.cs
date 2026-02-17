@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Entities.Notifications;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -12,16 +14,26 @@ namespace ScanToOrder.Api.Controllers
             _notificationService = notificationService;
         }
         [HttpPost]
-        public async Task<IActionResult> CreateNotification(CreateNotificationDtoRequest request)
+        public async Task<ApiResponse<CreateNotificationDtoResponse>> CreateNotification(CreateNotificationDtoRequest request)
         {
             var result = await _notificationService.CreateNotificationAsync(request);
-            return Ok(result);
+            return new ApiResponse<CreateNotificationDtoResponse>
+            {
+                IsSuccess = result.IsSuccess,
+                Data = result.Data,
+                Message = result.Message
+            };
         }
         [HttpGet]
-        public async Task<IActionResult> GetNotificationsByTenantId()
+        public async Task<ApiResponse<IEnumerable<Notification>>> GetNotifications()
         {
-            var result = await _notificationService.GetNotificationsByTenantIdAsync();
-            return Ok(result);
+            var result = await _notificationService.GetNotificationsAsync();
+            return new ApiResponse<IEnumerable<Notification>>
+            {
+                IsSuccess = result.IsSuccess,
+                Data = result.Data,
+                Message = result.Message
+            };
         }
     }
 }

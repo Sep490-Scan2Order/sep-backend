@@ -1,11 +1,12 @@
 ﻿using ScanToOrder.Application.DTOs.Notification;
+using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Notifications;
 
 namespace ScanToOrder.Application.Interfaces
 {
     public interface INotificationService
     {
-        Task<CreateNotificationDtoResponse> CreateNotificationAsync(CreateNotificationDtoRequest request);
-        Task<IEnumerable<Notification>> GetNotificationsByTenantIdAsync();
+        Task<ApiResponse<CreateNotificationDtoResponse>> CreateNotificationAsync(CreateNotificationDtoRequest request);
+        Task<ApiResponse<IEnumerable<Notification>>> GetNotificationsAsync();
     }
 }

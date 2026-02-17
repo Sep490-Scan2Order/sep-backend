@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Entities.Notifications;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -12,16 +14,26 @@ namespace ScanToOrder.Api.Controllers
             _notifyTenantService = notifyTenantService;
         }
         [HttpPost]
-        public async Task<IActionResult> CreateNotifyTenant(CreateNotifyTenantDtoRequest request)
+        public async Task<ApiResponse<CreateNotifyTenantDtoResponse>> CreateNotifyTenant(CreateNotifyTenantDtoRequest request)
         {
             var result = await _notifyTenantService.CreateNotifyTenantAsync(request);
-            return Ok(result);
+            return new ApiResponse<CreateNotifyTenantDtoResponse>
+            {
+                IsSuccess = result.IsSuccess,
+                Data = result.Data,
+                Message = result.Message
+            };
         }
         [HttpGet]
-        public async Task<IActionResult> GetNotifyTenantsByTenantId()
+        public async Task<ApiResponse<IEnumerable<NotifyTenant>>> GetNotifyTenants()
         {
-            var result = await _notifyTenantService.GetNotifyTenantsByTenantIdAsync();
-            return Ok(result);
+            var result = await _notifyTenantService.GetNotifyTenantsAsync();
+            return new ApiResponse<IEnumerable<NotifyTenant>>
+            {
+                IsSuccess = result.IsSuccess,
+                Data = result.Data,
+                Message = result.Message
+            };
         }
     }
 }

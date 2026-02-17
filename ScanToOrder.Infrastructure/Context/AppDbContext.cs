@@ -82,6 +82,13 @@ public class AppDbContext : DbContext
             .HasForeignKey<PointHistory>(ph => ph.MemberVoucherId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<Notification>()
+            .Property(n => n.NotificationId)
+            .UseIdentityByDefaultColumn();
+
+        modelBuilder.Entity<Notification>()
+            .Property(e => e.NotifyStatus)
+            .HasConversion<string>(); 
 
         modelBuilder.Entity<Order>()
             .Property(o => o.Status)

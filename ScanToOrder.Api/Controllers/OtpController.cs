@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Application.Wrapper;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -13,38 +14,50 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("verify-register")]
-        public async Task<IActionResult> VerifyOtp([FromQuery] string email, [FromQuery] string inputOtp)
+        public async Task<ApiResponse<string>> VerifyOtp([FromQuery] string email, [FromQuery] string inputOtp)
         {
-            var savedOtp = await _otpRedisService.GetOtpAsync(email, OtpMessage.OTP_REGISTER);
+            var savedOtpResponse = await _otpRedisService.GetOtpAsync(email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
-            if (string.IsNullOrEmpty(savedOtp))
+            if (!savedOtpResponse.IsSuccess || string.IsNullOrEmpty(savedOtpResponse.Data))
             {
-                return BadRequest(new { message = "Mã OTP đã hết hạn hoặc không tồn tại." });
+                return new ApiResponse<string>
+                {
+                    IsSuccess = false,
+                    Message = OtpMessage.OtpError.OTP_UNKNOWN
+                };
             }
 
-            if (savedOtp != inputOtp)
+            if (savedOtpResponse.Data != inputOtp)
             {
-                return BadRequest(new { message = "Mã OTP không chính xác." });
+                return new ApiResponse<string>
+                {
+                    IsSuccess = false,
+                    Message = OtpMessage.OtpError.OTP_INVALID
+                };
             }
 
-            await _otpRedisService.DeleteOtpAsync(email, OtpMessage.OTP_REGISTER);
+            await _otpRedisService.DeleteOtpAsync(email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
-            return Ok(new { message = "Xác thực OTP thành công!" });
+            return new ApiResponse<string>
+            {
+                IsSuccess = true,
+                Message = OtpMessage.OtpSuccess.OTP_VALIDATED
+            };
         }
 
         [HttpPost("send-register")]
-        public async Task<IActionResult> SendOtp([FromQuery] string email)
+        public async Task<ApiResponse<string>> SendOtp([FromQuery] string email)
         {
             if (string.IsNullOrEmpty(email))
-                return BadRequest("Email không được để trống.");
+                return new ApiResponse<string>
+                {
+                    IsSuccess = false,
+                    Message = EmailMessage.EmailError.EMAIL_NOT_NULL
+                };
 
-            string resultMessage = await _otpRedisService.GenerateAndSaveOtpAsync(email, OtpMessage.OTP_REGISTER);
+            var result = await _otpRedisService.GenerateAndSaveOtpAsync(email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
-            return Ok(new
-            {
-                message = resultMessage,
-                expires_in = "30 minutes"
-            });
+            return result;
         }
     }
 }

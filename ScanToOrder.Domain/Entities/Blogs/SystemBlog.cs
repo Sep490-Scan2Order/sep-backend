@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ScanToOrder.Domain.Entities.Blogs
 {
     [Table("SystemBlog")] 
-    public class SystemBlog
+    public class SystemBlog : BaseEntity<int>
     {
         public int SystemBlogId { get; set; }
 
@@ -21,5 +21,9 @@ namespace ScanToOrder.Domain.Entities.Blogs
         public string ImageUrl { get; set; } = "[]";
 
         public BlogType BlogType { get; set; }
+        [NotMapped]
+        public int Id { get; set; }
+        [NotMapped]
+        public new bool IsDeleted { get; set; }
     }
 }

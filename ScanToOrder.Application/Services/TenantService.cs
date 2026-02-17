@@ -2,6 +2,7 @@
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Interfaces;
@@ -23,9 +24,11 @@ namespace ScanToOrder.Application.Services
             _otpRedisService = otpRedisService;
         }
 
-        public async Task<TenantDto> RegisterTenantAsync(RegisterTenantRequest request)
+        public async Task<ApiResponse<TenantDto>> RegisterTenantAsync(RegisterTenantRequest request)
         {
-            var savedOtp = await _otpRedisService.GetOtpAsync(request.Email, OtpMessage.OTP_REGISTER);
+            var otpResponse = await _otpRedisService.GetOtpAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
+
+            var savedOtp = otpResponse.Data;
 
             if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
             {
@@ -51,7 +54,12 @@ namespace ScanToOrder.Application.Services
 
             await _otpRedisService.DeleteOtpAsync(request.Email, "Register");
 
-            return _mapper.Map<TenantDto>(tenantEntity);
+            return new ApiResponse<TenantDto>
+            {
+                IsSuccess = true,
+                Message = "Đăng ký thành công",
+                Data = _mapper.Map<TenantDto>(tenantEntity)
+            };
         }
     }
 }

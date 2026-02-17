@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.SystemBlog;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Entities.Blogs;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -12,16 +14,29 @@ namespace ScanToOrder.Api.Controllers
             _systemBlogService = systemBlogService;
         }
         [HttpPost]
-        public async Task<IActionResult> AddSystemBlog([FromBody] AddSystemBlogDtoRequest request)
+        public async Task<ApiResponse<AddSystemBlogDtoResponse>> AddSystemBlog([FromBody] AddSystemBlogDtoRequest request)
         {
             var response = await _systemBlogService.AddSystemBlogAsync(request);
-            return Ok(response);
+            return new ApiResponse<AddSystemBlogDtoResponse>
+            {
+                IsSuccess = response.IsSuccess,
+                Data = response.Data,
+                Message = response.Message,
+                Timestamp = DateTime.UtcNow
+            };
         }
+
         [HttpGet]
-        public async Task<IActionResult> GetSystemBlogs()
+        public async Task<ApiResponse<IEnumerable<SystemBlog>>> GetSystemBlogs()
         {
             var blogs = await _systemBlogService.GetSystemBlogAsync();
-            return Ok(blogs);
+            return new ApiResponse<IEnumerable<SystemBlog>>
+            {
+                IsSuccess = blogs.IsSuccess,
+                Data = blogs.Data,
+                Message = blogs.Message,
+                Timestamp = DateTime.UtcNow
+            };
         }
     }
 }

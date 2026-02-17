@@ -5,6 +5,7 @@ using ScanToOrder.Infrastructure.Configuration;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using ScanToOrder.Application.Message;
 
 namespace ScanToOrder.Infrastructure.Services
 {
@@ -31,7 +32,7 @@ namespace ScanToOrder.Infrastructure.Services
                 {
                     from = _emailSettings.FromEmail,
                     to = new[] { to },
-                    subject = subject,
+                    subject,
                     html = htmlContent
                 };
 
@@ -45,11 +46,11 @@ namespace ScanToOrder.Infrastructure.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation($"Email sent successfully to {to}");
+                    _logger.LogInformation($"{EmailMessage.EmailSuccess.EMAIL_SENT} tới {to}");
                     return new ApiResponse<bool>
                     {
                         IsSuccess = true,
-                        Message = "Email sent successfully",
+                        Message = EmailMessage.EmailSuccess.EMAIL_SENT,
                         Data = true
                     };
                 }
@@ -109,7 +110,7 @@ namespace ScanToOrder.Infrastructure.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation($"Email sent successfully via template to {to}");
+                    _logger.LogInformation($"{EmailMessage.EmailSuccess.EMAIL_SENT_VIA_TEMPLATE} tới {to}");
                     return new ApiResponse<bool> { IsSuccess = true, Data = true };
                 }
                 else

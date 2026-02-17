@@ -1,5 +1,6 @@
 ﻿using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Interfaces;
 
@@ -12,7 +13,7 @@ namespace ScanToOrder.Application.Services
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<CreateNotifyTenantDtoResponse> CreateNotifyTenantAsync(CreateNotifyTenantDtoRequest request)
+        public async Task<ApiResponse<CreateNotifyTenantDtoResponse>> CreateNotifyTenantAsync(CreateNotifyTenantDtoRequest request)
         {
             var notifyTenant = new NotifyTenant
             {
@@ -21,17 +22,26 @@ namespace ScanToOrder.Application.Services
             };
             await _unitOfWork.NotifyTenants.AddAsync(notifyTenant);
             await _unitOfWork.SaveAsync();
-            return new CreateNotifyTenantDtoResponse
+            return new ApiResponse<CreateNotifyTenantDtoResponse>
             {
-                Id = notifyTenant.NotifyTenantId,
-                NotificationId = notifyTenant.NotificationId,
-                TenantId = notifyTenant.TenantId
+                IsSuccess = true,
+                Data = new CreateNotifyTenantDtoResponse
+                {
+                    Id = notifyTenant.Id,
+                    NotificationId = notifyTenant.NotificationId,
+                    TenantId = notifyTenant.TenantId
+                }
             };
         }
 
-        public async Task<IEnumerable<NotifyTenant>> GetNotifyTenantsByTenantIdAsync()
+        public async Task<ApiResponse<IEnumerable<NotifyTenant>>> GetNotifyTenantsAsync()
         {
-            return await _unitOfWork.NotifyTenants.GetAllAsync();
+            var notifyTenants = await _unitOfWork.NotifyTenants.GetAllAsync();
+            return new ApiResponse<IEnumerable<NotifyTenant>>
+            {
+                IsSuccess = true,
+                Data = notifyTenants
+            };
         }
     }
 }

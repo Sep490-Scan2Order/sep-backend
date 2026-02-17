@@ -1,6 +1,5 @@
 using ScanToOrder.Api.Extensions;
 using ScanToOrder.Api.Middleware;
-using ScanToOrder.Infrastructure.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +14,7 @@ builder.Services.AddDIConfig(builder.Configuration);
 builder.Services.AddAuthConfig(builder.Configuration);
 builder.Services.AddN8NServices(builder.Configuration);
 builder.Services.AddRedisCloudServices(builder.Configuration);
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("scan2order.io.vn"));
+builder.Services.AddEmailServices(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
