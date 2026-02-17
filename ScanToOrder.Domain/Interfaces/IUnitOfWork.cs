@@ -6,6 +6,7 @@ using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Vouchers;
+using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -17,7 +18,7 @@ namespace ScanToOrder.Domain.Interfaces
         IGenericRepository<Restaurant> Restaurants { get; }
         IGenericRepository<Customer> Customers { get; }
         IGenericRepository<PointHistory> PointHistories { get; }
-        IGenericRepository<MemberPoint> MemberPoints { get; }
+        IMemberPointRepository MemberPoints { get; }
         IGenericRepository<Plan> Plans { get; }
         IGenericRepository<Configurations> Configurations { get; }
         IGenericRepository<SystemBlog> SystemBlogs { get; }

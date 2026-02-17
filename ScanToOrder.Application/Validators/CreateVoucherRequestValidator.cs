@@ -15,10 +15,10 @@ namespace ScanToOrder.Application.Validators
                 .GreaterThan(0);
 
             RuleFor(x => x.MinOrderAmount)
-                .GreaterThanOrEqualTo(0);
+                .GreaterThan(0);
 
             RuleFor(x => x.PointRequire)
-                .GreaterThanOrEqualTo(0);
+                .GreaterThan(0);
         }
     }
 }

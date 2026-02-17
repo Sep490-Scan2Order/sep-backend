@@ -1,7 +1,8 @@
-﻿using ScanToOrder.Application.DTOs.MemberPoint;
+using ScanToOrder.Application.DTOs.MemberPoint;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Interfaces;
+using System;
 
 namespace ScanToOrder.Application.Services
 {
@@ -12,6 +13,7 @@ namespace ScanToOrder.Application.Services
         {
             _unitOfWork = unitOfWork;
         }
+
         public async Task<AddMemberPointDtoResponse> AddMemberPointAsync(AddMemberPointDtoRequest memberPointDto)
         {
             var memberPoint = new MemberPoint
@@ -31,6 +33,12 @@ namespace ScanToOrder.Application.Services
                 RedeemAt = memberPoint.RedeemAt,
                 CustomerId = memberPoint.CustomerId
             };
+        }
+
+        public async Task<int> GetCurrentPointAsync(Guid accountId)
+        {
+            var memberPoint = await _unitOfWork.MemberPoints.GetByAccountIdAsync(accountId);
+            return memberPoint?.CurrentPoint ?? 0;
         }
     }
 }

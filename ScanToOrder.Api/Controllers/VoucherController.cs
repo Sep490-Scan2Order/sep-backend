@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Voucher;
@@ -20,6 +20,13 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _voucherService.CreateAsync(request);
             return Success(result, "Tạo voucher thành công.");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _voucherService.GetAllAsync();
+            return Success(result, "Lấy danh sách voucher thành công.");
         }
     }
 }

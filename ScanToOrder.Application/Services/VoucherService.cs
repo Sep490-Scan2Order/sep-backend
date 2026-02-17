@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentValidation;
 using ScanToOrder.Application.DTOs.Voucher;
 using ScanToOrder.Application.Interfaces;
@@ -43,6 +43,12 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             return _mapper.Map<VoucherResponseDto>(entity);
+        }
+
+        public async Task<List<VoucherResponseDto>> GetAllAsync()
+        {
+            var vouchers = await _unitOfWork.Vouchers.GetAllAsync();
+            return _mapper.Map<List<VoucherResponseDto>>(vouchers);
         }
     }
 }

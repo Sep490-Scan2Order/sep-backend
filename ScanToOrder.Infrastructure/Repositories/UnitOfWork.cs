@@ -22,7 +22,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IGenericRepository<Restaurant> Restaurants { get; }
         public IGenericRepository<Customer> Customers { get; }
         public IGenericRepository<PointHistory> PointHistories { get; }
-        public IGenericRepository<MemberPoint> MemberPoints { get; }
+        public IMemberPointRepository MemberPoints { get; }
         public IGenericRepository<Configurations> Configurations { get; }
         public IGenericRepository<SystemBlog> SystemBlogs { get; }
         public IGenericRepository<NotifyTenant> NotifyTenants { get; }
@@ -40,7 +40,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             Restaurants = new GenericRepository<Restaurant>(_context);
             Customers = new GenericRepository<Customer>(_context);
             PointHistories = new GenericRepository<PointHistory>(_context);
-            MemberPoints = new GenericRepository<MemberPoint>(_context);
+            MemberPoints = new MemberPointRepository(_context);
             Configurations = new GenericRepository<Configurations>(_context);
             SystemBlogs = new GenericRepository<SystemBlog>(_context);
             Plans = new GenericRepository<Plan>(_context);
