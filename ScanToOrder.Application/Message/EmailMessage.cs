@@ -14,5 +14,13 @@
             public const string EMAIL_SENT = "Email đã được gửi thành công.";
             public const string EMAIL_SENT_VIA_TEMPLATE = "Email đã được gửi thành công từ template.";
         }
+
+        public class EmailSubject
+        {
+            public const string REGISTER_SUBJECT = "Xác minh tài khoản Scan2Order";
+            public const string FORGOT_PASSWORD_SUBJECT = "Khôi phục mật khẩu Scan2Order";
+            public const string DEFAULT_SUBJECT = "Thông báo từ Scan2Order";
+            public const string RESET_PASSWORD_SUBJECT = "Đặt lại mật khẩu Scan2Order";
+        }
     }
 }

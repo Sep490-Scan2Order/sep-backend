@@ -47,15 +47,41 @@ public class OtpRedisService : IOtpRedisService
 
         await SaveOtpAsync(email, otpCode, purpose);
 
-        string templateId = ResendTemplate.REGISTER_TEMPLATE_ID;
+        string templateId;
+        string subject;
+
+        switch (purpose)
+        {
+            case OtpMessage.OtpKeyword.OTP_REGISTER:
+                templateId = ResendTemplate.REGISTER_TEMPLATE_ID;
+                subject = EmailMessage.EmailSubject.REGISTER_SUBJECT;
+                break;
+
+            case OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD:
+                templateId = ResendTemplate.FORGOT_PASSWORD_TEMPLATE_ID;
+                subject = EmailMessage.EmailSubject.FORGOT_PASSWORD_SUBJECT;
+                break;
+
+            case OtpMessage.OtpKeyword.OTP_RESET_PASSWORD:
+                templateId = ResendTemplate.RESET_PASSWORD_TEMPLATE_ID;
+                subject = EmailMessage.EmailSubject.RESET_PASSWORD_SUBJECT;
+                break;
+
+            default:
+                templateId = ResendTemplate.REGISTER_TEMPLATE_ID;
+                subject = EmailMessage.EmailSubject.DEFAULT_SUBJECT;
+                break;
+        }
+
         var templateParams = new
         {
-            OTP = int.Parse(otpCode)
+            OTP = otpCode,
+            ExpiryTime = DateTime.UtcNow.AddMinutes(5).ToString("HH:mm:ss")
         };
 
         await _emailService.SendEmailWithTemplateAsync(
             email,
-            "Xác minh tài khoản Scan2Order",
+            subject,
             templateId,
             templateParams
         );

@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Interfaces;
 

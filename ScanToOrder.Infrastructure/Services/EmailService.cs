@@ -40,7 +40,7 @@ namespace ScanToOrder.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_emailSettings.ApiKey}");
 
-            var response = await _httpClient.PostAsync("https://api.resend.com/emails", content);
+            var response = await _httpClient.PostAsync(_emailSettings.ApiUrl, content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -77,7 +77,7 @@ namespace ScanToOrder.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_emailSettings.ApiKey}");
 
-            var response = await _httpClient.PostAsync("https://api.resend.com/emails", content);
+            var response = await _httpClient.PostAsync(_emailSettings.ApiUrl, content);
             var responseBody = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
