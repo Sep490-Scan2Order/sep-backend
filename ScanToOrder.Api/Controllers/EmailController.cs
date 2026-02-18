@@ -3,6 +3,7 @@ using ScanToOrder.Application.DTOs.Email;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -14,24 +15,10 @@ namespace ScanToOrder.Api.Controllers
             _emailService = emailService;
         }
         [HttpPost("send")]
-        public async Task<ApiResponse<bool>> SendEmail([FromBody] SendEmailRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> SendEmail([FromBody] SendEmailRequest request)
         {
             var result = await _emailService.SendEmailAsync(request.To, request.Subject, request.HtmlContent);
-            if (result.IsSuccess)
-            {
-                return new ApiResponse<bool>
-                {
-                    IsSuccess = true,
-                    Message = EmailMessage.EmailSuccess.EMAIL_SENT,
-                    Data = true
-                };
-            }
-            return new ApiResponse<bool>
-            {
-                IsSuccess = false,
-                Message = EmailMessage.EmailError.EMAIL_FAILED,
-                Errors = result.Errors
-            };
+            return Success(result);
         }
     }
 }

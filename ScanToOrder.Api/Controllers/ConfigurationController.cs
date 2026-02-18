@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Configuration;
@@ -13,24 +14,16 @@ namespace ScanToOrder.Api.Controllers
             _configurationService = configurationService;
         }
         [HttpGet]
-        public async Task<ApiResponse<Configurations>> GetConfigurations()
+        public async Task<ActionResult<ApiResponse<ConfigurationResponse>>> GetConfigurations()
         {
             var configurations = await _configurationService.GetConfigurationsAsync();
-            return new ApiResponse<Configurations>
-            {
-                IsSuccess = configurations.IsSuccess,
-                Data = configurations.Data
-            };
+            return Success(configurations);
         }
         [HttpPut]
-        public async Task<ApiResponse<Configurations>> UpdateConfigurations([FromBody] Configurations configurations)
+        public async Task<ActionResult<ApiResponse<ConfigurationResponse>>> UpdateConfigurations([FromBody] Configurations configurations)
         {
             var updatedConfig = await _configurationService.UpdateConfigurationsAsync(configurations);
-            return new ApiResponse<Configurations>
-            {
-                IsSuccess = updatedConfig.IsSuccess,
-                Data = updatedConfig.Data
-            };
+            return Success(updatedConfig);
         }
     }
 }

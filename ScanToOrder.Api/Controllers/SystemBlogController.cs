@@ -14,29 +14,17 @@ namespace ScanToOrder.Api.Controllers
             _systemBlogService = systemBlogService;
         }
         [HttpPost]
-        public async Task<ApiResponse<AddSystemBlogDtoResponse>> AddSystemBlog([FromBody] AddSystemBlogDtoRequest request)
+        public async Task<ActionResult<ApiResponse<AddSystemBlogDtoResponse>>> AddSystemBlog([FromBody] AddSystemBlogDtoRequest request)
         {
             var response = await _systemBlogService.AddSystemBlogAsync(request);
-            return new ApiResponse<AddSystemBlogDtoResponse>
-            {
-                IsSuccess = response.IsSuccess,
-                Data = response.Data,
-                Message = response.Message,
-                Timestamp = DateTime.UtcNow
-            };
+            return Success(response);
         }
 
         [HttpGet]
-        public async Task<ApiResponse<IEnumerable<SystemBlog>>> GetSystemBlogs()
+        public async Task<ActionResult<ApiResponse<IEnumerable<SystemBlog>>>> GetSystemBlogs()
         {
             var blogs = await _systemBlogService.GetSystemBlogAsync();
-            return new ApiResponse<IEnumerable<SystemBlog>>
-            {
-                IsSuccess = blogs.IsSuccess,
-                Data = blogs.Data,
-                Message = blogs.Message,
-                Timestamp = DateTime.UtcNow
-            };
+            return Success(blogs);
         }
     }
 }

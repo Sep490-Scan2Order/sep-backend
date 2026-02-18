@@ -14,26 +14,16 @@ namespace ScanToOrder.Api.Controllers
             _notificationService = notificationService;
         }
         [HttpPost]
-        public async Task<ApiResponse<CreateNotificationDtoResponse>> CreateNotification(CreateNotificationDtoRequest request)
+        public async Task<ActionResult<ApiResponse<CreateNotificationDtoResponse>>> CreateNotification(CreateNotificationDtoRequest request)
         {
             var result = await _notificationService.CreateNotificationAsync(request);
-            return new ApiResponse<CreateNotificationDtoResponse>
-            {
-                IsSuccess = result.IsSuccess,
-                Data = result.Data,
-                Message = result.Message
-            };
+            return Success(result);
         }
         [HttpGet]
-        public async Task<ApiResponse<IEnumerable<Notification>>> GetNotifications()
+        public async Task<ActionResult<ApiResponse<IEnumerable<Notification>>>> GetNotifications()
         {
             var result = await _notificationService.GetNotificationsAsync();
-            return new ApiResponse<IEnumerable<Notification>>
-            {
-                IsSuccess = result.IsSuccess,
-                Data = result.Data,
-                Message = result.Message
-            };
+            return Success(result);
         }
     }
 }

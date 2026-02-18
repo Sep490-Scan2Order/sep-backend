@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -14,7 +16,7 @@ namespace ScanToOrder.Api.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPlan()
+        public async Task<ActionResult<ApiResponse<List<PlanDto>>>> GetAllPlan()
         {
             var result = await _planService.GetAllPlansAsync();
             return Success(result);

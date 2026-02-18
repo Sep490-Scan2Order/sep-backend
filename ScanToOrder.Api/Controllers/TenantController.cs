@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -14,18 +15,10 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterTenantRequest request)
+        public async Task<ActionResult<ApiResponse<TenantDto>>> Register([FromBody] RegisterTenantRequest request)
         {
-            try
-            {
-                var result = await _tenantService.RegisterTenantAsync(request);
-
-                return Success(result, "Đăng ký thành công.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { IsSuccess = false, Message = ex.Message });
-            }
+            var result = await _tenantService.RegisterTenantAsync(request);
+            return Success(result);
         }
     }
 }

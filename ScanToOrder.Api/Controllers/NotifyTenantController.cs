@@ -14,26 +14,16 @@ namespace ScanToOrder.Api.Controllers
             _notifyTenantService = notifyTenantService;
         }
         [HttpPost]
-        public async Task<ApiResponse<CreateNotifyTenantDtoResponse>> CreateNotifyTenant(CreateNotifyTenantDtoRequest request)
+        public async Task<ActionResult<ApiResponse<CreateNotifyTenantDtoResponse>>> CreateNotifyTenant(CreateNotifyTenantDtoRequest request)
         {
             var result = await _notifyTenantService.CreateNotifyTenantAsync(request);
-            return new ApiResponse<CreateNotifyTenantDtoResponse>
-            {
-                IsSuccess = result.IsSuccess,
-                Data = result.Data,
-                Message = result.Message
-            };
+            return Success(result);
         }
         [HttpGet]
-        public async Task<ApiResponse<IEnumerable<NotifyTenant>>> GetNotifyTenants()
+        public async Task<ActionResult<ApiResponse<IEnumerable<NotifyTenant>>>> GetNotifyTenants()
         {
             var result = await _notifyTenantService.GetNotifyTenantsAsync();
-            return new ApiResponse<IEnumerable<NotifyTenant>>
-            {
-                IsSuccess = result.IsSuccess,
-                Data = result.Data,
-                Message = result.Message
-            };
+            return Success(result);
         }
     }
 }

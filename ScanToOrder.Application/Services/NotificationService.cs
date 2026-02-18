@@ -1,6 +1,5 @@
 ﻿using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Interfaces;
 
@@ -14,7 +13,7 @@ namespace ScanToOrder.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<ApiResponse<CreateNotificationDtoResponse>> CreateNotificationAsync(CreateNotificationDtoRequest request)
+        public async Task<CreateNotificationDtoResponse> CreateNotificationAsync(CreateNotificationDtoRequest request)
         {
             var notification = new Notification
             {
@@ -23,27 +22,19 @@ namespace ScanToOrder.Application.Services
             };
             await _unitOfWork.Notifications.AddAsync(notification);
             await _unitOfWork.SaveAsync();
-            return new ApiResponse<CreateNotificationDtoResponse>
+            return new CreateNotificationDtoResponse
             {
-                IsSuccess = true,
-                Data = new CreateNotificationDtoResponse
-                {
-                    Id = notification.NotificationId,
-                    NotifyTitle = notification.NotifyTitle,
-                    NotifySub = notification.NotifySub,
-                    SentAt = notification.CreatedAt
-                }
+                Id = notification.NotificationId,
+                NotifyTitle = notification.NotifyTitle,
+                NotifySub = notification.NotifySub,
+                SentAt = notification.CreatedAt
             };
         }
 
-        public async Task<ApiResponse<IEnumerable<Notification>>> GetNotificationsAsync()
+        public async Task<IEnumerable<Notification>> GetNotificationsAsync()
         {
             var notifications = await _unitOfWork.Notifications.GetAllAsync();
-            return new ApiResponse<IEnumerable<Notification>>
-            {
-                IsSuccess = true,
-                Data = notifications
-            };
+            return notifications;
         }
     }
 }

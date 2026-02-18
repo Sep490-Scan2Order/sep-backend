@@ -11,7 +11,6 @@ namespace ScanToOrder.Api.Extensions
         {
             services.Configure<N8NSettings>(configuration.GetSection("N8NSettings"));
 
-            // Cấu hình HttpClient cho TaxService kèm Header
             services.AddHttpClient<ITaxService, TaxService>(client =>
             {
                 var apiKey = configuration["N8NSettings:ApiKey"];

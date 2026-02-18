@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.PointHistory;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -11,18 +12,12 @@ namespace ScanToOrder.Api.Controllers
         {
             _pointHistoryService = pointHistoryService;
         }
+
         [HttpPost("plus-point-history")]
-        public async Task<IActionResult> PlusPointHistory([FromBody] AddPointHistoryDtoRequest pointHistoryDto)
+        public async Task<ActionResult<ApiResponse<AddPointHistoryDtoResponse>>> PlusPointHistory([FromBody] AddPointHistoryDtoRequest pointHistoryDto)
         {
-            try
-            {
-                var result = await _pointHistoryService.PlusPointHistoryAsync(pointHistoryDto);
-                return Success(result, "Thêm lịch sử điểm cộng thành công.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var result = await _pointHistoryService.PlusPointHistoryAsync(pointHistoryDto);
+            return Success(result);
         }
     }
 }

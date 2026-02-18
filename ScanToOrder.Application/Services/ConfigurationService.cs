@@ -1,4 +1,6 @@
-﻿using ScanToOrder.Application.Interfaces;
+﻿using AutoMapper;
+using ScanToOrder.Application.DTOs.Configuration;
+using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Interfaces;
@@ -8,20 +10,18 @@ namespace ScanToOrder.Application.Services
     public class ConfigurationService : IConfigurationService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public ConfigurationService(IUnitOfWork unitOfWork)
+        private readonly IMapper _mapper;
+        public ConfigurationService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
-        public async Task<ApiResponse<Configurations>> GetConfigurationsAsync()
+        public async Task<ConfigurationResponse> GetConfigurationsAsync()
         {
             var configurations = await _unitOfWork.Configurations.GetAllAsync();
-            return new ApiResponse<Configurations>
-            {
-                IsSuccess = true,
-                Data = configurations.FirstOrDefault() ?? new Configurations()
-            };
+            return _mapper.Map<ConfigurationResponse>(configurations.FirstOrDefault());
         }
-        public async Task<ApiResponse<Configurations>> UpdateConfigurationsAsync(Configurations configurations)
+        public async Task<ConfigurationResponse> UpdateConfigurationsAsync(Configurations configurations)
         {
             var existingConfig = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
             if (existingConfig == null)
@@ -38,11 +38,7 @@ namespace ScanToOrder.Application.Services
                 _unitOfWork.Configurations.Update(existingConfig);
             }
             await _unitOfWork.SaveAsync();
-            return new ApiResponse<Configurations>
-            {
-                IsSuccess = true,
-                Data = configurations
-            };
+            return _mapper.Map<ConfigurationResponse>(configurations);
         }
     }
 }
