@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Application.Wrapper;
+using Microsoft.EntityFrameworkCore;
+using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Exceptions;
 using System.Net;
 using System.Text.Json;
@@ -60,8 +61,13 @@ namespace ScanToOrder.Api.Middleware
                     message = exception.Message;
                     break;
 
+                case DbUpdateException dbEx:
+                    message = dbEx.InnerException?.Message ?? dbEx.Message;
+                    errors = new List<string> { dbEx.ToString() };
+                    break;
+
                 default:
-                    message = exception.Message;
+                    message = exception.InnerException?.Message ?? exception.Message;
                     errors = new List<string> { exception.StackTrace ?? "No stack trace available." };
                     break;
             }

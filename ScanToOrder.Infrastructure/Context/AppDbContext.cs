@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.CashReport;
@@ -14,6 +14,7 @@ using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Entities.Wallet;
+using ScanToOrder.Domain.Enums;
 using System.Reflection;
 
 namespace ScanToOrder.Infrastructure.Context;
@@ -72,9 +73,16 @@ public class AppDbContext : DbContext
         .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<PointHistory>()
+            .ToTable("PointHistory");
+
+        modelBuilder.Entity<PointHistory>()
             .HasOne(ph => ph.MemberPoint)
             .WithMany(mp => mp.PointHistories)
             .HasForeignKey(ph => ph.MemberPointId);
+
+        modelBuilder.Entity<PointHistory>()
+            .Property(ph => ph.Type)
+            .HasConversion<string>();
 
         modelBuilder.Entity<PointHistory>()
             .HasOne(ph => ph.MemberVoucher)

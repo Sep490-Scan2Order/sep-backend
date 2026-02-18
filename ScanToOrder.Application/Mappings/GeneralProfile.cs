@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using NetTopologySuite.Geometries;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.DTOs.Restaurant;
@@ -32,6 +32,14 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description ?? string.Empty));
 
             CreateMap<Voucher, VoucherResponseDto>();
+
+            CreateMap<MemberVoucher, RedeemVoucherResponseDto>()
+                .ForMember(dest => dest.MemberVoucherId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.VoucherId, opt => opt.MapFrom(src => src.VoucherId))
+                .ForMember(dest => dest.VoucherName, opt => opt.MapFrom(src => src.Voucher != null ? src.Voucher.Name : string.Empty))
+                .ForMember(dest => dest.DiscountValue, opt => opt.MapFrom(src => src.Voucher != null ? src.Voucher.DiscountValue : 0))
+                .ForMember(dest => dest.MinOrderAmount, opt => opt.MapFrom(src => src.Voucher != null ? src.Voucher.MinOrderAmount : 0))
+                .ForMember(dest => dest.ExpiredAt, opt => opt.MapFrom(src => src.ExpiredAt));
         }
     }
 }

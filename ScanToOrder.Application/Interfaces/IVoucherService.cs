@@ -1,4 +1,5 @@
 using ScanToOrder.Application.DTOs.Voucher;
+using System;
 
 namespace ScanToOrder.Application.Interfaces
 {
@@ -6,5 +7,6 @@ namespace ScanToOrder.Application.Interfaces
     {
         Task<VoucherResponseDto> CreateAsync(CreateVoucherDto request);
         Task<List<VoucherResponseDto>> GetAllAsync();
+        Task<RedeemVoucherResponseDto> RedeemVoucherAsync(Guid accountId, RedeemVoucherRequestDto request);
     }
 }
