@@ -29,7 +29,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IGenericRepository<Notification> Notifications { get; }
         public IGenericRepository<Plan> Plans { get; }
         public IGenericRepository<Voucher> Vouchers { get; } 
-        public IGenericRepository<MemberVoucher> MemberVouchers { get; }
+        public IMemberVoucherRepository MemberVouchers { get; }
 
         public UnitOfWork(AppDbContext context)
         {
@@ -47,7 +47,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             NotifyTenants = new NotifyTenantRepository(_context);
             Notifications = new NotificationRepository(_context);
             Vouchers = new GenericRepository<Voucher>(_context);
-            MemberVouchers = new GenericRepository<MemberVoucher>(_context);
+            MemberVouchers = new MemberVoucherRepository(_context);
         }
 
         public async Task SaveAsync()

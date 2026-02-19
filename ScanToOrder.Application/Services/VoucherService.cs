@@ -29,6 +29,7 @@ namespace ScanToOrder.Application.Services
             _mapper = mapper;
             _createValidator = createValidator;
         }
+
         public async Task<VoucherResponseDto> CreateAsync(CreateVoucherDto request)
         {
             var validationResult = await _createValidator.ValidateAsync(request);
@@ -97,6 +98,34 @@ namespace ScanToOrder.Application.Services
 
             memberVoucher.Voucher = voucher;
             return _mapper.Map<RedeemVoucherResponseDto>(memberVoucher);
+        }
+
+        public async Task<List<RedeemVoucherResponseDto>> GetMyVouchersAsync(Guid accountId)
+        {
+            var memberPoint = await _unitOfWork.MemberPoints.GetByAccountIdAsync(accountId);
+            if (memberPoint == null)
+                throw new InvalidOperationException("Không tìm thấy tài khoản điểm của bạn.");
+
+            var now = DateTime.UtcNow;
+
+            var memberVouchers = await _unitOfWork.MemberVouchers
+                .GetActiveByUserIdAsync(memberPoint.CustomerId, now);
+
+            return _mapper.Map<List<RedeemVoucherResponseDto>>(memberVouchers);
+        }
+
+        public async Task<List<RedeemVoucherResponseDto>> GetMyExpiredVouchersAsync(Guid accountId)
+        {
+            var memberPoint = await _unitOfWork.MemberPoints.GetByAccountIdAsync(accountId);
+            if (memberPoint == null)
+                throw new InvalidOperationException("Không tìm thấy tài khoản điểm của bạn.");
+
+            var now = DateTime.UtcNow;
+
+            var memberVouchers = await _unitOfWork.MemberVouchers
+                .GetExpiredByUserIdAsync(memberPoint.CustomerId, now);
+
+            return _mapper.Map<List<RedeemVoucherResponseDto>>(memberVouchers);
         }
     }
 }

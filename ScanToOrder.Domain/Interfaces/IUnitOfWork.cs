@@ -25,7 +25,7 @@ namespace ScanToOrder.Domain.Interfaces
         IGenericRepository<NotifyTenant> NotifyTenants { get; }
         IGenericRepository<Notification> Notifications { get; }
         IGenericRepository<Voucher> Vouchers { get; }          
-        IGenericRepository<MemberVoucher> MemberVouchers { get; }
+        IMemberVoucherRepository MemberVouchers { get; }
         Task SaveAsync();
     }
 }
