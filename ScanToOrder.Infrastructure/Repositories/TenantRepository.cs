@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Domain.Entities.User;
+﻿using Microsoft.EntityFrameworkCore;
+using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System;
@@ -15,6 +16,14 @@ namespace ScanToOrder.Infrastructure.Repositories
         public TenantRepository(AppDbContext context) : base(context)
         {
             _context = context;
+        }
+
+        public async Task<List<Tenant>> GetTenantsWithSubscriptionsAsync()
+        {
+            return await _context.Tenants
+                .Include(t => t.Subscriptions)
+                    .ThenInclude(s => s.Plan)
+                .ToListAsync();
         }
     }
 }
