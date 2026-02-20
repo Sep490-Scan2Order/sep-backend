@@ -16,9 +16,6 @@ namespace ScanToOrder.Api.Extensions
                 var apiKey = configuration["N8NSettings:ApiKey"];
                 client.DefaultRequestHeaders.Add("s2o-api-key", apiKey);
             });
-
-            services.AddScoped<ITenantService, TenantService>();
-
             return services;
         }
     }

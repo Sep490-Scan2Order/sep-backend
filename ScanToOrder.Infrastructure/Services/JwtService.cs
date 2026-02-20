@@ -7,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ScanToOrder.Application.Services
+namespace ScanToOrder.Infrastructure.Services
 {
     public class JwtService : IJwtService
     {

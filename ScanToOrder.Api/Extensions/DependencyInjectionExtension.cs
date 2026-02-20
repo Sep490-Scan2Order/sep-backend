@@ -35,11 +35,9 @@ namespace ScanToOrder.Api.Extensions
                 .WithScopedLifetime()
             );
             services.Configure<EsmsSettings>(configuration.GetSection("EsmsSettings"));
-
             services.AddHttpClient<ISmsSender, EsmsSender>();
-
+            
             services.AddMemoryCache();
-
             services.AddHttpContextAccessor();
             services.AddAutoMapper(typeof(GeneralProfile).Assembly);
             return services;

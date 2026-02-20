@@ -18,8 +18,6 @@ namespace ScanToOrder.Api.Extensions
             services.AddSingleton<IConnectionMultiplexer>(sp =>
                 ConnectionMultiplexer.Connect(connectionString));
 
-            services.AddScoped<IOtpRedisService, OtpRedisService>();
-
             return services;
         }
     }

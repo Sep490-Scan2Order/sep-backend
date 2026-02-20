@@ -24,7 +24,9 @@
     <PackageReference Include="Resend" Version="0.2.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.11.0" />
   </ItemGroup>
-
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ScanToOrder.Application\ScanToOrder.Application.csproj" />
     <ProjectReference Include="..\ScanToOrder.Domain\ScanToOrder.Domain.csproj" />
