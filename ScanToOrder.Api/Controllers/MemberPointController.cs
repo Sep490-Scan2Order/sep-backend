@@ -31,17 +31,12 @@ namespace ScanToOrder.Api.Controllers
         [HttpGet("my-point")]
         public async Task<ActionResult<ApiResponse<int>>> GetMyPoint()
         {
-            var sub = User.Identity?.Name 
-                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-                      ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            
-            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var accountId))
+            if (_authenticatedUserService.UserId != null)
             {
-                throw new UnauthorizedAccessException("Token không hợp lệ.");
+                var point = await _memberPointService.GetCurrentPointAsync(_authenticatedUserService.UserId.Value);
+                return Success(point);
             }
-
-            var point = await _memberPointService.GetCurrentPointAsync(_authenticatedUserService.UserId.Value);
-            return Success(point);
+            throw new UnauthorizedAccessException("Token không hợp lệ.");
         }
     }
 }

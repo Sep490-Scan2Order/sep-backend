@@ -7,7 +7,7 @@ namespace ScanToOrder.Infrastructure.Services;
 
 public class AuthenticatedUserService : IAuthenticatedUserService
 {
-    public Guid? UserId { get; }
+    public Guid? UserId { get; } 
     public string? Email { get; }
     public string? Phone { get; }
     public string? Role { get; }
@@ -16,25 +16,16 @@ public class AuthenticatedUserService : IAuthenticatedUserService
     {
         var user = httpContextAccessor.HttpContext?.User;
             
-        if (user?.Identity?.IsAuthenticated != true)
-        {
-            throw new UnauthorizedAccessException("Người dùng chưa được xác thực hoặc không có token.");
-        }
+        if (user?.Identity?.IsAuthenticated != true) return;
 
         var strId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
                     ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
                      
-        if (string.IsNullOrEmpty(strId))
+        if (!string.IsNullOrEmpty(strId) && Guid.TryParse(strId, out var id))
         {
-            throw new UnauthorizedAccessException("Token không chứa thông tin ID người dùng hợp lệ.");
+            UserId = id;
         }
 
-        if (!Guid.TryParse(strId, out var id))
-        {
-            throw new UnauthorizedAccessException("Định dạng ID người dùng trong token không đúng chuẩn Guid.");
-        }
-
-        UserId = id;
         Email = user.FindFirstValue(ClaimTypes.Email);
         Phone = user.FindFirstValue(ClaimTypes.MobilePhone);
         Role = user.FindFirstValue(ClaimTypes.Role);
