@@ -13,8 +13,8 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260216102127_RemoveVoucherMaxDiscountValue")]
-    partial class RemoveVoucherMaxDiscountValue
+    [Migration("20260221103732_Initial_Reset")]
+    partial class Initial_Reset
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -368,8 +368,9 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
 
-                    b.Property<int>("NotifyStatus")
-                        .HasColumnType("integer");
+                    b.Property<string>("NotifyStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("NotifySub")
                         .IsRequired()
@@ -580,7 +581,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("MemberVoucherId")
                         .IsUnique();
 
-                    b.ToTable("PointHistories");
+                    b.ToTable("PointHistory", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.Promotion", b =>
@@ -948,9 +949,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("text");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("Status")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TaxNumber")
                         .HasColumnType("text");
@@ -1123,13 +1123,16 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("AdminId")
-                        .HasColumnType("uuid");
-
                     b.Property<int?>("AdminWalletId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("BalanceBefore")
                         .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1141,16 +1144,19 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<int?>("Note")
                         .HasColumnType("integer");
 
-                    b.Property<int>("SubsciptionId")
-                        .HasColumnType("integer");
+                    b.Property<long>("OrderCode")
+                        .HasColumnType("bigint");
 
-                    b.Property<int>("SubscriptionId")
-                        .HasColumnType("integer");
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
+                    b.Property<int?>("SubscriptionId")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TenantWalletId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TransactionStatus")
                         .HasColumnType("integer");
 
                     b.Property<int>("TransactionType")
@@ -1167,8 +1173,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("AdminWalletId");
 
                     b.HasIndex("SubscriptionId");
-
-                    b.HasIndex("TenantId");
 
                     b.HasIndex("TenantWalletId");
 
@@ -1393,7 +1397,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
-                        .WithMany()
+                        .WithMany("Subscriptions")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1468,29 +1472,23 @@ namespace ScanToOrder.Infrastructure.Migrations
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Wallet.WalletTransaction", b =>
                 {
-                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.AdminWallet", null)
+                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.AdminWallet", "AdminWallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("AdminWalletId");
 
                     b.HasOne("ScanToOrder.Domain.Entities.SubscriptionPlan.Subscription", "Subscription")
                         .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SubscriptionId");
 
-                    b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.TenantWallet", null)
+                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.TenantWallet", "TenantWallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("TenantWalletId");
 
+                    b.Navigation("AdminWallet");
+
                     b.Navigation("Subscription");
 
-                    b.Navigation("Tenant");
+                    b.Navigation("TenantWallet");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Authentication.AuthenticationUser", b =>
@@ -1557,6 +1555,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Restaurants");
+
+                    b.Navigation("Subscriptions");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Vouchers.MemberVoucher", b =>

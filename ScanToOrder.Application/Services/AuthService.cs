@@ -65,6 +65,46 @@ namespace ScanToOrder.Application.Services
                 RefreshToken = _jwtService.GenerateRefreshToken(user)
             };
         }
+        
+        public async Task<AuthResponse> TenantLoginAsync(TenantLoginRequest request)
+        {
+            var user = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
+            if (user == null || user.Role != Role.Tenant)
+            {
+                throw new DomainException("Tài khoản chưa được đăng ký.");
+            }
+
+            if (string.IsNullOrEmpty(user.Password))
+            {
+                throw new DomainException("Tài khoản chưa đặt mật khẩu. Vui lòng đăng ký lại với mật khẩu.");
+            }
+
+            // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            // {
+            //     throw new DomainException("Số điện thoại hoặc mật khẩu không đúng.");
+            // }
+            
+            if (request.Password != user.Password)
+            {
+                throw new DomainException("Mật khẩu không đúng.");
+            }
+            return new AuthResponse
+            {
+                AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
+                RefreshToken = _jwtService.GenerateRefreshToken(user)
+            };
+        }
+        
+        private Guid? ExtractProfileId(AuthenticationUser user)
+        {
+            return user.Role switch
+            {
+                Role.Tenant => user.Tenant?.Id,
+                Role.Staff => user.Staff?.Id,
+                Role.Customer => user.Customer?.Id,
+                _ => null
+            };
+        }
 
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {

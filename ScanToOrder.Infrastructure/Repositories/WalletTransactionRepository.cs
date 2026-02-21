@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
@@ -10,6 +11,11 @@ namespace ScanToOrder.Infrastructure.Repositories
         public WalletTransactionRepository(AppDbContext context) : base(context)
         {
             _context = context;
+        }
+        
+        public async Task<WalletTransaction?> GetByOrderCode(long orderCode)
+        {
+            return await _context.WalletTransactions.FirstOrDefaultAsync(wt => wt.OrderCode == orderCode);
         }
     }
 }

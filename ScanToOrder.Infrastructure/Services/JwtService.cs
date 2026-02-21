@@ -18,7 +18,7 @@ namespace ScanToOrder.Infrastructure.Services
             _settings = jwtSetting.Value;
         }
 
-        public string GenerateAccessToken(AuthenticationUser user)
+        public string GenerateAccessToken(AuthenticationUser user, Guid? profileId = null)
         {
             var claims = new List<Claim>
         {
@@ -29,11 +29,15 @@ namespace ScanToOrder.Infrastructure.Services
         };
 
             claims.Add(new Claim(ClaimTypes.Role, user.Role.ToString()));
+            if (profileId.HasValue)
+            {
+                claims.Add(new Claim("ProfileId", profileId.Value.ToString()));
+            }
 
             return CreateToken(claims, _settings.AccessSecretKey, _settings.AccessExpiration);
         }
 
-        public string GenerateRefreshToken(AuthenticationUser user)
+        public string GenerateRefreshToken(AuthenticationUser user, Guid? profileId = null)
         {
             var claims = new List<Claim>
             {

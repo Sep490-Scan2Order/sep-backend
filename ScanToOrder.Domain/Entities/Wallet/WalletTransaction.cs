@@ -7,11 +7,14 @@ namespace ScanToOrder.Domain.Entities.Wallet
 {
     public class WalletTransaction : BaseEntity<int>
     {
-        public Guid TenantId { get; set; }
-        public Tenant Tenant { get; set; } = null!;
-        public Guid AdminId { get; set; }
-        public int SubsciptionId { get; set; }
-        public Subscription Subscription { get; set; } = null!;
+        public int? TenantWalletId { get; set; }
+        public virtual TenantWallet TenantWallet { get; set; } = null!;
+        
+        public int? AdminWalletId { get; set; }
+        public virtual AdminWallet AdminWallet { get; set; } = null!;
+        
+        public int? SubscriptionId { get; set; }
+        public virtual Subscription Subscription { get; set; } = null!;
         public decimal Amount { get; set; }
         public decimal BalanceBefore { get; set; } 
         public decimal BalanceAfter { get; set; } 

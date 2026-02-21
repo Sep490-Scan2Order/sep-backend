@@ -1120,9 +1120,6 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("AdminId")
-                        .HasColumnType("uuid");
-
                     b.Property<int?>("AdminWalletId")
                         .HasColumnType("integer");
 
@@ -1150,14 +1147,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("SubsciptionId")
+                    b.Property<int?>("SubscriptionId")
                         .HasColumnType("integer");
-
-                    b.Property<int>("SubscriptionId")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
 
                     b.Property<int?>("TenantWalletId")
                         .HasColumnType("integer");
@@ -1179,8 +1170,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("AdminWalletId");
 
                     b.HasIndex("SubscriptionId");
-
-                    b.HasIndex("TenantId");
 
                     b.HasIndex("TenantWalletId");
 
@@ -1480,29 +1469,23 @@ namespace ScanToOrder.Infrastructure.Migrations
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Wallet.WalletTransaction", b =>
                 {
-                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.AdminWallet", null)
+                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.AdminWallet", "AdminWallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("AdminWalletId");
 
                     b.HasOne("ScanToOrder.Domain.Entities.SubscriptionPlan.Subscription", "Subscription")
                         .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SubscriptionId");
 
-                    b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.TenantWallet", null)
+                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.TenantWallet", "TenantWallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("TenantWalletId");
 
+                    b.Navigation("AdminWallet");
+
                     b.Navigation("Subscription");
 
-                    b.Navigation("Tenant");
+                    b.Navigation("TenantWallet");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Authentication.AuthenticationUser", b =>

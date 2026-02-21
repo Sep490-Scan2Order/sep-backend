@@ -28,6 +28,13 @@ public class AuthController : BaseController
         var result = await _authService.VerifyAndLoginAsync(request);
         return Success(result);
     }
+    
+    [HttpPost("tenant-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] TenantLoginRequest request)
+    {
+        var result = await _authService.TenantLoginAsync(request);
+        return Success(result);
+    }
 
     [HttpPost("register-phone")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)

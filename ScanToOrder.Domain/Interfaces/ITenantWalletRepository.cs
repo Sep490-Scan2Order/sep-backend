@@ -4,5 +4,6 @@ namespace ScanToOrder.Domain.Interfaces
 {
     public interface ITenantWalletRepository : IGenericRepository<TenantWallet>
     {
+        Task<TenantWallet?> GetByTenantIdAsync(Guid tenantId);
     }
 }

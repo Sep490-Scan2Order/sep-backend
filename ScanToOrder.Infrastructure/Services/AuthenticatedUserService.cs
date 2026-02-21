@@ -8,6 +8,7 @@ namespace ScanToOrder.Infrastructure.Services;
 public class AuthenticatedUserService : IAuthenticatedUserService
 {
     public Guid? UserId { get; } 
+    public Guid? ProfileId { get; }
     public string? Email { get; }
     public string? Phone { get; }
     public string? Role { get; }
@@ -21,9 +22,15 @@ public class AuthenticatedUserService : IAuthenticatedUserService
         var strId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
                     ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
                      
-        if (!string.IsNullOrEmpty(strId) && Guid.TryParse(strId, out var id))
+        if (Guid.TryParse(strId, out var userId))
         {
-            UserId = id;
+            UserId = userId;
+        }
+
+        var strProfileId = user.FindFirstValue("ProfileId");
+        if (Guid.TryParse(strProfileId, out var pId))
+        {
+            ProfileId = pId;
         }
 
         Email = user.FindFirstValue(ClaimTypes.Email);
