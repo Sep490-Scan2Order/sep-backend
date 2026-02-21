@@ -4,8 +4,6 @@ namespace ScanToOrder.Application.Interfaces
 {
     public interface ITenantService
     {
-        Task<bool> BlockTenantAsync(Guid id);
-        Task<IEnumerable<TenantDto>> GetAllTenantsAsync();
-        Task<string> RegisterTenantAsync(RegisterTenantRequest request);
+        Task<TenantDto> RegisterTenantAsync(RegisterTenantRequest request);
     }
 }

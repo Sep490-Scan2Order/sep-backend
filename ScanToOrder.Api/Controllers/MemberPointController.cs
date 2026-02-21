@@ -6,18 +6,15 @@ using ScanToOrder.Application.Wrapper;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using ScanToOrder.Application.Services;
 
 namespace ScanToOrder.Api.Controllers
 {
     public class MemberPointController : BaseController
     {
         private readonly IMemberPointService _memberPointService;
-        private readonly IAuthenticatedUserService _authenticatedUserService;
-        public MemberPointController(IMemberPointService memberPointService, IAuthenticatedUserService authenticatedUserService)
+        public MemberPointController(IMemberPointService memberPointService)
         {
             _memberPointService = memberPointService;
-            _authenticatedUserService = authenticatedUserService;
         }
 
         [HttpPost("add-member-point")]
@@ -40,7 +37,7 @@ namespace ScanToOrder.Api.Controllers
                 throw new UnauthorizedAccessException("Token không hợp lệ.");
             }
 
-            var point = await _memberPointService.GetCurrentPointAsync(_authenticatedUserService.UserId.Value);
+            var point = await _memberPointService.GetCurrentPointAsync(accountId);
             return Success(point);
         }
     }
