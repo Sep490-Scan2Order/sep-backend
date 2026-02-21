@@ -16,6 +16,7 @@ namespace ScanToOrder.Domain.Entities.Wallet
         public decimal BalanceBefore { get; set; } 
         public decimal BalanceAfter { get; set; } 
         public long OrderCode { get; set; }
+        public DateTime PaymentDate { get; set; }
         public TransactionStatus TransactionStatus { get; set; } = TransactionStatus.Pending;
         public WalletType WalletType { get; set; }
         public TransactionType TransactionType { get; set; }

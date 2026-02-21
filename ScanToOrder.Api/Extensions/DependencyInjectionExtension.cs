@@ -30,7 +30,8 @@ namespace ScanToOrder.Api.Extensions
                 )
                 .AddClasses(classes => classes.Where(type =>
                     !typeof(IHostedService).IsAssignableFrom(type) &&
-                    !typeof(Exception).IsAssignableFrom(type)))
+                    !typeof(Exception).IsAssignableFrom(type) &&
+                    type.Name != "EfDbTransaction"))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
             );

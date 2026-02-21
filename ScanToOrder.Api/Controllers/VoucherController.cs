@@ -12,6 +12,7 @@ namespace ScanToOrder.Api.Controllers
     public class VoucherController : BaseController
     {
         private readonly IVoucherService _voucherService;
+
         public VoucherController(IVoucherService voucherService)
         {
             _voucherService = voucherService;
@@ -35,18 +36,53 @@ namespace ScanToOrder.Api.Controllers
 
         [Authorize(Roles = "Customer")]
         [HttpPost("redeem")]
-        public async Task<ActionResult<ApiResponse<RedeemVoucherResponseDto>>> Redeem([FromBody] RedeemVoucherRequestDto request)
+        public async Task<ActionResult<ApiResponse<RedeemVoucherResponseDto>>> Redeem(
+            [FromBody] RedeemVoucherRequestDto request)
         {
             var sub = User.Identity?.Name
                       ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                       ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            
+
             if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var accountId))
             {
                 throw new UnauthorizedAccessException("Token không hợp lệ.");
             }
 
             var result = await _voucherService.RedeemVoucherAsync(accountId, request);
+            return Success(result);
+        }
+
+        [Authorize(Roles = "Customer")]
+        [HttpGet("my-vouchers")]
+        public async Task<ActionResult<ApiResponse<List<RedeemVoucherResponseDto>>>> GetMyVouchers()
+        {
+            var sub = User.Identity?.Name
+                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                      ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var accountId))
+            {
+                throw new UnauthorizedAccessException("Token không hợp lệ.");
+            }
+
+            var result = await _voucherService.GetMyVouchersAsync(accountId);
+            return Success(result);
+        }
+
+        [Authorize(Roles = "Customer")]
+        [HttpGet("my-expired-vouchers")]
+        public async Task<ActionResult<ApiResponse<List<RedeemVoucherResponseDto>>>> GetMyExpiredVouchers()
+        {
+            var sub = User.Identity?.Name
+                      ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                      ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+            if (string.IsNullOrEmpty(sub) || !Guid.TryParse(sub, out var accountId))
+            {
+                throw new UnauthorizedAccessException("Token không hợp lệ.");
+            }
+
+            var result = await _voucherService.GetMyExpiredVouchersAsync(accountId);
             return Success(result);
         }
     }

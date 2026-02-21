@@ -1,17 +1,3 @@
-using ScanToOrder.Domain.Entities.Blogs;
-using ScanToOrder.Domain.Entities.Configuration;
-using ScanToOrder.Domain.Entities.Notifications;
-using ScanToOrder.Domain.Entities.Points;
-using ScanToOrder.Domain.Entities.Restaurants;
-using ScanToOrder.Domain.Entities.SubscriptionPlan;
-using ScanToOrder.Domain.Entities.User;
-using ScanToOrder.Domain.Entities.Vouchers;
-using ScanToOrder.Domain.Entities.Orders;
-using ScanToOrder.Domain.Entities.Dishes;
-using ScanToOrder.Domain.Entities.Menu;
-using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.CashReport;
-using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 
@@ -88,11 +74,18 @@ namespace ScanToOrder.Infrastructure.Repositories
             CashDrawerReports = new CashDrawerReportRepository(_context);
         }
 
+        public async Task<IDbTransaction> BeginTransactionAsync()
+        {
+            var tx = await _context.Database.BeginTransactionAsync();
+            return new EfDbTransaction(tx);
+        }
+
         public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
         }
-
+        
+        
         public void Dispose()
         {
             _context.Dispose();
