@@ -24,7 +24,7 @@ namespace ScanToOrder.Application.Services
             _otpRedisService = otpRedisService;
         }
 
-        public async Task<TenantDto> RegisterTenantAsync(RegisterTenantRequest request)
+        public async Task<string> RegisterTenantAsync(RegisterTenantRequest request)
         {
             var savedOtp = await _otpRedisService.GetOtpAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
@@ -55,7 +55,31 @@ namespace ScanToOrder.Application.Services
 
             await _otpRedisService.DeleteOtpAsync(request.Email, "Register");
 
-            return _mapper.Map<TenantDto>(tenantEntity);
+            return "Đăng ký tài khoản thành công!";
+        }
+        
+        public async Task<IEnumerable<TenantDto>> GetAllTenantsAsync()
+        {
+            var tenants = await _unitOfWork.Tenants.GetTenantsWithSubscriptionsAsync();
+
+            return _mapper.Map<IEnumerable<TenantDto>>(tenants);
+        }
+        public async Task<bool> BlockTenantAsync(Guid tenantId)
+        {
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+
+            if (tenant == null)
+                throw new DomainException("Tenant not found");
+
+            if (!tenant.Status)
+                return false;
+
+            tenant.Status = false;
+
+            _unitOfWork.Tenants.Update(tenant);
+            await _unitOfWork.SaveAsync();
+
+            return true;
         }
     }
 }
