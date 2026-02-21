@@ -75,7 +75,7 @@ public class OtpRedisService : IOtpRedisService
 
         var templateParams = new
         {
-            OTP = int.Parse(otpCode),
+            OTP = otpCode,
             ExpiryTime = DateTime.UtcNow.AddMinutes(5).ToString("HH:mm:ss")
         };
 
