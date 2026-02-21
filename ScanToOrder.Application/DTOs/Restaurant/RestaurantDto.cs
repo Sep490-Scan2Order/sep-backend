@@ -33,5 +33,6 @@
         public int? TotalOrder { get; set; }
 
         public DateTime CreatedAt { get; set; }
+        public double? DistanceKm { get; set; }
     }
 }

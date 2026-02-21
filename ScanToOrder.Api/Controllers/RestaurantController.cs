@@ -20,5 +20,16 @@ namespace ScanToOrder.Api.Controllers
             var result = await _restaurantService.GetAllRestaurantsAsync();
             return Success(result);
         }
+
+        [HttpGet("nearby")]
+        public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetNearby(
+            [FromQuery] double latitude,
+            [FromQuery] double longitude,
+            [FromQuery] double radiusKm = 5.0,
+            [FromQuery] int limit = 10)
+        {
+            var result = await _restaurantService.GetNearbyRestaurantsAsync(latitude, longitude, radiusKm, limit);
+            return Success(result);
+        }
     }
 }

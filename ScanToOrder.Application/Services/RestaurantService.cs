@@ -22,5 +22,23 @@ namespace ScanToOrder.Application.Services
 
             return restaurantDtos;
         }
+
+        public async Task<List<RestaurantDto>> GetNearbyRestaurantsAsync(double latitude, double longitude, double radiusKm, int limit = 10)
+        {
+            var restaurantsWithDistance = await _unitOfWork.Restaurants.GetNearbyRestaurantsAsync(
+                latitude,
+                longitude,
+                radiusKm,
+                limit);
+
+            var restaurantDtos = restaurantsWithDistance.Select(item =>
+            {
+                var dto = _mapper.Map<RestaurantDto>(item.Restaurant);
+                dto.DistanceKm = item.DistanceKm;
+                return dto;
+            }).ToList();
+
+            return restaurantDtos;
+        }
     }
 }
