@@ -1,7 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using ScanToOrder.Application.Services;
 using Microsoft.AspNetCore.Http;
+using ScanToOrder.Application.Interfaces;
 
 namespace ScanToOrder.Infrastructure.Services;
 

@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Services;
+﻿namespace ScanToOrder.Application.Interfaces;
 
 public interface IAuthenticatedUserService
 {
