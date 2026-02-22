@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Interfaces;
@@ -14,6 +14,16 @@ namespace ScanToOrder.Application.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
+
+        public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(id);
+            if (restaurant == null)
+                return null;
+            var dto = _mapper.Map<RestaurantDto>(restaurant);
+            return dto;
+        }
+
         public async Task<List<RestaurantDto>> GetAllRestaurantsAsync()
         {
             var restaurants = await _unitOfWork.Restaurants.GetAllAsync();
