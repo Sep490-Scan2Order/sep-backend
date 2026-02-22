@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Application.DTOs.Payment;
+using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Enums;
@@ -93,7 +93,6 @@ public class TenantWalletService : ITenantWalletService
 
             walletTx.TransactionStatus = TransactionStatus.Success;
             walletTx.PaymentDate = DateTime.UtcNow;
-            walletTx.TransactionStatus = TransactionStatus.Success;
             walletTx.UpdatedAt = DateTime.UtcNow;
 
             wallet.UpdatedAt = DateTime.UtcNow;
