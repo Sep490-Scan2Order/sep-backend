@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Wrapper;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -14,18 +15,28 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterTenantRequest request)
+        public async Task<ActionResult<ApiResponse<string>>> Register([FromBody] RegisterTenantRequest request)
         {
-            try
-            {
-                var result = await _tenantService.RegisterTenantAsync(request);
+            var result = await _tenantService.RegisterTenantAsync(request);
+            return Success(result);
+        }
+        
+        [HttpGet("getAll")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<TenantDto>>>> GetAll()
+        {
+            var result = await _tenantService.GetAllTenantsAsync();
+            return Success(result);
+        }
 
-                return Success(result, "Đăng ký thành công.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { IsSuccess = false, Message = ex.Message });
-            }
+        [HttpPut("{id}/block")]
+        public async Task<IActionResult> BlockTenant(Guid id)
+        {
+            var result = await _tenantService.BlockTenantAsync(id);
+
+            if (!result)
+                return BadRequest("Tenant is already blocked");
+
+            return Ok("Tenant blocked successfully");
         }
     }
 }

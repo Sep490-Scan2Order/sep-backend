@@ -8,8 +8,7 @@ namespace ScanToOrder.Domain.Enums
 {
     public enum VoucherStatus
     {
-        Active,     
-        Paused,     
-        Stopped
+        Active,          
+        Inactive
     }
 }

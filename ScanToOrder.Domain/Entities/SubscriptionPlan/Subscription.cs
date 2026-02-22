@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+﻿using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
 using System;
 using System.Collections.Generic;
@@ -17,5 +18,6 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsActive { get; set; }
+
     }
 }

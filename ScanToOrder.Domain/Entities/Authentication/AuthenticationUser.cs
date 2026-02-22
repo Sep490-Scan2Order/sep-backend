@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Authentication
 {
-    public class AuthenticationUser : Base.BaseEntity<Guid>
+    public class AuthenticationUser : BaseEntity<Guid>
     {
 
         public string Email { get; set; } = null!;

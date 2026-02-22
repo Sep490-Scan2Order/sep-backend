@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,6 @@ namespace ScanToOrder.Domain.Entities.Vouchers
         public string Name { get; set; } = null!;
         public string Description { get; set; } = string.Empty;
         public decimal DiscountValue { get; set; }
-        public decimal MaxDiscountValue { get; set; }
         public decimal MinOrderAmount { get; set; }
         public int PointRequire { get; set; }
         public VoucherStatus Status { get; set; }

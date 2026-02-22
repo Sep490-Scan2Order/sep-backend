@@ -7,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ScanToOrder.Application.Services
+namespace ScanToOrder.Infrastructure.Services
 {
     public class JwtService : IJwtService
     {
@@ -18,7 +18,7 @@ namespace ScanToOrder.Application.Services
             _settings = jwtSetting.Value;
         }
 
-        public string GenerateAccessToken(AuthenticationUser user)
+        public string GenerateAccessToken(AuthenticationUser user, Guid? profileId = null)
         {
             var claims = new List<Claim>
         {
@@ -29,11 +29,15 @@ namespace ScanToOrder.Application.Services
         };
 
             claims.Add(new Claim(ClaimTypes.Role, user.Role.ToString()));
+            if (profileId.HasValue)
+            {
+                claims.Add(new Claim("ProfileId", profileId.Value.ToString()));
+            }
 
             return CreateToken(claims, _settings.AccessSecretKey, _settings.AccessExpiration);
         }
 
-        public string GenerateRefreshToken(AuthenticationUser user)
+        public string GenerateRefreshToken(AuthenticationUser user, Guid? profileId = null)
         {
             var claims = new List<Claim>
             {

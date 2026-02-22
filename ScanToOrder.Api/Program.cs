@@ -13,7 +13,10 @@ builder.Services.AddSwaggerConfig();
 builder.Services.AddDIConfig(builder.Configuration);
 builder.Services.AddAuthConfig(builder.Configuration);
 builder.Services.AddN8NServices(builder.Configuration);
-
+builder.Services.AddRedisCloudServices(builder.Configuration);
+builder.Services.AddEmailServices(builder.Configuration);
+builder.Services.AddPayOSConfig(builder.Configuration); 
+    
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>

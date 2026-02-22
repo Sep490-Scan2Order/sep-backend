@@ -61,6 +61,48 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("AuthenticationUsers");
                 });
 
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Blogs.SystemBlog", b =>
+                {
+                    b.Property<int>("SystemBlogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SystemBlogId"));
+
+                    b.Property<string>("BlogType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ColorTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("CreatedAt")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalViews")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("UpdatedAt")
+                        .HasColumnType("date");
+
+                    b.HasKey("SystemBlogId");
+
+                    b.ToTable("SystemBlog");
+                });
+
             modelBuilder.Entity("ScanToOrder.Domain.Entities.CashReport.CashDrawerReport", b =>
                 {
                     b.Property<int>("Id")
@@ -105,6 +147,26 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("CashDrawerReports");
                 });
 
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Configuration.Configurations", b =>
+                {
+                    b.Property<int>("CommissionRate")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExpiredDuration")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("LastUpdated")
+                        .HasColumnType("date");
+
+                    b.Property<int>("RedeemRate")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VoucherRate")
+                        .HasColumnType("integer");
+
+                    b.ToTable("Configurations");
+                });
+
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.BranchDishConfig", b =>
                 {
                     b.Property<int>("Id")
@@ -128,8 +190,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<bool>("IsSoldOut")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Price")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
 
                     b.Property<int>("RestaurantId")
                         .HasColumnType("integer");
@@ -215,8 +277,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Price")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -293,6 +355,60 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MenuTemplates");
+                });
+
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Notifications.Notification", b =>
+                {
+                    b.Property<int>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
+
+                    b.Property<string>("NotifyStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NotifySub")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NotifyTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SystemBlogUrl")
+                        .HasColumnType("text");
+
+                    b.HasKey("NotificationId");
+
+                    b.ToTable("Notification");
+                });
+
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Notifications.NotifyTenant", b =>
+                {
+                    b.Property<int>("NotifyTenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotifyTenantId"));
+
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("NotifyTenantId");
+
+                    b.HasIndex("NotificationId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("NotifyTenant", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Order", b =>
@@ -462,7 +578,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("MemberVoucherId")
                         .IsUnique();
 
-                    b.ToTable("PointHistory");
+                    b.ToTable("PointHistory", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.Promotion", b =>
@@ -830,9 +946,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("text");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("Status")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TaxNumber")
                         .HasColumnType("text");
@@ -913,9 +1028,6 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<decimal>("MaxDiscountValue")
-                        .HasColumnType("numeric");
 
                     b.Property<decimal>("MinOrderAmount")
                         .HasColumnType("numeric");
@@ -1008,13 +1120,16 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("AdminId")
-                        .HasColumnType("uuid");
-
                     b.Property<int?>("AdminWalletId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("BalanceBefore")
                         .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1026,16 +1141,19 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<int?>("Note")
                         .HasColumnType("integer");
 
-                    b.Property<int>("SubsciptionId")
-                        .HasColumnType("integer");
+                    b.Property<long>("OrderCode")
+                        .HasColumnType("bigint");
 
-                    b.Property<int>("SubscriptionId")
-                        .HasColumnType("integer");
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
+                    b.Property<int?>("SubscriptionId")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TenantWalletId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TransactionStatus")
                         .HasColumnType("integer");
 
                     b.Property<int>("TransactionType")
@@ -1052,8 +1170,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("AdminWalletId");
 
                     b.HasIndex("SubscriptionId");
-
-                    b.HasIndex("TenantId");
 
                     b.HasIndex("TenantWalletId");
 
@@ -1137,6 +1253,25 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("MenuTemplate");
 
                     b.Navigation("Restaurant");
+                });
+
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Notifications.NotifyTenant", b =>
+                {
+                    b.HasOne("ScanToOrder.Domain.Entities.Notifications.Notification", "Notification")
+                        .WithMany("NotifyTenants")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Order", b =>
@@ -1259,7 +1394,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
-                        .WithMany()
+                        .WithMany("Subscriptions")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1334,29 +1469,23 @@ namespace ScanToOrder.Infrastructure.Migrations
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Wallet.WalletTransaction", b =>
                 {
-                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.AdminWallet", null)
+                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.AdminWallet", "AdminWallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("AdminWalletId");
 
                     b.HasOne("ScanToOrder.Domain.Entities.SubscriptionPlan.Subscription", "Subscription")
                         .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SubscriptionId");
 
-                    b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.TenantWallet", null)
+                    b.HasOne("ScanToOrder.Domain.Entities.Wallet.TenantWallet", "TenantWallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("TenantWalletId");
 
+                    b.Navigation("AdminWallet");
+
                     b.Navigation("Subscription");
 
-                    b.Navigation("Tenant");
+                    b.Navigation("TenantWallet");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Authentication.AuthenticationUser", b =>
@@ -1384,6 +1513,11 @@ namespace ScanToOrder.Infrastructure.Migrations
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuTemplate", b =>
                 {
                     b.Navigation("MenuRestaurants");
+                });
+
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Notifications.Notification", b =>
+                {
+                    b.Navigation("NotifyTenants");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.MemberPoint", b =>
@@ -1418,6 +1552,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Restaurants");
+
+                    b.Navigation("Subscriptions");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Vouchers.MemberVoucher", b =>

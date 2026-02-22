@@ -9,5 +9,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<AuthResponse> VerifyAndLoginAsync(LoginRequest request);
 
         Task<AuthResponse> RegisterAsync(RegisterRequest request);
+
+        Task<AuthResponse> TenantLoginAsync(TenantLoginRequest request);
     }
 }

@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="DTOs\Common\" />
-    <Folder Include="Validators\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +16,8 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+    <PackageReference Include="StackExchange.Redis" Version="2.11.0" />
   </ItemGroup>
 
   <ItemGroup>

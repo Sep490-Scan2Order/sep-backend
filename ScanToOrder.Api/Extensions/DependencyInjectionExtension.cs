@@ -30,16 +30,15 @@ namespace ScanToOrder.Api.Extensions
                 )
                 .AddClasses(classes => classes.Where(type =>
                     !typeof(IHostedService).IsAssignableFrom(type) &&
-                    !typeof(Exception).IsAssignableFrom(type)))
+                    !typeof(Exception).IsAssignableFrom(type) &&
+                    type.Name != "EfDbTransaction"))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
             );
             services.Configure<EsmsSettings>(configuration.GetSection("EsmsSettings"));
-
             services.AddHttpClient<ISmsSender, EsmsSender>();
-
+            
             services.AddMemoryCache();
-
             services.AddHttpContextAccessor();
             services.AddAutoMapper(typeof(GeneralProfile).Assembly);
             return services;

@@ -4,9 +4,9 @@ namespace ScanToOrder.Application.Interfaces
 {
     public interface IJwtService
     {
-        string GenerateAccessToken(AuthenticationUser user);
+        string GenerateAccessToken(AuthenticationUser use, Guid? profileId = null);
 
-        string GenerateRefreshToken(AuthenticationUser user);
+        string GenerateRefreshToken(AuthenticationUser user, Guid? profileId = null);
 
         string? ValidateRefreshToken(string refreshToken);
     }

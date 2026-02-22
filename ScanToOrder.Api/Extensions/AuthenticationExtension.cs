@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using ScanToOrder.Infrastructure.Configuration;
 using System.Text;
@@ -33,7 +33,9 @@ namespace ScanToOrder.Api.Extensions
                     ValidAudience = configuration["JwtSettings:Audience"],
 
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero,
+                    
+                    NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub
                 };
             });
 

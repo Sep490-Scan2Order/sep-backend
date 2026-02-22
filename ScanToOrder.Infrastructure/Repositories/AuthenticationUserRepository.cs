@@ -17,7 +17,19 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<AuthenticationUser?> GetByPhoneAsync(string phone)
         {
             return await _context.AuthenticationUsers
+                .Include(u => u.Tenant)
+                .Include(u => u.Staff)
+                .Include(u => u.Customer)
                 .FirstOrDefaultAsync(u => u.Phone == phone);
+        }
+
+        public async Task<AuthenticationUser?> GetByEmailAsync(string email)
+        {
+            return await _context.AuthenticationUsers
+                .Include(u => u.Tenant)
+                .Include(u => u.Staff)
+                .Include(u => u.Customer)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
     }
 }

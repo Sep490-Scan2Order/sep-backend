@@ -7,7 +7,7 @@ namespace ScanToOrder.Api.Controllers
     [Route("api/[controller]")]
     public class BaseController : ControllerBase
     {
-        protected IActionResult Success<T>(T data, string message = "Success")
+        protected ActionResult<ApiResponse<T>> Success<T>(T data, string message = "Success")
         {
             var response = new ApiResponse<T>
             {
