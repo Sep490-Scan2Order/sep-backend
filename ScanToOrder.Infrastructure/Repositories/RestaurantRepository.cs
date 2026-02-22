@@ -99,10 +99,26 @@ namespace ScanToOrder.Infrastructure.Repositories
             return (items, totalCount);
         }
 
-        /// <summary>
-        /// Tính khoảng cách giữa 2 tọa độ trên mặt cầu (Haversine).
-        /// Tương đương ST_DistanceSphere của PostGIS, chạy trên RAM.
-        /// </summary>
+        public async Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize)
+        {
+            var offset = (page - 1) * pageSize;
+            if (offset < 0) offset = 0;
+            if (pageSize <= 0) pageSize = 20;
+
+            var query = _context.Restaurants
+                .Where(r => r.IsActive == true && r.IsDeleted == false);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(r => r.TotalOrder ?? 0)
+                .Skip(offset)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
         private static double CalculateHaversineDistanceKm(double lat1, double lon1, double lat2, double lon2)
         {
             const double R = 6371.0; 

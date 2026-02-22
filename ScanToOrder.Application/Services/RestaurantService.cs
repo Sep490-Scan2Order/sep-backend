@@ -24,30 +24,44 @@ namespace ScanToOrder.Application.Services
             return dto;
         }
 
-        public async Task<PagedRestaurantResultDto> GetRestaurantsSortedByDistancePagedAsync(double latitude, double longitude, int page = 1, int pageSize = 20)
+        public async Task<PagedRestaurantResultDto> GetRestaurantsPagedAsync(double? latitude, double? longitude, int page = 1, int pageSize = 20)
         {
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 20;
 
-            var (items, totalCount) = await _unitOfWork.Restaurants.GetRestaurantsSortedByDistancePagedAsync(
-                latitude,
-                longitude,
-                page,
-                pageSize);
-
-            var dtos = items.Select(item =>
+            if (latitude.HasValue && longitude.HasValue)
             {
-                var dto = _mapper.Map<RestaurantDto>(item.Restaurant);
-                dto.DistanceKm = item.DistanceKm;
-                return dto;
-            }).ToList();
+                var (items, totalCount) = await _unitOfWork.Restaurants.GetRestaurantsSortedByDistancePagedAsync(
+                    latitude.Value,
+                    longitude.Value,
+                    page,
+                    pageSize);
+
+                var dtos = items.Select(item =>
+                {
+                    var dto = _mapper.Map<RestaurantDto>(item.Restaurant);
+                    dto.DistanceKm = item.DistanceKm;
+                    return dto;
+                }).ToList();
+
+                return new PagedRestaurantResultDto
+                {
+                    Items = dtos,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount
+                };
+            }
+
+            var (restaurants, totalCountByOrder) = await _unitOfWork.Restaurants.GetRestaurantsSortedByTotalOrderPagedAsync(page, pageSize);
+            var dtosByOrder = _mapper.Map<List<RestaurantDto>>(restaurants);
 
             return new PagedRestaurantResultDto
             {
-                Items = dtos,
+                Items = dtosByOrder,
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = totalCount
+                TotalCount = totalCountByOrder
             };
         }
 

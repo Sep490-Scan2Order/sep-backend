@@ -15,5 +15,7 @@ namespace ScanToOrder.Domain.Interfaces
             double longitude,
             int page,
             int pageSize);
+
+        Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize);
     }
 }

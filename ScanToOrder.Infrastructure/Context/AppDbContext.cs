@@ -62,6 +62,10 @@ public class AppDbContext : DbContext
             .HasIndex(r => r.Location)
             .HasMethod("gist");
 
+        modelBuilder.Entity<Restaurant>()
+            .HasIndex(r => r.TotalOrder)
+            .IsDescending();
+
         modelBuilder.Entity<AuthenticationUser>()
             .Property(u => u.Role)
             .HasConversion<string>();

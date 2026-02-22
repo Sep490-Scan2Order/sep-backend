@@ -24,13 +24,13 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<ApiResponse<PagedRestaurantResultDto>>> GetAllSortedByDistancePaged(
-            [FromQuery] double latitude,
-            [FromQuery] double longitude,
+        public async Task<ActionResult<ApiResponse<PagedRestaurantResultDto>>> GetAllPaged(
+            [FromQuery] double? latitude,
+            [FromQuery] double? longitude,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-            var result = await _restaurantService.GetRestaurantsSortedByDistancePagedAsync(latitude, longitude, page, pageSize);
+            var result = await _restaurantService.GetRestaurantsPagedAsync(latitude, longitude, page, pageSize);
             return Success(result);
         }
 
