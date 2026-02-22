@@ -23,13 +23,6 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpGet] 
-        public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetAll()
-        {
-            var result = await _restaurantService.GetAllRestaurantsAsync();
-            return Success(result);
-        }
-
         [HttpGet("all")]
         public async Task<ActionResult<ApiResponse<PagedRestaurantResultDto>>> GetAllSortedByDistancePaged(
             [FromQuery] double latitude,

@@ -24,15 +24,6 @@ namespace ScanToOrder.Application.Services
             return dto;
         }
 
-        public async Task<List<RestaurantDto>> GetAllRestaurantsAsync()
-        {
-            var restaurants = await _unitOfWork.Restaurants.GetAllAsync();
-
-            var restaurantDtos = _mapper.Map<List<RestaurantDto>>(restaurants);
-
-            return restaurantDtos;
-        }
-
         public async Task<PagedRestaurantResultDto> GetRestaurantsSortedByDistancePagedAsync(double latitude, double longitude, int page = 1, int pageSize = 20)
         {
             if (page < 1) page = 1;
