@@ -58,6 +58,47 @@ namespace ScanToOrder.Infrastructure.Repositories
             return result;
         }
 
+        public async Task<(List<(Restaurant Restaurant, double DistanceKm)> Items, int TotalCount)> GetRestaurantsSortedByDistancePagedAsync(
+            double latitude,
+            double longitude,
+            int page,
+            int pageSize)
+        {
+            var offset = (page - 1) * pageSize;
+            if (offset < 0) offset = 0;
+            if (pageSize <= 0) pageSize = 20;
+
+            var totalCount = await _context.Restaurants
+                .Where(r => r.Location != null && r.IsActive == true && r.IsDeleted == false)
+                .CountAsync();
+
+            FormattableString dataSql = $@"
+                SELECT r.*
+                FROM ""Restaurants"" r
+                WHERE r.""Location"" IS NOT NULL
+                  AND r.""IsActive"" = true
+                  AND r.""IsDeleted"" = false
+                ORDER BY r.""Location"" <-> ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geometry
+                OFFSET {offset}
+                LIMIT {pageSize}";
+
+            var restaurants = await _context.Restaurants
+                .FromSqlInterpolated(dataSql)
+                .ToListAsync();
+
+            var items = new List<(Restaurant Restaurant, double DistanceKm)>();
+            foreach (var restaurant in restaurants)
+            {
+                if (restaurant.Location != null)
+                {
+                    var distanceKm = CalculateHaversineDistanceKm(latitude, longitude, restaurant.Location.Y, restaurant.Location.X);
+                    items.Add((restaurant, Math.Round(distanceKm, 2)));
+                }
+            }
+
+            return (items, totalCount);
+        }
+
         /// <summary>
         /// Tính khoảng cách giữa 2 tọa độ trên mặt cầu (Haversine).
         /// Tương đương ST_DistanceSphere của PostGIS, chạy trên RAM.

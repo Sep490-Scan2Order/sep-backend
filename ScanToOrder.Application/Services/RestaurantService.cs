@@ -33,6 +33,33 @@ namespace ScanToOrder.Application.Services
             return restaurantDtos;
         }
 
+        public async Task<PagedRestaurantResultDto> GetRestaurantsSortedByDistancePagedAsync(double latitude, double longitude, int page = 1, int pageSize = 20)
+        {
+            if (page < 1) page = 1;
+            if (pageSize <= 0) pageSize = 20;
+
+            var (items, totalCount) = await _unitOfWork.Restaurants.GetRestaurantsSortedByDistancePagedAsync(
+                latitude,
+                longitude,
+                page,
+                pageSize);
+
+            var dtos = items.Select(item =>
+            {
+                var dto = _mapper.Map<RestaurantDto>(item.Restaurant);
+                dto.DistanceKm = item.DistanceKm;
+                return dto;
+            }).ToList();
+
+            return new PagedRestaurantResultDto
+            {
+                Items = dtos,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+        }
+
         public async Task<List<RestaurantDto>> GetNearbyRestaurantsAsync(double latitude, double longitude, double radiusKm, int limit = 10)
         {
             var restaurantsWithDistance = await _unitOfWork.Restaurants.GetNearbyRestaurantsAsync(

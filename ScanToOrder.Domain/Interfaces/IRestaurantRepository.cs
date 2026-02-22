@@ -9,5 +9,11 @@ namespace ScanToOrder.Domain.Interfaces
             double longitude,
             double radiusKm,
             int limit = 10);
+
+        Task<(List<(Restaurant Restaurant, double DistanceKm)> Items, int TotalCount)> GetRestaurantsSortedByDistancePagedAsync(
+            double latitude,
+            double longitude,
+            int page,
+            int pageSize);
     }
 }

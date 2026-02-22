@@ -58,6 +58,10 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
+        modelBuilder.Entity<Restaurant>()
+            .HasIndex(r => r.Location)
+            .HasMethod("gist");
+
         modelBuilder.Entity<AuthenticationUser>()
             .Property(u => u.Role)
             .HasConversion<string>();
