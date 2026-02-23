@@ -27,6 +27,9 @@ namespace ScanToOrder.Domain.Enums
         VoucherExpense = 6,
 
         // 7. Rút tiền về tài khoản ngân hàng
-        Withdrawal = 7
+        Withdrawal = 7,
+        
+        // 8. Verify tài khoản (ví dụ: trừ tiền để verify MST)
+        AccountVerification = 8
     }
 }

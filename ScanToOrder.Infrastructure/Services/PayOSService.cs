@@ -67,7 +67,9 @@ public class PayOSService : IPaymentService
             Amount = result.Amount,
             CounterAccountName = result.CounterAccountName,
             Reference = result.Reference,
-            IsPaymentSuccess = request.Success && result.Code == "00"
+            IsPaymentSuccess = request.Success && result.Code == "00",
+            BankBin = d.CounterAccountBankId,
+            AccountNumber = d.CounterAccountNumber
         };
     }
 }

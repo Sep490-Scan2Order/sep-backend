@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Wallet;
 using ScanToOrder.Application.Interfaces;
@@ -12,16 +15,18 @@ public class TenantWalletService : ITenantWalletService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPaymentService _paymentService;
     private readonly IAuthenticatedUserService _authenticatedUserService;
+    private readonly IBankLookupService _bankLookupService;
 
     public TenantWalletService(IUnitOfWork unitOfWork, IPaymentService paymentService,
-        IAuthenticatedUserService authenticatedUserService)
+        IAuthenticatedUserService authenticatedUserService, IBankLookupService bankLookupService)
     {
         _unitOfWork = unitOfWork;
         _paymentService = paymentService;
         _authenticatedUserService = authenticatedUserService;
+        _bankLookupService = bankLookupService;
     }
 
-    public async Task<string> CreateDepositUrlAsync(decimal amount)
+    public async Task<string> CreateDepositUrlAsync(decimal amount, NoteWalletTransaction note)
     {
         long orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var tenantId = _authenticatedUserService.ProfileId;
@@ -44,7 +49,7 @@ public class TenantWalletService : ITenantWalletService
             TransactionStatus = TransactionStatus.Pending,
             TransactionType = TransactionType.Add,
             WalletType = WalletType.Tenant,
-            Note = NoteWalletTransaction.Deposit,
+            Note = note,
         };
 
         await _unitOfWork.WalletTransactions.AddAsync(transaction);
@@ -80,14 +85,36 @@ public class TenantWalletService : ITenantWalletService
             {
                 return true;
             }
-
+            
             if (walletTx.TenantWalletId == null) throw new Exception("Giao dịch không gắn với ví nào");
 
             var wallet = await _unitOfWork.TenantWallets.GetByIdAsync(walletTx.TenantWalletId.Value);
 
             if (wallet == null || wallet.IsBlocked)
                 throw new Exception("Ví của Tenant không tồn tại hoặc bị khóa");
+            
+            if (walletTx.Note == NoteWalletTransaction.AccountVerification)
+            {
+                var tenant = await _unitOfWork.Tenants.GetByIdAsync(wallet.TenantId);
+    
+                var tenantName = RemoveVietnameseSigns(tenant!.Name).ToUpper().Trim();
 
+                var ownerBank = await _unitOfWork.Banks.GetByBinAsync(int.Parse(result.BankBin));
+                var bankLookupResult = await _bankLookupService.LookupAccountAsync(new BankLookRequest()
+                {
+                    Bank = ownerBank.Code,
+                    Account = result.AccountNumber
+                });
+                var bankOwnerName = RemoveVietnameseSigns(bankLookupResult.Data.OwnerName).ToUpper().Trim();
+
+                if (tenantName.Equals(bankOwnerName))
+                {
+                    tenant.IsVerifyTax = true; 
+                    _unitOfWork.Tenants.Update(tenant);
+                    await _unitOfWork.SaveAsync();
+                }
+            }
+            
             walletTx.BalanceBefore = wallet.WalletBalance;
             wallet.WalletBalance += walletTx.Amount;
             walletTx.BalanceAfter = wallet.WalletBalance;
@@ -97,7 +124,7 @@ public class TenantWalletService : ITenantWalletService
             walletTx.UpdatedAt = DateTime.UtcNow;
 
             wallet.UpdatedAt = DateTime.UtcNow;
-
+            
             _unitOfWork.WalletTransactions.Update(walletTx);
             _unitOfWork.TenantWallets.Update(wallet);
             await _unitOfWork.SaveAsync();
@@ -137,5 +164,30 @@ public class TenantWalletService : ITenantWalletService
             WalletBalance = wallet.WalletBalance,
             IsBlocked = wallet.IsBlocked
         };
+    }
+    
+    private string RemoveVietnameseSigns(string str)
+    {
+        if (string.IsNullOrWhiteSpace(str))
+            return str;
+
+        string normalizedString = str.Normalize(NormalizationForm.FormD);
+        StringBuilder stringBuilder = new StringBuilder();
+
+        foreach (char c in normalizedString)
+        {
+            UnicodeCategory unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+            
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder
+            .ToString()
+            .Normalize(NormalizationForm.FormC)
+            .Replace('đ', 'd')
+            .Replace('Đ', 'D');
     }
 }

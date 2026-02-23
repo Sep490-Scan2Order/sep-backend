@@ -47,6 +47,7 @@ namespace ScanToOrder.Domain.Interfaces
         ITenantWalletRepository TenantWallets { get; }
         IWalletTransactionRepository WalletTransactions { get; }
         ICashDrawerReportRepository CashDrawerReports { get; }
+        IBankRepository Banks { get; }
         Task<IDbTransaction> BeginTransactionAsync();
         Task SaveAsync();
     }

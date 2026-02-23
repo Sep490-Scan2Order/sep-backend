@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Auth;
+using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 
@@ -9,10 +10,14 @@ namespace ScanToOrder.Api.Controllers;
 public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
+    private readonly IBankLookupService _lookupService;
+    private readonly ITaxService _taxService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IBankLookupService lookupService, ITaxService taxService)
     {
         _authService = authService;
+        _lookupService = lookupService;
+        _taxService = taxService;
     }
 
     [HttpPost("send-otp")]
@@ -48,5 +53,17 @@ public class AuthController : BaseController
     public ActionResult<ApiResponse<object?>> Logout()
     {
         return Success<object?>(null);
+    }
+    // Test
+    [HttpPost("BankLookup")]
+    public async Task<ActionResult<ApiResponse<object?>>> TestBank([FromBody] BankLookRequest request)
+    {
+        return Success<object?>(await _lookupService.LookupAccountAsync(request));
+    }
+    
+    [HttpGet("Tax")]
+    public async Task<ActionResult<ApiResponse<object?>>> TestTax([FromQuery] string taxCode)
+    {
+        return Success<object?>(await _taxService.GetTaxCodeDetailsAsync(taxCode));
     }
 }

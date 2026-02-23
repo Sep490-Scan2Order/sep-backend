@@ -1,15 +1,14 @@
 ﻿using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Bank;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.User;
 
-public partial class Tenant
+public partial class Tenant : BaseEntity<Guid>
 {
-    public Guid Id { get; set; }
-
     public Guid AccountId { get; set; }
 
     public string? TaxNumber { get; set; }
@@ -18,9 +17,9 @@ public partial class Tenant
 
     public string? CardNumber { get; set; }
 
-    public string? Phone { get; set; }
+    public bool IsVerifyTax { get; set; } = false;
 
-    public bool Status { get; set; } 
+    public bool IsActive { get; set; } = true;
     public string? Name { get; set; }
 
     public int TotalRestaurants { get; set; }

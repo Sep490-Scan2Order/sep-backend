@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -29,14 +31,25 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPut("{id}/block")]
-        public async Task<IActionResult> BlockTenant(Guid id)
+        public async Task<ActionResult<ApiResponse<string>>> BlockTenant(Guid id)
         {
             var result = await _tenantService.BlockTenantAsync(id);
 
             if (!result)
-                return BadRequest("Tenant is already blocked");
+                throw new DomainException("Tenant is already blocked");
 
-            return Ok("Tenant blocked successfully");
+            return Success(string.Empty);
+        }
+        
+        [Authorize(Roles = "Tenant")]
+        [HttpPut("tax-validation")]
+        public async Task<ActionResult<ApiResponse<string>>> BlockTenant([FromQuery] string taxCode)
+        {
+            var result = await _tenantService.ValidationTaxCodeAsync(taxCode);
+            if (!result)
+                throw new DomainException("Mã số thuế không hợp lệ");
+
+            return Success(string.Empty);
         }
     }
 }

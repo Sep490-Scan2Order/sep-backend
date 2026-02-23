@@ -19,8 +19,12 @@ public class WebhooksController : BaseController
     [AllowAnonymous]
     public async Task<IActionResult> HandlePayOSWebhook([FromBody] Webhook webhookBody)
     {
+        if (webhookBody.Data.Description != "Nạp tiền vào ví chủ quán")
+        {
+            
+        }
         var result = await _tenantWalletService.HandleDepositWebhookAsync(webhookBody);
-
+        
         if (result)
         {
             return Ok(new { Message = "Success" });
