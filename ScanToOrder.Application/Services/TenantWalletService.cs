@@ -1,4 +1,5 @@
 using ScanToOrder.Application.DTOs.Payment;
+using ScanToOrder.Application.DTOs.Wallet;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Enums;
@@ -109,5 +110,32 @@ public class TenantWalletService : ITenantWalletService
             await tx.RollbackAsync();
             return false;
         }
+    }
+
+    public async Task <TenantWalletDto> CreateWalletTenantAsync(Guid tenantId)
+    {
+        var existingWallet = await _unitOfWork.TenantWallets.GetByTenantIdAsync(tenantId);
+        if (existingWallet != null)
+        {
+            throw new Exception("Tenant đã có ví.");
+        }
+
+        var wallet = new TenantWallet
+        {
+            TenantId = tenantId,
+            WalletBalance = 0,
+            IsBlocked = false
+        };
+
+        await _unitOfWork.TenantWallets.AddAsync(wallet);
+        await _unitOfWork.SaveAsync();
+
+        return new TenantWalletDto
+        {
+            Id = wallet.Id,
+            TenantId = wallet.TenantId,
+            WalletBalance = wallet.WalletBalance,
+            IsBlocked = wallet.IsBlocked
+        };
     }
 }
