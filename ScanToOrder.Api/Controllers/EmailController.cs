@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Email;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
-using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers
 {

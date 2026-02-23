@@ -8,8 +8,8 @@ namespace ScanToOrder.Api.Extensions
     {
         public static IServiceCollection AddEmailServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<EmailSettings>(configuration.GetSection("scan2order.io.vn"));
-
+            services.Configure<EmailSettings>("IO_DOMAIN", configuration.GetSection("scan2order.io.vn"));
+            services.Configure<EmailSettings>("ID_DOMAIN", configuration.GetSection("scan2order.id.vn"));
             services.AddScoped<IEmailService, EmailService>();
 
             return services;
