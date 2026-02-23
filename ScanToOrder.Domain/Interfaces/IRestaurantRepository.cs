@@ -1,4 +1,4 @@
-using ScanToOrder.Domain.Entities.Restaurants;
+using ScanToOrder.Domain.Entities.Restaurant;
 
 namespace ScanToOrder.Domain.Interfaces
 {

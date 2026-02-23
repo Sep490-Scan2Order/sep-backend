@@ -2,7 +2,6 @@ using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Points;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Vouchers;

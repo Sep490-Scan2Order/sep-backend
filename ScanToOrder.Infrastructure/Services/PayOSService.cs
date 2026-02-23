@@ -37,6 +37,29 @@ public class PayOSService : IPaymentService
     {
         Webhook request = (Webhook)webhookRequest;
         var result= await _payOSClient.Webhooks.VerifyAsync(request);
+        var d = request.Data;
+        Console.WriteLine("------- Webhook Data Payload -------");
+        Console.WriteLine($"OrderCode: {d.OrderCode}");
+        Console.WriteLine($"Amount: {d.Amount}");
+        Console.WriteLine($"Description: {d.Description}");
+        Console.WriteLine($"AccountNumber (Của bạn): {d.AccountNumber}");
+        Console.WriteLine($"Reference: {d.Reference}");
+        Console.WriteLine($"TransactionDateTime: {d.TransactionDateTime}");
+        Console.WriteLine($"Currency: {d.Currency}");
+        Console.WriteLine($"PaymentLinkId: {d.PaymentLinkId}");
+        Console.WriteLine($"Data-specific Code: {d.Code}");
+        Console.WriteLine($"Data-specific Desc: {d.Description2}");
+
+        Console.WriteLine("------- Counter Account Info -------");
+        Console.WriteLine($"Counter Bank ID: {d.CounterAccountBankId ?? "null"}");
+        Console.WriteLine($"Counter Bank Name: {d.CounterAccountBankName ?? "null"}");
+        Console.WriteLine($"Counter Account Name: {d.CounterAccountName ?? "null"}");
+        Console.WriteLine($"Counter Account Number: {d.CounterAccountNumber ?? "null"}");
+
+        Console.WriteLine("------- Virtual Account Info -------");
+        Console.WriteLine($"Virtual Account Name: {d.VirtualAccountName ?? "null"}");
+        Console.WriteLine($"Virtual Account Number: {d.VirtualAccountNumber ?? "null"}");
+        Console.WriteLine("======= [PAYOS WEBHOOK DEBUG END] =======");
         return new PaymentResult()
         {
             OrderCode = result.OrderCode,

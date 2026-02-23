@@ -1,5 +1,4 @@
 using ScanToOrder.Domain.Entities.Base;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.User;
 
 namespace ScanToOrder.Domain.Entities.CashReport;
@@ -14,5 +13,5 @@ public class CashDrawerReport : BaseEntity<int>
     public decimal Difference { get; set; }
 
     public virtual Staff Staff { get; set; } = null!;
-    public virtual Restaurant Restaurant { get; set; } = null!;
+    public virtual Restaurant.Restaurant Restaurant { get; set; } = null!;
 }
