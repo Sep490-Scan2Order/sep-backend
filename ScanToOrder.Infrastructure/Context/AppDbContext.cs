@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Bank;
 using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.CashReport;
 using ScanToOrder.Domain.Entities.Configuration;
@@ -52,6 +53,7 @@ public class AppDbContext : DbContext
     public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;
     public DbSet<NotifyTenant> NotifyTenants { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
+    public DbSet<Banks> Banks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

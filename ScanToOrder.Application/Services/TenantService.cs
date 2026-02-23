@@ -33,15 +33,6 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException("Mã OTP không chính xác hoặc đã hết hạn.");
             }
 
-            if (!string.IsNullOrEmpty(request.TaxNumber))
-            {
-                var isValid = await _taxService.IsTaxCodeValidAsync(request.TaxNumber);
-                if (!isValid)
-                {
-                    throw new DomainException("Mã số thuế không hợp lệ hoặc đã ngừng hoạt động.");
-                }
-            }
-
             var userEntity = _mapper.Map<AuthenticationUser>(request);
             userEntity.Password = request.Password;
             userEntity.Verified = true;
