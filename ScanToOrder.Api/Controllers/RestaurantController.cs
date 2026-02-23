@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -14,10 +14,23 @@ namespace ScanToOrder.Api.Controllers
             _restaurantService = restaurantService;
         }
 
-        [HttpGet] 
-        public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetAll()
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetById(int id)
         {
-            var result = await _restaurantService.GetAllRestaurantsAsync();
+            var result = await _restaurantService.GetRestaurantByIdAsync(id);
+            if (result == null)
+                return NotFound(ApiResponse<RestaurantDto>.Failure("Nhà hàng không tồn tại."));
+            return Success(result);
+        }
+
+        [HttpGet("all")]
+        public async Task<ActionResult<ApiResponse<PagedRestaurantResultDto>>> GetAllPaged(
+            [FromQuery] double? latitude,
+            [FromQuery] double? longitude,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var result = await _restaurantService.GetRestaurantsPagedAsync(latitude, longitude, page, pageSize);
             return Success(result);
         }
 
