@@ -1,6 +1,5 @@
 ﻿using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Enums;
 
@@ -28,7 +27,7 @@ public partial class Tenant
     public int TotalCategories { get; set; }
 
     public virtual AuthenticationUser Account { get; set; } = null!;
-    public virtual ICollection<Restaurant> Restaurants { get; set; } = new List<Restaurant>();
+    public virtual ICollection<Restaurant.Restaurant> Restaurants { get; set; } = new List<Restaurant.Restaurant>();
     public virtual ICollection<Category > Category { get; set; } = new List<Category>();
     public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }

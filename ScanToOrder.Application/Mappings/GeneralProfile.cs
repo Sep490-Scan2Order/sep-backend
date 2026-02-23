@@ -5,7 +5,7 @@ using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.DTOs.Voucher;
 using ScanToOrder.Domain.Entities.Configuration;
-using ScanToOrder.Domain.Entities.Restaurants;
+using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.Vouchers;
 

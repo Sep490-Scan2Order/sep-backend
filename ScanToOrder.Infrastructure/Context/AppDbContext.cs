@@ -9,13 +9,13 @@ using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Enums;
 using System.Reflection;
+using ScanToOrder.Domain.Entities.Restaurant;
 
 namespace ScanToOrder.Infrastructure.Context;
 
