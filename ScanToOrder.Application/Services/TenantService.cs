@@ -28,7 +28,7 @@ namespace ScanToOrder.Application.Services
 
         public async Task<string> RegisterTenantAsync(RegisterTenantRequest request)
         {
-            var savedOtp = await _otpRedisService.GetOtpAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
+            var savedOtp = await _otpRedisService.GetOtpTenantAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
             if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
             {
@@ -54,7 +54,7 @@ namespace ScanToOrder.Application.Services
 
             await _tenantWalletService.CreateWalletTenantAsync(tenantEntity.Id);
 
-            await _otpRedisService.DeleteOtpAsync(request.Email, "Register");
+            await _otpRedisService.DeleteOtpTenantAsync(request.Email, "Register");
 
             return "Đăng ký tài khoản thành công!";
         }
