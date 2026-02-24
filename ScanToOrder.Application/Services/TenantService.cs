@@ -14,19 +14,19 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ITaxService _taxService;
-        private readonly IBankLookupService _lookupService;
         private readonly IOtpRedisService _otpRedisService; 
         private readonly ITenantWalletService _tenantWalletService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
 
-        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, ITaxService taxService, IOtpRedisService otpRedisService, ITenantWalletService tenantWalletService, IBankLookupService lookupService, IAuthenticatedUserService authenticatedUserService)
+        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, 
+            ITaxService taxService, IOtpRedisService otpRedisService, 
+            ITenantWalletService tenantWalletService, IAuthenticatedUserService authenticatedUserService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _taxService = taxService;
             _otpRedisService = otpRedisService;
             _tenantWalletService = tenantWalletService;
-            _lookupService = lookupService;
             _authenticatedUserService = authenticatedUserService;
         }
 
@@ -36,13 +36,13 @@ namespace ScanToOrder.Application.Services
 
             if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
             {
-                throw new DomainException("Mã OTP không chính xác hoặc đã hết hạn.");
+                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
             }
 
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Phone);
             if (existingUser != null)
             {
-                throw new DomainException("Tài khoản đã tồn tại");
+                throw new DomainException(TenantMessage.TenantError.TENANT_ALREADY_EXISTS);
             }
 
             var userEntity = _mapper.Map<AuthenticationUser>(request);
@@ -58,16 +58,16 @@ namespace ScanToOrder.Application.Services
 
             await _tenantWalletService.CreateWalletTenantAsync(tenantEntity.Id);
 
-            await _otpRedisService.DeleteOtpTenantAsync(request.Email, "Register");
+            await _otpRedisService.DeleteOtpTenantAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
-            return "Đăng ký tài khoản thành công!";
+            return TenantMessage.TenantSuccess.TENANT_REGISTERED;
         }
         
         public async Task<bool> ValidationTaxCodeAsync(string taxCode)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(_authenticatedUserService.ProfileId!.Value);
             if (tenant == null)
-                throw new DomainException("Tenant not found");
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             var result = await _taxService.GetTaxCodeDetailsAsync(taxCode);
             if (result.IsValid)
             {
@@ -91,7 +91,7 @@ namespace ScanToOrder.Application.Services
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
 
             if (tenant == null)
-                throw new DomainException("Tenant not found");
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
             if (!tenant.IsActive)
                 return false;
