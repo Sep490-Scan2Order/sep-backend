@@ -18,10 +18,7 @@ public partial class Tenant : BaseEntity<Guid>
     public string? CardNumber { get; set; }
 
     public bool IsVerifyTax { get; set; } = false;
-
-    public bool IsActive { get; set; } = true;
     public string? Name { get; set; }
-
     public int TotalRestaurants { get; set; }
     public int TotalDishes { get; set; }
     public int TotalCategories { get; set; }

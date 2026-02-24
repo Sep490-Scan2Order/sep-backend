@@ -49,6 +49,11 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException("Tài khoản chưa được đăng ký.");
             }
 
+            if (user.IsActive == false)
+            {
+                throw new DomainException("Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.");
+            }
+
             if (string.IsNullOrEmpty(user.Password))
             {
                 throw new DomainException("Tài khoản chưa đặt mật khẩu. Vui lòng đăng ký lại với mật khẩu.");
@@ -77,6 +82,11 @@ namespace ScanToOrder.Application.Services
             if (string.IsNullOrEmpty(user.Password))
             {
                 throw new DomainException("Tài khoản chưa đặt mật khẩu. Vui lòng đăng ký lại với mật khẩu.");
+            }
+            
+            if (user.IsActive == false)
+            {
+                throw new DomainException("Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.");
             }
 
             // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))

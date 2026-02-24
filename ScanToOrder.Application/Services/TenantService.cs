@@ -88,15 +88,15 @@ namespace ScanToOrder.Application.Services
         }
         public async Task<bool> BlockTenantAsync(Guid tenantId)
         {
-            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+            var tenant = await _unitOfWork.Tenants.GetByIdIncludeAsync(x => x.Id == tenantId, x => x.Account);
 
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
-            if (!tenant.IsActive)
+            if (!tenant.Account.IsActive)
                 return false;
 
-            tenant.IsActive = false;
+            tenant.Account.IsActive = false;
 
             _unitOfWork.Tenants.Update(tenant);
             await _unitOfWork.SaveAsync();
