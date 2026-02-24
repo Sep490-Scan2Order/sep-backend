@@ -22,7 +22,7 @@ namespace ScanToOrder.Api.Controllers
             var result = await _tenantService.RegisterTenantAsync(request);
             return Success(result);
         }
-        
+
         [HttpGet("getAll")]
         public async Task<ActionResult<ApiResponse<IEnumerable<TenantDto>>>> GetAll()
         {
@@ -40,7 +40,7 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(string.Empty);
         }
-        
+
         [Authorize(Roles = "Tenant")]
         [HttpPut("tax-validation")]
         public async Task<ActionResult<ApiResponse<string>>> BlockTenant([FromQuery] string taxCode)
@@ -50,6 +50,14 @@ namespace ScanToOrder.Api.Controllers
                 throw new DomainException("Mã số thuế không hợp lệ");
 
             return Success(string.Empty);
+        }
+
+        [Authorize(Roles = "Tenant")]
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateTenant([FromBody] UpdateTenantDtoRequest request)
+        {
+            var result = await _tenantService.UpdateTenantAsync(request);
+            return Success(result);
         }
     }
 }

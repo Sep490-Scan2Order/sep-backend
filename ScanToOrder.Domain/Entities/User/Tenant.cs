@@ -3,7 +3,6 @@ using ScanToOrder.Domain.Entities.Bank;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
-using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.User;
 

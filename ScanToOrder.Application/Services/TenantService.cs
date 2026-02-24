@@ -14,12 +14,12 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ITaxService _taxService;
-        private readonly IOtpRedisService _otpRedisService; 
+        private readonly IOtpRedisService _otpRedisService;
         private readonly ITenantWalletService _tenantWalletService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
 
-        public TenantService(IUnitOfWork unitOfWork, IMapper mapper, 
-            ITaxService taxService, IOtpRedisService otpRedisService, 
+        public TenantService(IUnitOfWork unitOfWork, IMapper mapper,
+            ITaxService taxService, IOtpRedisService otpRedisService,
             ITenantWalletService tenantWalletService, IAuthenticatedUserService authenticatedUserService)
         {
             _unitOfWork = unitOfWork;
@@ -62,7 +62,7 @@ namespace ScanToOrder.Application.Services
 
             return TenantMessage.TenantSuccess.TENANT_REGISTERED;
         }
-        
+
         public async Task<bool> ValidationTaxCodeAsync(string taxCode)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(_authenticatedUserService.ProfileId!.Value);
@@ -79,7 +79,7 @@ namespace ScanToOrder.Application.Services
             }
             return false;
         }
-        
+
         public async Task<IEnumerable<TenantDto>> GetAllTenantsAsync()
         {
             var tenants = await _unitOfWork.Tenants.GetTenantsWithSubscriptionsAsync();
@@ -102,6 +102,41 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             return true;
+        }
+
+        public async Task<string> UpdateTenantAsync(UpdateTenantDtoRequest updateTenantDtoRequest)
+        {
+            var tenantId = _authenticatedUserService.ProfileId!.Value;
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+            if (tenant == null)
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+            if (!string.IsNullOrEmpty(updateTenantDtoRequest.TaxNumber) && tenant.TaxNumber != updateTenantDtoRequest.TaxNumber)
+            {
+                var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber == updateTenantDtoRequest.TaxNumber);
+                if (taxCodeExists)
+                    throw new DomainException(TenantMessage.TenantError.TAX_CODE_ALREADY_EXISTS);
+
+                var taxValidationResult = await _taxService.GetTaxCodeDetailsAsync(updateTenantDtoRequest.TaxNumber);
+                if (!taxValidationResult.IsValid)
+                    throw new DomainException(TenantMessage.TenantError.TAX_CODE_INVALID);
+
+                tenant.Name = taxValidationResult.Representative;
+            }
+
+            if (updateTenantDtoRequest.BankId != Guid.Empty && tenant.BankId != updateTenantDtoRequest.BankId)
+            {
+                var bankExists = await _unitOfWork.Banks.ExistsAsync(b => b.Id == updateTenantDtoRequest.BankId);
+                if (!bankExists)
+                    throw new DomainException(BankMessage.BankError.BANK_NOT_FOUND);
+            }
+
+            _mapper.Map(updateTenantDtoRequest, tenant);
+
+            _unitOfWork.Tenants.Update(tenant);
+            await _unitOfWork.SaveAsync();
+
+            return TenantMessage.TenantSuccess.TENANT_UPDATED;
         }
     }
 }

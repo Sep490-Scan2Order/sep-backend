@@ -64,5 +64,27 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return _dbSet.AsQueryable();
         }
+
+        public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.AnyAsync(predicate);
+        }
+
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, string includeProperties = "")
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (!string.IsNullOrEmpty(includeProperties))
+            {
+                var properties = includeProperties.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var property in properties)
+                {
+                    query = query.Include(property.Trim());
+                }
+            }
+
+            // EF Core sẽ thực thi predicate này dưới SQL
+            return await query.FirstOrDefaultAsync(predicate);
+        }
     }
 }

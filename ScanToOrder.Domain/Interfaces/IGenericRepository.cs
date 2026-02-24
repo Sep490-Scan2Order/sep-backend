@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -18,6 +13,7 @@ namespace ScanToOrder.Domain.Interfaces
         void Update(T entity);
         void Delete(T entity);
         IQueryable<T> GetQueryable();
-     
+        Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
+        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, string includeProperties = "");
     }
 }

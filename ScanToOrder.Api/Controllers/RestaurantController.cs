@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
-using System.Security.Claims;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -22,7 +22,7 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _restaurantService.GetRestaurantByIdAsync(id);
             if (result == null)
-                return NotFound(ApiResponse<RestaurantDto>.Failure("Nhà hàng không tồn tại."));
+                return NotFound(ApiResponse<RestaurantDto>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
             return Success(result);
         }
 
@@ -51,10 +51,17 @@ namespace ScanToOrder.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromBody] CreateRestaurantRequest request)
         {
-           
-            var result = await _restaurantService.CreateRestaurantAsync(_authenticatedUserService.ProfileId.Value, request);
+            if (!_authenticatedUserService.ProfileId.HasValue)
+            {
+                return BadRequest(new { message = RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER });
+            }
 
-            return Success(result, "Tạo nhà hàng mới thành công.");
+            var result = await _restaurantService.CreateRestaurantAsync(
+                _authenticatedUserService.ProfileId.Value,
+                request
+            );
+
+            return Success(result, RestaurantMessage.RestaurantSuccess.RESTAURANT_CREATED);
         }
     }
 }

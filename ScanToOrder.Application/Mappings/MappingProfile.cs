@@ -32,6 +32,13 @@ namespace ScanToOrder.Application.Mappings
                    .Select(s => s.Plan.Name)
                    .FirstOrDefault() ?? "Chưa mua gói"
            ));
+
+            CreateMap<UpdateTenantDtoRequest, Tenant>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
+
+            CreateMap<Tenant, TenantDto>()
+            .ForMember(dest => dest.BankName, opt => opt.MapFrom(src => src.Bank != null ? src.Bank.Name : string.Empty))
+            .ForMember(dest => dest.BankLogo, opt => opt.MapFrom(src => src.Bank != null ? src.Bank.LogoUrl : string.Empty));
         }
     }
 }
