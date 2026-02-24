@@ -16,6 +16,7 @@ namespace ScanToOrder.Domain.Entities.Authentication
         public Role Role { get; set; }
 
         public bool Verified { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public virtual Tenant Tenant { get; set; } = null!;
         public virtual Staff Staff { get; set; } = null!;

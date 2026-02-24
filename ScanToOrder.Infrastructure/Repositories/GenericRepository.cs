@@ -30,7 +30,21 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _dbSet.FindAsync(id);
         }
+        
+        public async Task<T?> GetByIdIncludeAsync(
+            Expression<Func<T, bool>> predicate, 
+            params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet;
 
+            if (includes != null)
+            {
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+            }
+
+            return await query.FirstOrDefaultAsync(predicate);
+        }
+        
         public async Task AddAsync(T entity)
         {
             await _dbSet.AddAsync(entity);
