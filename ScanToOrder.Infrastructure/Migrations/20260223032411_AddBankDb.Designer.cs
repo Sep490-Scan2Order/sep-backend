@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260223032411_AddBankDb")]
+    partial class AddBankDb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -728,7 +731,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("RestaurantPromotions");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurant.Restaurant", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -997,20 +1000,14 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<string>("CardNumber")
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVerifyTax")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .HasColumnType("text");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TaxNumber")
                         .HasColumnType("text");
@@ -1023,9 +1020,6 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.Property<int>("TotalRestaurants")
                         .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -1246,7 +1240,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.CashReport.CashDrawerReport", b =>
                 {
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurant.Restaurant", "Restaurant")
+                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
                         .WithMany()
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1271,7 +1265,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurant.Restaurant", "Restaurant")
+                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
                         .WithMany("BranchDishConfig")
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1312,7 +1306,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurant.Restaurant", "Restaurant")
+                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
                         .WithMany()
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1352,7 +1346,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("PromotionId");
 
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurant.Restaurant", "Restaurant")
+                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
                         .WithMany()
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1427,7 +1421,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurant.Restaurant", "Restaurant")
+                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
                         .WithMany()
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1438,7 +1432,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Restaurant");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurant.Restaurant", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
                 {
                     b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", "Tenant")
                         .WithMany("Restaurants")
@@ -1491,7 +1485,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ScanToOrder.Domain.Entities.Restaurant.Restaurant", "Restaurant")
+                    b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
                         .WithMany("Staff")
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1599,7 +1593,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("PointHistories");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurant.Restaurant", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
                 {
                     b.Navigation("BranchDishConfig");
 

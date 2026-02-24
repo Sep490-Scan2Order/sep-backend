@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Bank;
 using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.CashReport;
 using ScanToOrder.Domain.Entities.Configuration;
@@ -9,13 +10,13 @@ using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Enums;
 using System.Reflection;
+using ScanToOrder.Domain.Entities.Restaurant;
 
 namespace ScanToOrder.Infrastructure.Context;
 
@@ -52,6 +53,7 @@ public class AppDbContext : DbContext
     public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;
     public DbSet<NotifyTenant> NotifyTenants { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
+    public DbSet<Banks> Banks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

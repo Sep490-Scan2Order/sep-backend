@@ -1,5 +1,4 @@
 ﻿using ScanToOrder.Domain.Entities.Authentication;
-using ScanToOrder.Domain.Entities.Restaurants;
 
 namespace ScanToOrder.Domain.Entities.User;
 
@@ -16,5 +15,5 @@ public partial class Staff
 
     public virtual AuthenticationUser Account { get; set; } = null!;
 
-    public virtual Restaurant Restaurant { get; set; } = null!;
+    public virtual Restaurant.Restaurant Restaurant { get; set; } = null!;
 }

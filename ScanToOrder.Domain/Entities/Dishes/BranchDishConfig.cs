@@ -1,5 +1,4 @@
 using ScanToOrder.Domain.Entities.Base;
-using ScanToOrder.Domain.Entities.Restaurants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +14,7 @@ namespace ScanToOrder.Domain.Entities.Dishes
         public bool IsSelling { get; set; } = true;
         public decimal Price { get; set; }
         public bool IsSoldOut { get; set; } = false;
-        public virtual Restaurant Restaurant { get; set; } = null!;
+        public virtual Restaurant.Restaurant Restaurant { get; set; } = null!;
         public virtual Dish Dish { get; set; } = null!;
     }
 }

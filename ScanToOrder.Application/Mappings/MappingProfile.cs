@@ -19,7 +19,7 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<RegisterTenantRequest, Tenant>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
                 .ForMember(dest => dest.TotalRestaurants, opt => opt.MapFrom(src => 0))
                 .ForMember(dest => dest.TotalDishes, opt => opt.MapFrom(src => 0))
                 .ForMember(dest => dest.TotalCategories, opt => opt.MapFrom(src => 0))

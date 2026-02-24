@@ -2,9 +2,9 @@
 {
     public interface IOtpRedisService
     {
-        Task SaveOtpAsync(string email, string otpCode, string purpose);
-        Task<string?> GetOtpAsync(string email, string purpose);
-        Task DeleteOtpAsync(string email, string purpose);
-        Task<string> GenerateAndSaveOtpAsync(string email, string purpose);
+        Task SaveOtpTenantAsync(string email, string otpCode, string purpose);
+        Task<string?> GetOtpTenantAsync(string email, string purpose);
+        Task DeleteOtpTenantAsync(string email, string purpose);
+        Task<string> GenerateAndSaveOtpTenantAsync(string email, string purpose);
     }
 }

@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ScanToOrder.Domain.Entities.Restaurants;
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
+using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 
@@ -19,28 +21,37 @@ namespace ScanToOrder.Infrastructure.Repositories
             double radiusKm,
             int limit = 10)
         {
+            var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+            var userLocation = geometryFactory.CreatePoint(new Coordinate(longitude, latitude));
+            
             var maxRadiusMeters = radiusKm * 1000;
-
-            FormattableString sql = $@"
-                SELECT r.*
-                FROM ""Restaurants"" r
-                WHERE r.""Location"" IS NOT NULL
-                  AND r.""IsActive"" = true
-                  AND r.""IsDeleted"" = false
-                  AND ST_DWithin(
-                      r.""Location""::geography, 
-                      ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography, 
-                      {maxRadiusMeters}
-                  )
-                ORDER BY ST_DistanceSphere(
-                    r.""Location"", 
-                    ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)
-                )
-                LIMIT {limit}";
-
             var restaurants = await _context.Restaurants
-                .FromSqlInterpolated(sql)
+                .Where(r => (bool)r.IsActive! == true && r.IsDeleted == false && r.Location != null)
+                .Where(r => r.Location != null && r.Location.IsWithinDistance(userLocation, maxRadiusMeters))
+                .OrderBy(r => r.Location!.Distance(userLocation))
+                .Take(limit)
                 .ToListAsync();
+            
+            // FormattableString sql = $@"
+            //     SELECT r.*
+            //     FROM ""Restaurants"" r
+            //     WHERE r.""Location"" IS NOT NULL
+            //       AND r.""IsActive"" = true
+            //       AND r.""IsDeleted"" = false
+            //       AND ST_DWithin(
+            //           r.""Location""::geography, 
+            //           ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geography, 
+            //           {maxRadiusMeters}
+            //       )
+            //     ORDER BY ST_DistanceSphere(
+            //         r.""Location"", 
+            //         ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)
+            //     )
+            //     LIMIT {limit}";
+            //
+            // var restaurants = await _context.Restaurants
+            //     .FromSqlInterpolated(sql)
+            //     .ToListAsync();
 
             var result = new List<(Restaurant Restaurant, double DistanceKm)>();
 

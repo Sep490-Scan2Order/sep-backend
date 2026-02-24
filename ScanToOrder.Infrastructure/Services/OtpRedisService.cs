@@ -22,30 +22,30 @@ public class OtpRedisService : IOtpRedisService
     private string GetKey(string email, string purpose)
         => $"{_instanceName}otp:{purpose}:{email}";
 
-    public async Task SaveOtpAsync(string email, string otpCode, string purpose)
+    public async Task SaveOtpTenantAsync(string email, string otpCode, string purpose)
     {
         var key = GetKey(email, purpose);
         await _database.StringSetAsync(key, otpCode, TimeSpan.FromMinutes(30));
     }
 
-    public async Task<string?> GetOtpAsync(string email, string purpose)
+    public async Task<string?> GetOtpTenantAsync(string email, string purpose)
     {
         var key = GetKey(email, purpose);
         return await _database.StringGetAsync(key);
     }
 
-    public async Task DeleteOtpAsync(string email, string purpose)
+    public async Task DeleteOtpTenantAsync(string email, string purpose)
     {
         var key = GetKey(email, purpose);
         await _database.KeyDeleteAsync(key);
     }
 
-    public async Task<string> GenerateAndSaveOtpAsync(string email, string purpose)
+    public async Task<string> GenerateAndSaveOtpTenantAsync(string email, string purpose)
     {
         Random generator = new Random();
         string otpCode = generator.Next(100000, 999999).ToString();
 
-        await SaveOtpAsync(email, otpCode, purpose);
+        await SaveOtpTenantAsync(email, otpCode, purpose);
 
         string templateId;
         string subject;
@@ -53,22 +53,22 @@ public class OtpRedisService : IOtpRedisService
         switch (purpose)
         {
             case OtpMessage.OtpKeyword.OTP_REGISTER:
-                templateId = ResendTemplate.REGISTER_TEMPLATE_ID;
+                templateId = ResendTemplate.REGISTER_TENANT_TEMPLATE_ID;
                 subject = EmailMessage.EmailSubject.REGISTER_SUBJECT;
                 break;
 
             case OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD:
-                templateId = ResendTemplate.FORGOT_PASSWORD_TEMPLATE_ID;
+                templateId = ResendTemplate.FORGOT_PASSWORD_TENANT_TEMPLATE_ID;
                 subject = EmailMessage.EmailSubject.FORGOT_PASSWORD_SUBJECT;
                 break;
 
             case OtpMessage.OtpKeyword.OTP_RESET_PASSWORD:
-                templateId = ResendTemplate.RESET_PASSWORD_TEMPLATE_ID;
+                templateId = ResendTemplate.RESET_PASSWORD_TENANT_TEMPLATE_ID;
                 subject = EmailMessage.EmailSubject.RESET_PASSWORD_SUBJECT;
                 break;
 
             default:
-                templateId = ResendTemplate.REGISTER_TEMPLATE_ID;
+                templateId = ResendTemplate.REGISTER_TENANT_TEMPLATE_ID;
                 subject = EmailMessage.EmailSubject.DEFAULT_SUBJECT;
                 break;
         }
@@ -79,7 +79,7 @@ public class OtpRedisService : IOtpRedisService
             ExpiryTime = DateTime.UtcNow.AddMinutes(5).ToString("HH:mm:ss")
         };
 
-        await _emailService.SendEmailWithTemplateAsync(
+        await _emailService.SendEmailWithTemplateIdDomainAsync(
             email,
             subject,
             templateId,

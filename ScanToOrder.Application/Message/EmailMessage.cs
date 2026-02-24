@@ -22,5 +22,11 @@
             public const string DEFAULT_SUBJECT = "Thông báo từ Scan2Order";
             public const string RESET_PASSWORD_SUBJECT = "Đặt lại mật khẩu Scan2Order";
         }
+
+        public class EmailDomain
+        {
+            public const string ID_DOMAIN = "ID_DOMAIN";
+            public const string IO_DOMAIN = "IO_DOMAIN";
+        }
     }
 }

@@ -3,7 +3,7 @@ using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.User;
 
-namespace ScanToOrder.Domain.Entities.Restaurants;
+namespace ScanToOrder.Domain.Entities.Restaurant;
 
 public partial class Restaurant : BaseEntity<int>
 {
@@ -12,7 +12,6 @@ public partial class Restaurant : BaseEntity<int>
     public string RestaurantName { get; set; } = null!;
 
     public string? Address { get; set; }
-
     public Point? Location { get; set; }
 
     public string? Image { get; set; }

@@ -38,10 +38,12 @@ namespace ScanToOrder.Infrastructure.Repositories
         public ITenantWalletRepository TenantWallets { get; }
         public IWalletTransactionRepository WalletTransactions { get; }
         public ICashDrawerReportRepository CashDrawerReports { get; }
+        public IBankRepository Banks { get; }
 
-        public UnitOfWork(AppDbContext context)
+        public UnitOfWork(AppDbContext context, IBankRepository banks)
         {
             _context = context;
+            Banks = banks;
             AuthenticationUsers = new AuthenticationUserRepository(_context);
             Tenants = new TenantRepository(_context);
             Staffs = new StaffRepository(_context);

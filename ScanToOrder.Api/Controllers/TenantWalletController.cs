@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Api.Controllers;
 
@@ -15,9 +16,16 @@ public class TenantWalletController : BaseController
     }
     
     [HttpPost("deposit")]
-    public async Task<ActionResult<string>> CreateDepositUrl([FromQuery] decimal amount)
+    public async Task<ActionResult<string>> WalletDeposit([FromQuery] decimal amount)
     {
-        var depositUrl = await _tenantWalletService.CreateDepositUrlAsync(amount);
+        var depositUrl = await _tenantWalletService.CreateDepositUrlAsync(amount, NoteWalletTransaction.Deposit);
+        return Ok(depositUrl);
+    }
+    
+    [HttpPost("deposit-verify-tax")]
+    public async Task<ActionResult<string>> WalletDepositVerifyTax()
+    {
+        var depositUrl = await _tenantWalletService.CreateDepositUrlAsync(5000, NoteWalletTransaction.AccountVerification);
         return Ok(depositUrl);
     }
 }

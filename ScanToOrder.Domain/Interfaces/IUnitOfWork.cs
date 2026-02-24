@@ -2,7 +2,6 @@ using ScanToOrder.Domain.Entities.Blogs;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Points;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Vouchers;
@@ -48,6 +47,7 @@ namespace ScanToOrder.Domain.Interfaces
         ITenantWalletRepository TenantWallets { get; }
         IWalletTransactionRepository WalletTransactions { get; }
         ICashDrawerReportRepository CashDrawerReports { get; }
+        IBankRepository Banks { get; }
         Task<IDbTransaction> BeginTransactionAsync();
         Task SaveAsync();
     }
