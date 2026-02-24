@@ -51,6 +51,10 @@ namespace ScanToOrder.Application.Mappings
 
             // Configuration mapping
             CreateMap<Configurations, ConfigurationResponse>();
+
+            // AddOn mapping
+            CreateMap<CreateAddOnRequest, AddOn>();
+            CreateMap<AddOn, AddOnDto>();
         }
     }
 }
