@@ -55,6 +55,20 @@ namespace ScanToOrder.Application.Mappings
             // AddOn mapping
             CreateMap<CreateAddOnRequest, AddOn>();
             CreateMap<AddOn, AddOnDto>();
+
+            CreateMap<CreateRestaurantRequest, Restaurant>()
+            // Map tọa độ từ Lat/Lng sang Point (GIS)
+            .ForMember(dest => dest.Location, opt => opt.MapFrom(src =>
+                (src.Latitude.HasValue && src.Longitude.HasValue)
+                ? new Point(src.Longitude.Value, src.Latitude.Value) { SRID = 4326 }
+                : null))
+            // Các trường mặc định khi tạo mới
+            .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+            .ForMember(dest => dest.IsOpened, opt => opt.MapFrom(src => false))
+            .ForMember(dest => dest.IsReceivingOrders, opt => opt.MapFrom(src => false))
+            .ForMember(dest => dest.TotalOrder, opt => opt.MapFrom(src => 0))
+            // QrMenu được sinh ngẫu nhiên
+            .ForMember(dest => dest.QrMenu, opt => opt.MapFrom(src => $"https://scantoorder.com/menu/{Guid.NewGuid()}"));
         }
     }
 }

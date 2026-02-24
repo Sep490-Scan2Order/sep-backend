@@ -2,16 +2,19 @@ using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
+using System.Security.Claims;
 
 namespace ScanToOrder.Api.Controllers
 {
     public class RestaurantController : BaseController
     {
         private readonly IRestaurantService _restaurantService;
+        private readonly IAuthenticatedUserService _authenticatedUserService;
 
-        public RestaurantController(IRestaurantService restaurantService)
+        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService)
         {
             _restaurantService = restaurantService;
+            _authenticatedUserService = authenticatedUserService;
         }
 
         [HttpGet("{id:int}")]
@@ -43,6 +46,15 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _restaurantService.GetNearbyRestaurantsAsync(latitude, longitude, radiusKm, limit);
             return Success(result);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromBody] CreateRestaurantRequest request)
+        {
+           
+            var result = await _restaurantService.CreateRestaurantAsync(_authenticatedUserService.ProfileId.Value, request);
+
+            return Success(result, "Tạo nhà hàng mới thành công.");
         }
     }
 }

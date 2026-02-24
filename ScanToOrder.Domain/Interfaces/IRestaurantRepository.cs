@@ -1,4 +1,5 @@
 using ScanToOrder.Domain.Entities.Restaurant;
+using System.Linq.Expressions;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -17,5 +18,6 @@ namespace ScanToOrder.Domain.Interfaces
             int pageSize);
 
         Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize);
+        Task<int> CountAsync(Expression<Func<Restaurant, bool>> predicate);
     }
 }

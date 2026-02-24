@@ -1,6 +1,9 @@
-using AutoMapper;
+﻿using AutoMapper;
+using NetTopologySuite.Geometries;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services
@@ -81,6 +84,25 @@ namespace ScanToOrder.Application.Services
             }).ToList();
 
             return restaurantDtos;
+        }
+
+        public async Task<RestaurantDto> CreateRestaurantAsync(Guid tenantId, CreateRestaurantRequest request)
+        {
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId); //1
+            var currentCount = await _unitOfWork.Restaurants.CountAsync(r => r.TenantId == tenantId);
+            if (currentCount >= tenant.TotalRestaurants)
+            {
+                throw new DomainException("Bạn đã đạt giới hạn số lượng nhà hàng của gói hiện tại.");
+            }
+
+            var restaurant = _mapper.Map<Restaurant>(request);
+
+            restaurant.TenantId = tenantId;
+
+            await _unitOfWork.Restaurants.AddAsync(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<RestaurantDto>(restaurant);
         }
     }
 }
