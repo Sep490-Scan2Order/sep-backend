@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<WalletTransaction> WalletTransactions { get; set; } = null!;
     public DbSet<Dish> Dishes { get; set; } = null!;
     public DbSet<Order> Orders { get; set; } = null!;
+    public DbSet<Transaction> Transactions { get; set; } = null!;
     public DbSet<OrderDetail> OrderDetails { get; set; } = null!;
     public DbSet<Promotion> Promotions { get; set; } = null!;
     public DbSet<Voucher> Vouchers { get; set; } = null!;
