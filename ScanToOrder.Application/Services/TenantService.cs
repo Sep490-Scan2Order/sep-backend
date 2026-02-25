@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
@@ -14,13 +17,21 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ITaxService _taxService;
+        private readonly IBankLookupService _bankLookupService;
         private readonly IOtpRedisService _otpRedisService;
         private readonly ITenantWalletService _tenantWalletService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
+        private readonly ITransactionRedisService _transactionRedisService;
 
-        public TenantService(IUnitOfWork unitOfWork, IMapper mapper,
-            ITaxService taxService, IOtpRedisService otpRedisService,
-            ITenantWalletService tenantWalletService, IAuthenticatedUserService authenticatedUserService)
+        public TenantService(
+            IUnitOfWork unitOfWork, 
+            IMapper mapper,
+            ITaxService taxService, 
+            IOtpRedisService otpRedisService,
+            ITenantWalletService tenantWalletService, 
+            IAuthenticatedUserService authenticatedUserService, 
+            IBankLookupService bankLookupService, 
+            ITransactionRedisService transactionRedisService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -28,6 +39,8 @@ namespace ScanToOrder.Application.Services
             _otpRedisService = otpRedisService;
             _tenantWalletService = tenantWalletService;
             _authenticatedUserService = authenticatedUserService;
+            _bankLookupService = bankLookupService;
+            _transactionRedisService = transactionRedisService;
         }
 
         public async Task<string> RegisterTenantAsync(RegisterTenantRequest request)
@@ -68,6 +81,11 @@ namespace ScanToOrder.Application.Services
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(_authenticatedUserService.ProfileId!.Value);
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            
+            var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode)); 
+            if (taxCodeExists)
+                throw new DomainException(TenantMessage.TenantError.TAX_CODE_ALREADY_EXISTS);
+            
             var result = await _taxService.GetTaxCodeDetailsAsync(taxCode);
             if (result.IsValid)
             {
@@ -79,17 +97,71 @@ namespace ScanToOrder.Application.Services
             }
             return false;
         }
+        
+        public async Task<string> UpdateBankInfoAsync(Guid bankId, string accountNumber)
+        {
+            var tenantId = _authenticatedUserService.ProfileId!.Value;
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+            if (tenant == null)
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+            var bankExists = await _unitOfWork.Banks.GetByFieldsIncludeAsync(b => b.Id == bankId);
+            if (bankExists == null)
+                throw new DomainException(BankMessage.BankError.BANK_NOT_FOUND);
+
+            var result = await _bankLookupService.LookupAccountAsync(new BankLookRequest()
+            {
+                Bank = bankExists.Code,
+                Account = accountNumber
+            });
+            if (!result.Success)
+            {
+                throw new DomainException("Thông tin tài khoản ngân hàng không hợp lệ");
+            }
+            tenant.BankId = bankId;
+            tenant.CardNumber = accountNumber;
+            tenant.IsVerifyBank = false;
+            _unitOfWork.Tenants.Update(tenant);
+            await _unitOfWork.SaveAsync();
+            var qrResult = BankQrLinkUtils.GenerateSePayQrUrl(accountNumber, bankExists.Code, 10000, PaymentIntent.TenantVerification);
+
+            string urlToDisplay = qrResult.QrUrl;
+            string codeToSave = qrResult.PaymentCode;
+            await _transactionRedisService.SaveTransactionCodeAsync(codeToSave, tenantId);
+            return urlToDisplay;
+        }
+        
+        public async Task<bool> VerifyBankAccountAsync(string paymentCode)
+        {
+            var tenantId = await _transactionRedisService.GetTenantIdByTransactionCodeAsync(paymentCode);
+            if (tenantId != null)
+            {
+                var tenant = await _unitOfWork.Tenants.GetByIdAsync(Guid.Parse(tenantId));
+                if (tenant == null)
+                    throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+                if (string.IsNullOrEmpty(tenant.CardNumber) || tenant.BankId == null)
+                    throw new DomainException("Thông tin ngân hàng chưa được cập nhật");
+
+                tenant.IsVerifyBank = true;
+                _unitOfWork.Tenants.Update(tenant);
+                await _transactionRedisService.DeleteTransactionCodeAsync(paymentCode);
+                await _unitOfWork.SaveAsync();
+                return true;
+            }
+
+            return false;
+        }
 
         public async Task<IEnumerable<TenantDto>> GetAllTenantsAsync()
         {
             var tenants = await _unitOfWork.Tenants.GetTenantsWithSubscriptionsAsync();
-
             return _mapper.Map<IEnumerable<TenantDto>>(tenants);
         }
         public async Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive)
         {
             var tenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(x => x.Id == tenantId, x => x.Account);
-
+    
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
