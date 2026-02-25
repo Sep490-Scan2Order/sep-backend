@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using ScanToOrder.Application.DTOs.Auth;
+using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Authentication;
@@ -83,6 +84,40 @@ namespace ScanToOrder.Application.Services
         {
             var user = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
             if (user == null || user.Role != Domain.Enums.Role.Tenant)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
+            }
+
+            if (string.IsNullOrEmpty(user.Password))
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NO_PASSWORD);
+            }
+
+            if (user.IsActive == false)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
+            }
+
+            // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            // {
+            //     throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
+            // }
+
+            if (request.Password != user.Password)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+            }
+            return new AuthResponse
+            {
+                AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
+                RefreshToken = _jwtService.GenerateRefreshToken(user)
+            };
+        }       
+        
+        public async Task<AuthResponse> StaffLoginAsync(StaffLoginRequest request)
+        {
+            var user = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
+            if (user == null || user.Role != Domain.Enums.Role.Staff)
             {
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
             }
