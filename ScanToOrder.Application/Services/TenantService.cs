@@ -79,8 +79,11 @@ namespace ScanToOrder.Application.Services
         public async Task<bool> ValidationTaxCodeAsync(string taxCode)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(_authenticatedUserService.ProfileId!.Value);
+            
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            if (tenant.IsVerifyTax)
+                throw new DomainException("Không thể cập nhật mã số thuế khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.");
             
             var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode)); 
             if (taxCodeExists)
@@ -104,6 +107,10 @@ namespace ScanToOrder.Application.Services
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            if (tenant.IsVerifyBank)
+            {
+                throw new DomainException("Không thể cập nhật thông tin ngân hàng khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.");
+            }
 
             var bankExists = await _unitOfWork.Banks.GetByFieldsIncludeAsync(b => b.Id == bankId);
             if (bankExists == null)
