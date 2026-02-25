@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Api.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
     public class AddOnController : BaseController
     {
         private readonly IAddOnService _addOnService;
