@@ -52,7 +52,8 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromBody] CreateRestaurantRequest request)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromForm] CreateRestaurantRequest request)
         {
             if (!_authenticatedUserService.ProfileId.HasValue)
             {
