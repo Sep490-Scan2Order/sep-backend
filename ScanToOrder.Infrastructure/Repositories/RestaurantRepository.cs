@@ -4,6 +4,7 @@ using NetTopologySuite.Geometries;
 using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
+using System.Linq.Expressions;
 
 namespace ScanToOrder.Infrastructure.Repositories
 {
@@ -141,6 +142,10 @@ namespace ScanToOrder.Infrastructure.Repositories
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return R * c;
+        }
+        public async Task<int> CountAsync(Expression<Func<Restaurant, bool>> predicate)
+        {
+            return await _context.Restaurants.CountAsync(predicate);
         }
     }
 }

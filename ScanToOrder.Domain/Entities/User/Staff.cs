@@ -11,8 +11,6 @@ public partial class Staff
     public int RestaurantId { get; set; }
     public string Name { get; set; } = null!;
 
-    public string? Avatar { get; set; }
-
     public virtual AuthenticationUser Account { get; set; } = null!;
 
     public virtual Restaurant.Restaurant Restaurant { get; set; } = null!;

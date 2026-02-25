@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Auth;
 using ScanToOrder.Application.DTOs.External;
+using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 
@@ -65,5 +66,19 @@ public class AuthController : BaseController
     public async Task<ActionResult<ApiResponse<object?>>> TestTax([FromQuery] string taxCode)
     {
         return Success<object?>(await _taxService.GetTaxCodeDetailsAsync(taxCode));
+    }
+
+    [HttpPost("Complete-reset-password")]
+    public async Task<ActionResult<ApiResponse<string>>> CompleteResetPassword([FromBody] CompleteResetPasswordRequest request)
+    {
+        var result = await _authService.CompleteResetPasswordAsync(request.Email, request.ResetToken, request.NewPassword);
+        return Success(result);
+    }
+
+    [HttpPost("Verify-forgot-password-otp")]
+    public async Task<ActionResult<ApiResponse<string>>> VerifyForgotPasswordOtp([FromBody] VerifyForgotPasswordOtpRequest request)
+    {
+        var result = await _authService.VerifyForgotPasswordOtpAsync(request.Email, request.OtpCode);
+        return Success(result);
     }
 }

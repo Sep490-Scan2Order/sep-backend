@@ -30,7 +30,21 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _dbSet.FindAsync(id);
         }
+        
+        public async Task<T?> GetByIdIncludeAsync(
+            Expression<Func<T, bool>> predicate, 
+            params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet;
 
+            if (includes != null)
+            {
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
+            }
+
+            return await query.FirstOrDefaultAsync(predicate);
+        }
+        
         public async Task AddAsync(T entity)
         {
             await _dbSet.AddAsync(entity);
@@ -49,6 +63,28 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IQueryable<T> GetQueryable()
         {
             return _dbSet.AsQueryable();
+        }
+
+        public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.AnyAsync(predicate);
+        }
+
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, string includeProperties = "")
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (!string.IsNullOrEmpty(includeProperties))
+            {
+                var properties = includeProperties.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var property in properties)
+                {
+                    query = query.Include(property.Trim());
+                }
+            }
+
+            // EF Core sẽ thực thi predicate này dưới SQL
+            return await query.FirstOrDefaultAsync(predicate);
         }
     }
 }

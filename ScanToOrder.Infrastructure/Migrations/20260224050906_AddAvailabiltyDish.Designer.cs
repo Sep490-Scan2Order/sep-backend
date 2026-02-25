@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260224050906_AddAvailabiltyDish")]
+    partial class AddAvailabiltyDish
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,18 +33,12 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Avatar")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -900,7 +897,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AddOnId")
+                    b.Property<int?>("AddOnId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
@@ -971,6 +968,9 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Avatar")
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1005,6 +1005,9 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -1454,11 +1457,9 @@ namespace ScanToOrder.Infrastructure.Migrations
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.SubscriptionPlan.Subscription", b =>
                 {
-                    b.HasOne("ScanToOrder.Domain.Entities.SubscriptionPlan.AddOn", "AddOn")
+                    b.HasOne("ScanToOrder.Domain.Entities.SubscriptionPlan.AddOn", null)
                         .WithMany("Subscriptions")
-                        .HasForeignKey("AddOnId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("AddOnId");
 
                     b.HasOne("ScanToOrder.Domain.Entities.SubscriptionPlan.Plan", "Plan")
                         .WithMany("Subscriptions")
@@ -1471,8 +1472,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AddOn");
 
                     b.Navigation("Plan");
 

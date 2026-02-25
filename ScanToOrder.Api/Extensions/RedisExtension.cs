@@ -1,6 +1,4 @@
 ﻿using StackExchange.Redis;
-using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Infrastructure.Services;
 
 namespace ScanToOrder.Api.Extensions
 {

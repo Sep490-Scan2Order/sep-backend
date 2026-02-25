@@ -1,6 +1,9 @@
-using AutoMapper;
+﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
+using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services
@@ -81,6 +84,51 @@ namespace ScanToOrder.Application.Services
             }).ToList();
 
             return restaurantDtos;
+        }
+
+        public async Task<RestaurantDto> CreateRestaurantAsync(Guid tenantId, CreateRestaurantRequest request)
+        {
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+            if (tenant == null)
+            {
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            }
+
+            // Đang test nên tạm thời bỏ giới hạn số lượng nhà hàng của tenant
+            //var currentCount = await _unitOfWork.Restaurants.CountAsync(r => r.TenantId == tenantId);
+            //if (currentCount >= tenant.TotalRestaurants)
+            //{
+            //    throw new DomainException(TenantMessage.TenantError.TENANT_LIMIT_RESTAURANTS);
+            //}
+
+            //Switch Expression
+            _ = true switch
+            {
+                _ when string.IsNullOrEmpty(tenant.TaxNumber)
+                    => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_TAX_NUMBER),
+
+                _ when tenant.BankId == null || tenant.BankId == Guid.Empty
+                    => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_BANK),
+
+                _ when string.IsNullOrEmpty(tenant.CardNumber)
+                    => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_CARD),
+
+                _ when string.IsNullOrEmpty(request.Phone)
+                    => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_PHONE),
+
+                _ => true 
+            };
+
+            var restaurant = _mapper.Map<Restaurant>(request);
+            restaurant.TenantId = tenantId;
+
+            restaurant.IsActive = true;
+            restaurant.IsOpened = false;
+
+            await _unitOfWork.Restaurants.AddAsync(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<RestaurantDto>(restaurant);
         }
     }
 }

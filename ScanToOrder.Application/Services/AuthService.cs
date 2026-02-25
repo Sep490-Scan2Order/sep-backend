@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using ScanToOrder.Application.DTOs.Auth;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Authentication;
-using ScanToOrder.Domain.Interfaces;
-using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Entities.User;
-using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Exceptions;
+using ScanToOrder.Domain.Interfaces;
+using StackExchange.Redis;
 
 namespace ScanToOrder.Application.Services
 {
@@ -16,17 +16,25 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
         private readonly ISmsSender _smsSender;
+        private readonly IOtpRedisService _otpRedisService;
+        private readonly IDatabase _redisDb;
+        private readonly IConnectionMultiplexer _connectionMultiplexer;
 
         public AuthService(
             IMemoryCache cache,
             IUnitOfWork unitOfWork,
             IJwtService jwtService,
-            ISmsSender smsSender)
+            ISmsSender smsSender,
+            IOtpRedisService otpRedisService,
+            IConnectionMultiplexer connectionMultiplexer)
         {
             _cache = cache;
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
             _smsSender = smsSender;
+            _otpRedisService = otpRedisService;
+            _connectionMultiplexer = connectionMultiplexer;
+            _redisDb = connectionMultiplexer.GetDatabase();
         }
 
         public async Task<string> SendOtpAsync(string phone)
@@ -46,17 +54,22 @@ namespace ScanToOrder.Application.Services
 
             if (user == null)
             {
-                throw new DomainException("Tài khoản chưa được đăng ký.");
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
+            }
+
+            if (user.IsActive == false)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
             }
 
             if (string.IsNullOrEmpty(user.Password))
             {
-                throw new DomainException("Tài khoản chưa đặt mật khẩu. Vui lòng đăng ký lại với mật khẩu.");
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NO_PASSWORD);
             }
 
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             {
-                throw new DomainException("Số điện thoại hoặc mật khẩu không đúng.");
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
             }
 
             return new AuthResponse
@@ -65,28 +78,33 @@ namespace ScanToOrder.Application.Services
                 RefreshToken = _jwtService.GenerateRefreshToken(user)
             };
         }
-        
+
         public async Task<AuthResponse> TenantLoginAsync(TenantLoginRequest request)
         {
             var user = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
-            if (user == null || user.Role != Role.Tenant)
+            if (user == null || user.Role != Domain.Enums.Role.Tenant)
             {
-                throw new DomainException("Tài khoản chưa được đăng ký.");
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
             }
 
             if (string.IsNullOrEmpty(user.Password))
             {
-                throw new DomainException("Tài khoản chưa đặt mật khẩu. Vui lòng đăng ký lại với mật khẩu.");
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NO_PASSWORD);
+            }
+
+            if (user.IsActive == false)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
             }
 
             // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             // {
-            //     throw new DomainException("Số điện thoại hoặc mật khẩu không đúng.");
+            //     throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
             // }
-            
+
             if (request.Password != user.Password)
             {
-                throw new DomainException("Mật khẩu không đúng.");
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
             }
             return new AuthResponse
             {
@@ -94,14 +112,14 @@ namespace ScanToOrder.Application.Services
                 RefreshToken = _jwtService.GenerateRefreshToken(user)
             };
         }
-        
+
         private Guid? ExtractProfileId(AuthenticationUser user)
         {
             return user.Role switch
             {
-                Role.Tenant => user.Tenant?.Id,
-                Role.Staff => user.Staff?.Id,
-                Role.Customer => user.Customer?.Id,
+                Domain.Enums.Role.Tenant => user.Tenant?.Id,
+                Domain.Enums.Role.Staff => user.Staff?.Id,
+                Domain.Enums.Role.Customer => user.Customer?.Id,
                 _ => null
             };
         }
@@ -113,7 +131,7 @@ namespace ScanToOrder.Application.Services
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
             if (existingUser != null)
             {
-                throw new DomainException("Số điện thoại này đã được đăng ký.");
+                throw new DomainException(AuthMessage.AuthError.PHONE_REGISTERED);
             }
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -124,7 +142,7 @@ namespace ScanToOrder.Application.Services
                 Phone = request.Phone,
                 Password = passwordHash,
                 Email = string.Empty,
-                Role = Role.Customer,
+                Role = Domain.Enums.Role.Customer,
                 CreatedAt = DateTime.UtcNow,
                 Verified = true
             };
@@ -155,10 +173,60 @@ namespace ScanToOrder.Application.Services
             var cacheKey = "OTP_" + phone;
             if (!_cache.TryGetValue(cacheKey, out string? storedOtp) || storedOtp != otp)
             {
-                throw new DomainException("Mã OTP không chính xác hoặc đã hết hạn.");
+                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
             }
 
             _cache.Remove(cacheKey);
+        }
+
+        public async Task<string> VerifyForgotPasswordOtpAsync(string email, string otpCode)
+        {
+            var savedOtp = await _otpRedisService.GetOtpTenantAsync(email, OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD);
+
+            if (string.IsNullOrEmpty(savedOtp) || savedOtp != otpCode)
+            {
+                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
+            }
+
+            string resetToken = Guid.NewGuid().ToString();
+            var tokenKey = $"reset_token:{email}";
+
+            await _redisDb.StringSetAsync(tokenKey, resetToken, TimeSpan.FromMinutes(10));
+
+            await _otpRedisService.DeleteOtpTenantAsync(email, OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD);
+
+            return resetToken;
+        }
+
+        public async Task<string> CompleteResetPasswordAsync(string email, string resetToken, string newPassword)
+        {
+            var tokenKey = $"reset_token:{email}";
+            var savedToken = await _redisDb.StringGetAsync(tokenKey);
+
+            if (string.IsNullOrEmpty(savedToken) || savedToken != resetToken)
+            {
+                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
+            }
+
+            //var tenant = await _unitOfWork.Tenants.FirstOrDefaultAsync(
+            //    t => t.Account.Email == email,
+            //    includeProperties: "Account"
+            //);
+
+            var tenant = await _unitOfWork.Tenants.GetByIdIncludeAsync(
+                t => t.Account.Email == email,
+                t => t.Account
+            );
+
+            if (tenant == null) throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+            tenant.Account.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            _unitOfWork.Tenants.Update(tenant);
+            await _unitOfWork.SaveAsync();
+
+            await _redisDb.KeyDeleteAsync(tokenKey);
+
+            return TenantMessage.TenantSuccess.TENANT_RESET_PASSWORD;
         }
     }
 }

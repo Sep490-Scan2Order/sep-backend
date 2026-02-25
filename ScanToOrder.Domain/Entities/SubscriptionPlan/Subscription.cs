@@ -15,6 +15,10 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public virtual Tenant Tenant { get; set; } = null!;
         public int PlanId { get; set; }
         public virtual Plan Plan { get; set; } = null!;
+
+        public int AddOnId { get; set; }
+        public virtual AddOn AddOn { get; set; } = null!;
+
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool IsActive { get; set; }

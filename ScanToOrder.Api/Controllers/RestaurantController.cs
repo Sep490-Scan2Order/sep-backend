@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
 
 namespace ScanToOrder.Api.Controllers
@@ -8,10 +9,12 @@ namespace ScanToOrder.Api.Controllers
     public class RestaurantController : BaseController
     {
         private readonly IRestaurantService _restaurantService;
+        private readonly IAuthenticatedUserService _authenticatedUserService;
 
-        public RestaurantController(IRestaurantService restaurantService)
+        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService)
         {
             _restaurantService = restaurantService;
+            _authenticatedUserService = authenticatedUserService;
         }
 
         [HttpGet("{id:int}")]
@@ -19,7 +22,7 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _restaurantService.GetRestaurantByIdAsync(id);
             if (result == null)
-                return NotFound(ApiResponse<RestaurantDto>.Failure("Nhà hàng không tồn tại."));
+                return NotFound(ApiResponse<RestaurantDto>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
             return Success(result);
         }
 
@@ -43,6 +46,22 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _restaurantService.GetNearbyRestaurantsAsync(latitude, longitude, radiusKm, limit);
             return Success(result);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromBody] CreateRestaurantRequest request)
+        {
+            if (!_authenticatedUserService.ProfileId.HasValue)
+            {
+                return BadRequest(new { message = RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER });
+            }
+
+            var result = await _restaurantService.CreateRestaurantAsync(
+                _authenticatedUserService.ProfileId.Value,
+                request
+            );
+
+            return Success(result, RestaurantMessage.RestaurantSuccess.RESTAURANT_CREATED);
         }
     }
 }

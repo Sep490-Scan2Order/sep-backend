@@ -14,5 +14,6 @@
         public int TotalRestaurants { get; set; } = 0;
         public int TotalDishes { get; set; } = 0;
         public int TotalCategories { get; set; } = 0;
+        public string BankLogo { get; set; } = string.Empty;
     }
 }
