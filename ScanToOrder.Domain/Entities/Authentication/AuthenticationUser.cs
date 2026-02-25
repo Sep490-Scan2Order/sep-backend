@@ -12,6 +12,7 @@ namespace ScanToOrder.Domain.Entities.Authentication
         public string? Phone { get; set; }
 
         public string? Password { get; set; }
+        public string? Avatar { get; set; }
 
         public Role Role { get; set; }
 
