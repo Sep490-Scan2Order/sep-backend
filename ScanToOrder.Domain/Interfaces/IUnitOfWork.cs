@@ -32,6 +32,7 @@ namespace ScanToOrder.Domain.Interfaces
         IVoucherRepository Vouchers { get; }          
         IMemberVoucherRepository MemberVouchers { get; }
         IOrderRepository Orders { get; }
+        ITransactionRepository Transactions { get; }
         IOrderDetailRepository OrderDetails { get; }
         IDishesRepository Dishes { get; }
         ICategoryRepository Categories { get; }

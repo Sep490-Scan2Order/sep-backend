@@ -23,6 +23,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IVoucherRepository Vouchers { get; } 
         public IMemberVoucherRepository MemberVouchers { get; }
         public IOrderRepository Orders { get; }
+        public ITransactionRepository Transactions { get; }
         public IOrderDetailRepository OrderDetails { get; }
         public IDishesRepository Dishes { get; }
         public ICategoryRepository Categories { get; }
@@ -59,6 +60,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             Vouchers = new VoucherRepository(_context);
             MemberVouchers = new MemberVoucherRepository(_context);
             Orders = new OrderRepository(_context);
+            Transactions = new TransactionRepository(_context);
             OrderDetails = new OrderDetailRepository(_context);
             Dishes = new DishesRepository(_context);
             Categories = new CategoryRepository(_context);
