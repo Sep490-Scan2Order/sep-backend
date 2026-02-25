@@ -16,12 +16,16 @@ namespace ScanToOrder.Application.Services
         private readonly IMapper _mapper;
         private readonly IQrCodeService _qrCodeService;
         private readonly IConfiguration _configuration;
-        public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper, IQrCodeService qrCodeService, IConfiguration configuration)
+        private readonly IStorageService _storageService;
+        public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper, 
+            IQrCodeService qrCodeService, IConfiguration configuration,
+            IStorageService storageService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _qrCodeService = qrCodeService;
             _configuration = configuration;
+            _storageService = storageService;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -114,6 +118,18 @@ namespace ScanToOrder.Application.Services
             string baseSlug = request.RestaurantName.GenerateSlug();
             restaurant.Slug = $"{baseSlug}#{Guid.NewGuid().ToString("N").Substring(0, 4)}";
 
+            if (request.Image != null && request.Image.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await request.Image.CopyToAsync(ms);
+
+                restaurant.Image = await _storageService.UploadQrCodeFromBytesAsync(
+                    ms.ToArray(),
+                    $"{restaurant.Slug}_main.png",
+                    "restaurant_images"
+                );
+            }
+
             await _unitOfWork.Restaurants.AddAsync(restaurant);
             await _unitOfWork.SaveAsync();
 
@@ -121,7 +137,13 @@ namespace ScanToOrder.Application.Services
             restaurant.ProfileUrl = $"{baseUrl}/{restaurant.Slug}";
 
             var qrBytes = _qrCodeService.GenerateRestaurantQrCodeBytes(restaurant.Slug);
-            restaurant.QrMenu = $"data:image/png;base64,{Convert.ToBase64String(qrBytes)}";
+            string fileName = $"{restaurant.Slug}_qr.png";
+
+
+            restaurant.QrMenu = await _storageService.UploadQrCodeFromBytesAsync(
+                qrBytes,
+                $"{restaurant.Slug}_qr.png"
+            );
 
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();

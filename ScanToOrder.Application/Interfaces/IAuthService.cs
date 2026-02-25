@@ -1,6 +1,5 @@
 using ScanToOrder.Application.DTOs.Auth;
 using ScanToOrder.Application.DTOs.User;
-using ScanToOrder.Application.DTOs.User;
 
 namespace ScanToOrder.Application.Interfaces
 {
