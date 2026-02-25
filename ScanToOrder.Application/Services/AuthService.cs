@@ -208,9 +208,14 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
             }
 
-            var tenant = await _unitOfWork.Tenants.FirstOrDefaultAsync(
+            //var tenant = await _unitOfWork.Tenants.FirstOrDefaultAsync(
+            //    t => t.Account.Email == email,
+            //    includeProperties: "Account"
+            //);
+
+            var tenant = await _unitOfWork.Tenants.GetByIdIncludeAsync(
                 t => t.Account.Email == email,
-                includeProperties: "Account"
+                t => t.Account
             );
 
             if (tenant == null) throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
