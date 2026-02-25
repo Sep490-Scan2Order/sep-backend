@@ -9,7 +9,7 @@ namespace ScanToOrder.Infrastructure.Repositories
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         private readonly AppDbContext _context;
-        private readonly DbSet<T> _dbSet;
+        protected readonly DbSet<T> _dbSet;
 
         public GenericRepository(AppDbContext context)
         {
@@ -31,7 +31,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await _dbSet.FindAsync(id);
         }
         
-        public async Task<T?> GetByIdIncludeAsync(
+        public async Task<T?> GetByFieldsIncludeAsync(
             Expression<Func<T, bool>> predicate, 
             params Expression<Func<T, object>>[] includes)
         {

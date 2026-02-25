@@ -25,5 +25,15 @@ namespace ScanToOrder.Infrastructure.Repositories
                     .ThenInclude(s => s.Plan)
                 .ToListAsync();
         }
+        
+        public async Task<Tenant?> GetTenantWithSubscriptionByAccountIdAsync(Guid accountId)
+        {
+            return await _dbSet
+                .Include(t => t.Account)
+                .Include(t => t.Bank)
+                .Include(t => t.Subscriptions)
+                .ThenInclude(s => s.Plan)
+                .FirstOrDefaultAsync(t => t.AccountId == accountId);
+        }
     }
 }

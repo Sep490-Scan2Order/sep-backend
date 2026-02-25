@@ -88,7 +88,7 @@ namespace ScanToOrder.Application.Services
         }
         public async Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive)
         {
-            var tenant = await _unitOfWork.Tenants.GetByIdIncludeAsync(x => x.Id == tenantId, x => x.Account);
+            var tenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(x => x.Id == tenantId, x => x.Account);
 
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
@@ -112,7 +112,7 @@ namespace ScanToOrder.Application.Services
             var tenantId = _authenticatedUserService.ProfileId!.Value;
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (tenant == null)
-                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+                throw new NotFoundException("Tenant", tenantId);
 
             if (!string.IsNullOrEmpty(updateTenantDtoRequest.TaxNumber) && tenant.TaxNumber != updateTenantDtoRequest.TaxNumber)
             {

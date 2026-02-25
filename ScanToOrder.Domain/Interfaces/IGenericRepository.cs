@@ -6,9 +6,10 @@ namespace ScanToOrder.Domain.Interfaces
     {
         Task<List<T>> GetAllAsync(params Expression<Func<T, object>>[] includes);
         Task<T?> GetByIdAsync(object id);
-        Task<T?> GetByIdIncludeAsync(
+        Task<T?> GetByFieldsIncludeAsync(
             Expression<Func<T, bool>> predicate,
             params Expression<Func<T, object>>[] includes);
+        
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);
