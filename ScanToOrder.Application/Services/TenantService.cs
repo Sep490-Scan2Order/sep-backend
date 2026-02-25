@@ -86,17 +86,20 @@ namespace ScanToOrder.Application.Services
 
             return _mapper.Map<IEnumerable<TenantDto>>(tenants);
         }
-        public async Task<bool> BlockTenantAsync(Guid tenantId)
+        public async Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdIncludeAsync(x => x.Id == tenantId, x => x.Account);
 
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
-            if (!tenant.Account.IsActive)
-                return false;
+            if (tenant.Account.IsActive == isActive)
+            {
+                throw new DomainException(isActive ? TenantMessage.TenantError.TENANT_ALREADY_ACTIVE : 
+                                                     TenantMessage.TenantError.TENANT_ALREADY_BLOCKED);
+            }
 
-            tenant.Account.IsActive = false;
+            tenant.Account.IsActive = isActive;
 
             _unitOfWork.Tenants.Update(tenant);
             await _unitOfWork.SaveAsync();

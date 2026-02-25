@@ -21,5 +21,6 @@ namespace ScanToOrder.Api.Controllers
             var result = await _staffService.CreateStaff(request);
             return Success(result);
         }
+
     }
 }

@@ -30,10 +30,10 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpPut("{id}/block")]
-        public async Task<ActionResult<ApiResponse<string>>> BlockTenant(Guid id)
+        [HttpPut("{id}/updateStatus")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateTenantStatus(Guid id, [FromQuery] bool isActive)
         {
-            var result = await _tenantService.BlockTenantAsync(id);
+            var result = await _tenantService.UpdateTenantStatusAsync(id, isActive);
 
             if (!result)
                 throw new DomainException("Tenant is already blocked");

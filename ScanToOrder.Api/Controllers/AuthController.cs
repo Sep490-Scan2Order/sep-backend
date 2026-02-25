@@ -42,6 +42,13 @@ public class AuthController : BaseController
         return Success(result);
     }
 
+    [HttpPost("staff-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] StaffLoginRequest request)
+    {
+        var result = await _authService.StaffLoginAsync(request);
+        return Success(result);
+    }
+
     [HttpPost("register-phone")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
     {

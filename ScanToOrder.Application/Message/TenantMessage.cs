@@ -20,6 +20,8 @@
             public const string TENANT_MISSING_BANK = "Vui lòng cung cấp thông tin ngân hàng để tạo nhà hàng.";
             public const string TENANT_MISSING_CARD = "Vui lòng cung cấp thông tin thẻ ngân hàng để tạo nhà hàng.";
             public const string TENANT_MISSING_PHONE = "Vui lòng cung cấp số điện thoại để tạo nhà hàng.";
+            public const string TENANT_ALREADY_ACTIVE = "Nhà hàng này hiện đang hoạt động.";
+            public const string TENANT_ALREADY_BLOCKED = "Nhà hàng này hiện đã bị khóa.";
         }
     }
 }
