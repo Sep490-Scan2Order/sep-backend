@@ -3,6 +3,7 @@ using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -10,11 +11,13 @@ namespace ScanToOrder.Api.Controllers
     {
         private readonly IRestaurantService _restaurantService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
+        private readonly IQrCodeService _qrCodeService;
 
-        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService)
+        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService, IQrCodeService qrCodeService)
         {
             _restaurantService = restaurantService;
             _authenticatedUserService = authenticatedUserService;
+            _qrCodeService = qrCodeService;
         }
 
         [HttpGet("{id:int}")]
@@ -62,6 +65,22 @@ namespace ScanToOrder.Api.Controllers
             );
 
             return Success(result, RestaurantMessage.RestaurantSuccess.RESTAURANT_CREATED);
+        }
+
+        [HttpGet("{slug}/qr-image")]
+        [Produces("image/png")]
+        public async Task<IActionResult> GetQrImageBySlug(string slug)
+        {
+            try
+            {
+                var imageBytes = await _restaurantService.GetRestaurantQrImageBySlugAsync(slug);
+
+                return File(imageBytes, "image/png");
+            }
+            catch (DomainException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
     }
 }

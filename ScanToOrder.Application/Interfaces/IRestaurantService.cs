@@ -9,5 +9,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<RestaurantDto>> GetNearbyRestaurantsAsync(double latitude, double longitude, double radiusKm, int limit = 10);
 
         Task<RestaurantDto> CreateRestaurantAsync(Guid tenantId, CreateRestaurantRequest request);
+        Task<byte[]> GetRestaurantQrImageBySlugAsync(string slug);
     }
 }
