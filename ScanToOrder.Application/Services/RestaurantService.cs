@@ -134,7 +134,7 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             string baseUrl = _configuration["FrontEndUrl:scan2order_id_vn"]?.TrimEnd('/')!;
-            restaurant.ProfileUrl = $"{baseUrl}/{restaurant.Slug}";
+            restaurant.ProfileUrl = $"{baseUrl}/restaurant/{restaurant.Slug}";
 
             var qrBytes = _qrCodeService.GenerateRestaurantQrCodeBytes(restaurant.Slug);
             string fileName = $"{restaurant.Slug}_qr.png";

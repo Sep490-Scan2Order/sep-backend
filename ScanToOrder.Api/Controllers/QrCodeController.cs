@@ -13,9 +13,9 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("view-restaurant-qr")]
-        public IActionResult ViewRestaurantQr(string restaurantId)
+        public IActionResult ViewRestaurantQr(string restaurantSlug)
         {
-            var imageBytes = _qrCodeService.GenerateRestaurantQrCodeBytes(restaurantId);
+            var imageBytes = _qrCodeService.GenerateRestaurantQrCodeBytes(restaurantSlug);
             return File(imageBytes, "image/png");
         }
     }
