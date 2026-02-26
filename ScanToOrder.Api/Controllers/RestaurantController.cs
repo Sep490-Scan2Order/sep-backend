@@ -11,13 +11,11 @@ namespace ScanToOrder.Api.Controllers
     {
         private readonly IRestaurantService _restaurantService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
-        private readonly IQrCodeService _qrCodeService;
 
-        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService, IQrCodeService qrCodeService)
+        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService)
         {
             _restaurantService = restaurantService;
             _authenticatedUserService = authenticatedUserService;
-            _qrCodeService = qrCodeService;
         }
 
         [HttpGet("{id:int}")]
@@ -82,6 +80,27 @@ namespace ScanToOrder.Api.Controllers
             {
                 return NotFound(ex.Message);
             }
+        }
+
+        [HttpGet("get-all-restaurant-by-tenant")]
+        public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetByTenantId()
+        {
+            if (!_authenticatedUserService.ProfileId.HasValue)
+            {
+                return BadRequest(new { message = RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER });
+            }
+
+            var result = await _restaurantService.GetRestaurantsByTenantIdAsync(_authenticatedUserService.ProfileId.Value);
+            return Success(result.ToList());
+        }
+
+        [HttpGet("{slug}")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetBySlug(string slug)
+        {
+            var result = await _restaurantService.GetRestaurantBySlugAsync(slug);
+            if (result == null)
+                return NotFound(ApiResponse<RestaurantDto>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
+            return Success(result);
         }
     }
 }

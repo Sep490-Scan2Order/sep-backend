@@ -116,7 +116,7 @@ namespace ScanToOrder.Application.Services
             restaurant.IsOpened = false;
 
             string baseSlug = request.RestaurantName.GenerateSlug();
-            restaurant.Slug = $"{baseSlug}#{Guid.NewGuid().ToString("N").Substring(0, 4)}";
+            restaurant.Slug = $"{baseSlug}-{Guid.NewGuid().ToString("N").Substring(0, 4)}";
 
             if (request.Image != null && request.Image.Length > 0)
             {
@@ -151,6 +151,14 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<RestaurantDto>(restaurant);
         }
 
+        public async Task<RestaurantDto> GetRestaurantBySlugAsync(string slug)
+        {
+            var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
+            if (restaurant == null)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            return _mapper.Map<RestaurantDto>(restaurant);
+        }
+
         public async Task<byte[]> GetRestaurantQrImageBySlugAsync(string slug)
         {
             var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
@@ -161,6 +169,13 @@ namespace ScanToOrder.Application.Services
             string fullUrl = $"https://scan2order.id.vn/{slug}";
 
             return _qrCodeService.GenerateRestaurantQrCodeBytes(fullUrl);
+        }
+
+        public async Task<IEnumerable<RestaurantDto>> GetRestaurantsByTenantIdAsync(Guid tenantId)
+        {
+            var restaurants = await _unitOfWork.Restaurants.FindAsync(r => r.TenantId == tenantId);
+            var dtos = restaurants.Select(r => _mapper.Map<RestaurantDto>(r));
+            return dtos;
         }
     }
 }

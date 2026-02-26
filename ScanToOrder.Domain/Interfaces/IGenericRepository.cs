@@ -16,5 +16,6 @@ namespace ScanToOrder.Domain.Interfaces
         IQueryable<T> GetQueryable();
         Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, string includeProperties = "");
+        Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
     }
 }

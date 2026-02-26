@@ -86,5 +86,10 @@ namespace ScanToOrder.Infrastructure.Repositories
             // EF Core sẽ thực thi predicate này dưới SQL
             return await query.FirstOrDefaultAsync(predicate);
         }
+
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.Where(predicate).ToListAsync();
+        }
     }
 }
