@@ -49,6 +49,13 @@ public class AuthController : BaseController
         return Success(result);
     }
 
+    [HttpPost("administrator-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse<AdminDto>>>> AdministratorLogin([FromBody] AdminLoginRequest request)
+    {
+        var result = await _authService.AdministratorLoginAsync(request);
+        return Success(result);
+    }
+
     [HttpPost("register-phone")]
     public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerRegister([FromBody] RegisterRequest request)
     {

@@ -1,5 +1,4 @@
 ﻿using ScanToOrder.Domain.Enums;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ScanToOrder.Application.DTOs.SystemBlog
 {

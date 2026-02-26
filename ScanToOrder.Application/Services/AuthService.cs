@@ -158,7 +158,43 @@ namespace ScanToOrder.Application.Services
             return new AuthResponse<StaffDto>
             {
                 AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
-                RefreshToken = _jwtService.GenerateRefreshToken(user)
+                RefreshToken = _jwtService.GenerateRefreshToken(user),
+            };
+        }
+
+        public async Task<AuthResponse<AdminDto>> AdministratorLoginAsync(AdminLoginRequest request)
+        {
+            var user = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
+            if (user == null || user.Role != Domain.Enums.Role.Admin)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
+            }
+
+            if (string.IsNullOrEmpty(user.Password))
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NO_PASSWORD);
+            }
+
+            if (user.IsActive == false)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
+            }
+
+            // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            // {
+            //     throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
+            // }
+
+            if (request.Password != user.Password)
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+            }
+          
+            return new AuthResponse<AdminDto>
+            {
+                AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
+                RefreshToken = _jwtService.GenerateRefreshToken(user),
+                UserInfo = _mapper.Map<AdminDto>(user)
             };
         }
 

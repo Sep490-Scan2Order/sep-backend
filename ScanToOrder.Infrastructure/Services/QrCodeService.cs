@@ -13,7 +13,7 @@ namespace ScanToOrder.Infrastructure.Services
         }
         public byte[] GenerateRestaurantQrCodeBytes(string slug)
         {
-            string baseUrl = _configuration["FrontEndUrl:scan2order_id_vn"]!;
+            string baseUrl = _configuration["FrontEndUrl:scan2order_io_vn"]!;
 
             string fullUrl = $"{baseUrl.TrimEnd('/')}/restaurant/{slug}";
 
