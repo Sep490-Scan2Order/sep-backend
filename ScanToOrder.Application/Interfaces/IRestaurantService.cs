@@ -9,6 +9,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<RestaurantDto>> GetNearbyRestaurantsAsync(double latitude, double longitude, double radiusKm, int limit = 10);
 
         Task<RestaurantDto> CreateRestaurantAsync(Guid tenantId, CreateRestaurantRequest request);
+        Task<RestaurantDto> UpdateRestaurantAsync(int restaurantId, Guid tenantId, UpdateRestaurantRequest request);
         Task<byte[]> GetRestaurantQrImageBySlugAsync(string slug);
         Task<RestaurantDto> GetRestaurantBySlugAsync(string slug);
         Task<IEnumerable<RestaurantDto>> GetRestaurantsByTenantIdAsync(Guid tenantId);

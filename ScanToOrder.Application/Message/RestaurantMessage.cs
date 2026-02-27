@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Message
+namespace ScanToOrder.Application.Message
 {
     public partial class RestaurantMessage
     {
@@ -10,6 +10,7 @@
             public const string RESTAURANT_UPDATE_FAILED = "Cập nhật nhà hàng thất bại.";
             public const string RESTAURANT_DELETE_FAILED = "Xóa nhà hàng thất bại.";
             public const string NOT_FOUND_RESTAURANT_FOR_USER = "Không tìm thấy thông tin định danh người dùng (ProfileId).";
+            public const string INVALID_RESTAURANT_LOCATION = "Tọa độ nhà hàng không hợp lệ.";
         }
 
         public class RestaurantSuccess

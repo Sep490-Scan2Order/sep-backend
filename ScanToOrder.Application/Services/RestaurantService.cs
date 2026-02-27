@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
@@ -144,6 +144,49 @@ namespace ScanToOrder.Application.Services
                 qrBytes,
                 $"{restaurant.Slug}_qr.png"
             );
+
+            _unitOfWork.Restaurants.Update(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<RestaurantDto>(restaurant);
+        }
+
+        public async Task<RestaurantDto> UpdateRestaurantAsync(int restaurantId, Guid tenantId, UpdateRestaurantRequest request)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+            if (restaurant == null)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+            if (restaurant.TenantId != tenantId)
+                throw new DomainException(RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER);
+
+            restaurant.RestaurantName = request.RestaurantName;
+            restaurant.Address = request.Address;
+            restaurant.Phone = request.Phone;
+            restaurant.Description = request.Description;
+
+            if (request.Latitude.HasValue || request.Longitude.HasValue)
+            {
+                if (!(request.Latitude.HasValue && request.Longitude.HasValue))
+                    throw new DomainException(RestaurantMessage.RestaurantError.INVALID_RESTAURANT_LOCATION);
+
+                restaurant.Location = new NetTopologySuite.Geometries.Point(request.Longitude.Value, request.Latitude.Value)
+                {
+                    SRID = 4326
+                };
+            }
+
+            if (request.Image != null && request.Image.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await request.Image.CopyToAsync(ms);
+
+                restaurant.Image = await _storageService.UploadQrCodeFromBytesAsync(
+                    ms.ToArray(),
+                    $"{restaurant.Slug}_main.png",
+                    "restaurant_images"
+                );
+            }
 
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
