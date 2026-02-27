@@ -66,6 +66,24 @@ namespace ScanToOrder.Api.Controllers
             return Success(result, RestaurantMessage.RestaurantSuccess.RESTAURANT_CREATED);
         }
 
+        [HttpPut("{id:int}")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Update(int id, [FromForm] UpdateRestaurantRequest request)
+        {
+            if (!_authenticatedUserService.ProfileId.HasValue)
+            {
+                return BadRequest(new { message = RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER });
+            }
+
+            var result = await _restaurantService.UpdateRestaurantAsync(
+                id,
+                _authenticatedUserService.ProfileId.Value,
+                request
+            );
+
+            return Success(result, RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED);
+        }
+
         [HttpGet("{slug}/qr-image")]
         [Produces("image/png")]
         public async Task<IActionResult> GetQrImageBySlug(string slug)
