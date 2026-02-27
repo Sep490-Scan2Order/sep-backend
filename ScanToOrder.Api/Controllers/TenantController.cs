@@ -47,7 +47,7 @@ namespace ScanToOrder.Api.Controllers
         // Validation
         [Authorize(Roles = "Tenant")]
         [HttpPut("tax-validation")]
-        public async Task<ActionResult<ApiResponse<string>>> BlockTenant([FromQuery] string taxCode)
+        public async Task<ActionResult<ApiResponse<string>>> UpdateTaxCodeTenant([FromQuery] string taxCode)
         {
             var result = await _tenantService.ValidationTaxCodeAsync(taxCode);
             if (!result)

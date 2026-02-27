@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,12 @@
     <ProjectReference Include="..\ScanToOrder.Application\ScanToOrder.Application.csproj" />
     <ProjectReference Include="..\ScanToOrder.Domain\ScanToOrder.Domain.csproj" />
     <ProjectReference Include="..\ScanToOrder.Infrastructure\ScanToOrder.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 
 </Project>
