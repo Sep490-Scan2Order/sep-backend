@@ -579,6 +579,45 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("OrderDetails");
                 });
 
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Transaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("TransactionCode")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Transactions");
+                });
+
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.MemberPoint", b =>
                 {
                     b.Property<int>("MemberPointId")
@@ -782,6 +821,10 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("RestaurantName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -1006,20 +1049,35 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DebtStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVerifyBank")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsVerifyTax")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("LastWarningSentAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SubscriptionExpiryDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TaxNumber")
                         .HasColumnType("text");
 
                     b.Property<int>("TotalCategories")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalDebtAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<int>("TotalDishes")
                         .HasColumnType("integer");
@@ -1389,6 +1447,17 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Dish");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Transaction", b =>
+                {
+                    b.HasOne("ScanToOrder.Domain.Entities.Orders.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Order");
                 });

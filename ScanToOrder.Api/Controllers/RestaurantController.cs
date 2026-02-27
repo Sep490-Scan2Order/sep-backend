@@ -3,6 +3,7 @@ using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -49,7 +50,8 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromBody] CreateRestaurantRequest request)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromForm] CreateRestaurantRequest request)
         {
             if (!_authenticatedUserService.ProfileId.HasValue)
             {
@@ -62,6 +64,43 @@ namespace ScanToOrder.Api.Controllers
             );
 
             return Success(result, RestaurantMessage.RestaurantSuccess.RESTAURANT_CREATED);
+        }
+
+        [HttpGet("{slug}/qr-image")]
+        [Produces("image/png")]
+        public async Task<IActionResult> GetQrImageBySlug(string slug)
+        {
+            try
+            {
+                var imageBytes = await _restaurantService.GetRestaurantQrImageBySlugAsync(slug);
+
+                return File(imageBytes, "image/png");
+            }
+            catch (DomainException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
+        [HttpGet("get-all-restaurant-by-tenant")]
+        public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetByTenantId()
+        {
+            if (!_authenticatedUserService.ProfileId.HasValue)
+            {
+                return BadRequest(new { message = RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER });
+            }
+
+            var result = await _restaurantService.GetRestaurantsByTenantIdAsync(_authenticatedUserService.ProfileId.Value);
+            return Success(result.ToList());
+        }
+
+        [HttpGet("{slug}")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetBySlug(string slug)
+        {
+            var result = await _restaurantService.GetRestaurantBySlugAsync(slug);
+            if (result == null)
+                return NotFound(ApiResponse<RestaurantDto>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
+            return Success(result);
         }
     }
 }

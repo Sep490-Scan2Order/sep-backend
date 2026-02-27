@@ -29,21 +29,35 @@ public class AuthController : BaseController
     }
 
     [HttpPost("login-phone")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerLogin([FromBody] LoginRequest request)
     {
         var result = await _authService.VerifyAndLoginAsync(request);
         return Success(result);
     }
     
     [HttpPost("tenant-login")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] TenantLoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<TenantDto>>>> TenantLogin([FromBody] TenantLoginRequest request)
     {
         var result = await _authService.TenantLoginAsync(request);
         return Success(result);
     }
 
+    [HttpPost("staff-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse<StaffDto>>>> StaffLogin([FromBody] StaffLoginRequest request)
+    {
+        var result = await _authService.StaffLoginAsync(request);
+        return Success(result);
+    }
+
+    [HttpPost("administrator-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse<AdminDto>>>> AdministratorLogin([FromBody] AdminLoginRequest request)
+    {
+        var result = await _authService.AdministratorLoginAsync(request);
+        return Success(result);
+    }
+
     [HttpPost("register-phone")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerRegister([FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
         return Success(result);
@@ -54,18 +68,6 @@ public class AuthController : BaseController
     public ActionResult<ApiResponse<object?>> Logout()
     {
         return Success<object?>(null);
-    }
-    // Test
-    [HttpPost("BankLookup")]
-    public async Task<ActionResult<ApiResponse<object?>>> TestBank([FromBody] BankLookRequest request)
-    {
-        return Success<object?>(await _lookupService.LookupAccountAsync(request));
-    }
-    
-    [HttpGet("Tax")]
-    public async Task<ActionResult<ApiResponse<object?>>> TestTax([FromQuery] string taxCode)
-    {
-        return Success<object?>(await _taxService.GetTaxCodeDetailsAsync(taxCode));
     }
 
     [HttpPost("Complete-reset-password")]
@@ -81,4 +83,18 @@ public class AuthController : BaseController
         var result = await _authService.VerifyForgotPasswordOtpAsync(request.Email, request.OtpCode);
         return Success(result);
     }
+    
+    // Test
+    [HttpPost("BankLookup")]
+    public async Task<ActionResult<ApiResponse<object?>>> TestBank([FromBody] BankLookRequest request)
+    {
+        return Success<object?>(await _lookupService.LookupAccountAsync(request));
+    }
+    
+    [HttpGet("Tax")]
+    public async Task<ActionResult<ApiResponse<object?>>> TestTax([FromQuery] string taxCode)
+    {
+        return Success<object?>(await _taxService.GetTaxCodeDetailsAsync(taxCode));
+    }
+    //
 }

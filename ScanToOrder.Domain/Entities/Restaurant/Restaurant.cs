@@ -25,6 +25,7 @@ public partial class Restaurant : BaseEntity<int>
     public string? QrMenu { get; set; }
 
     public bool? IsActive { get; set; }
+    public required string Slug { get; set; }
 
     public bool? IsOpened { get; set; }
 

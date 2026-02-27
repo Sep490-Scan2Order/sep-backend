@@ -7,7 +7,9 @@ namespace ScanToOrder.Application.Interfaces
         Task<string> RegisterTenantAsync(RegisterTenantRequest request);
         Task<IEnumerable<TenantDto>> GetAllTenantsAsync();
         Task<string> UpdateTenantAsync(UpdateTenantDtoRequest updateTenantDtoRequest);
-        Task<bool> BlockTenantAsync(Guid tenantId);
+        Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive);
         Task<bool> ValidationTaxCodeAsync(string taxCode);
+        Task<string> UpdateBankInfoAsync(Guid bankId, string accountNumber);
+        Task<bool> VerifyBankAccountAsync(string paymentCode);
     }
 }

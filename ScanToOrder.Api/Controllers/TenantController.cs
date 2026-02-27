@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -10,10 +11,12 @@ namespace ScanToOrder.Api.Controllers
     public class TenantController : BaseController
     {
         private readonly ITenantService _tenantService;
+        private readonly IBankLookupService _lookupService;
 
-        public TenantController(ITenantService tenantService)
+        public TenantController(ITenantService tenantService, IBankLookupService lookupService)
         {
             _tenantService = tenantService;
+            _lookupService = lookupService;
         }
 
         [HttpPost("register")]
@@ -30,17 +33,18 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpPut("{id}/block")]
-        public async Task<ActionResult<ApiResponse<string>>> BlockTenant(Guid id)
+        [HttpPut("{id}/updateStatus")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateTenantStatus(Guid id, [FromQuery] bool isActive)
         {
-            var result = await _tenantService.BlockTenantAsync(id);
+            var result = await _tenantService.UpdateTenantStatusAsync(id, isActive);
 
             if (!result)
                 throw new DomainException("Tenant is already blocked");
 
             return Success(string.Empty);
         }
-
+        
+        // Validation
         [Authorize(Roles = "Tenant")]
         [HttpPut("tax-validation")]
         public async Task<ActionResult<ApiResponse<string>>> BlockTenant([FromQuery] string taxCode)
@@ -51,6 +55,22 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(string.Empty);
         }
+        
+        [Authorize(Roles = "Tenant")]
+        [HttpPost("bank-lookup")]
+        public async Task<ActionResult<ApiResponse<object?>>> LookupBank([FromBody] BankLookRequest request)
+        {
+            return Success<object?>(await _lookupService.LookupAccountAsync(request));
+        }
+        
+        [Authorize(Roles = "Tenant")]
+        [HttpPut("update-bank-info")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateBankInfo([FromQuery] Guid bankId, [FromQuery] string accountNumber)
+        {
+            var result=  await _tenantService.UpdateBankInfoAsync(bankId, accountNumber);
+            return Success(result,"Cập nhật thông tin ngân hàng thành công, vui lòng chuyen khoản 10.000 VND để xác thực tài khoản");
+        }
+        //
 
         [Authorize(Roles = "Tenant")]
         [HttpPut]
