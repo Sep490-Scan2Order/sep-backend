@@ -49,7 +49,7 @@ public static class BankQrLinkUtils
         string formattedAmount = Math.Round(amount).ToString("0");
         string encodedDes = Uri.EscapeDataString(paymentCode);
         
-        string qrUrl = $"{SePayBaseUrl}?acc={account}&bank={bank}Bank&amount={formattedAmount}&des={encodedDes}";
+        string qrUrl = $"{SePayBaseUrl}?acc={account}&bank={bank}&amount={formattedAmount}&des={encodedDes}";
 
         return (qrUrl, paymentCode);
     }
