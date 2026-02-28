@@ -140,25 +140,24 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
             }
 
-            // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-            // {
-            //     throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
-            // }
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
+            }
 
             if (request.Password != user.Password)
             {
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
             }
-            var tenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(
-                t => t.AccountId == user.Id,
-                t => t.Account,
-                t => t.Subscriptions.Select(s => s.Plan),
-                t => t.Bank
-            );
+
+            var staff = await _unitOfWork.Staffs.GetStaffAccountIdAsync(user.Id);
+
+            Console.WriteLine(staff);
             return new AuthResponse<StaffDto>
             {
                 AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
                 RefreshToken = _jwtService.GenerateRefreshToken(user),
+                UserInfo = _mapper.Map<StaffDto>(staff)
             };
         }
 

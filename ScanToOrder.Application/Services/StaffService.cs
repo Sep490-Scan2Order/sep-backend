@@ -30,7 +30,7 @@ namespace ScanToOrder.Application.Services
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(staffDto.Phone);
             if (existingUser != null)
             {
-                throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+                throw new DomainException(StaffMessage.StaffError.STAFF_ALREADY_EXISTS);
             }
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(staffDto.RestaurantId);
 
@@ -38,7 +38,10 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             }
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(staffDto.Password);
             var userEntity = _mapper.Map<AuthenticationUser>(staffDto);
+            userEntity.Password = passwordHash;
+
             var staffEntity = _mapper.Map<Staff>(staffDto);
             staffEntity.AccountId = userEntity.Id;
             
@@ -49,5 +52,6 @@ namespace ScanToOrder.Application.Services
 
             return _mapper.Map<StaffDto>(staffEntity);
         }
+
     }
 }

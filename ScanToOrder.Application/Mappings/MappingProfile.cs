@@ -59,6 +59,7 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<Staff, StaffDto>();
             CreateMap<AuthenticationUser, AdminDto>();
+
         }
     }
 }

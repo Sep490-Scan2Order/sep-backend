@@ -57,9 +57,10 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(TenantMessage.TenantError.TENANT_ALREADY_EXISTS);
             }
-
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             var userEntity = _mapper.Map<AuthenticationUser>(request);
-            userEntity.Password = request.Password;
+      
+            userEntity.Password = passwordHash;
             userEntity.Verified = true;
 
             var tenantEntity = _mapper.Map<Tenant>(request);
