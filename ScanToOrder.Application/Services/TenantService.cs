@@ -57,9 +57,10 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(TenantMessage.TenantError.TENANT_ALREADY_EXISTS);
             }
-
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             var userEntity = _mapper.Map<AuthenticationUser>(request);
-            userEntity.Password = request.Password;
+      
+            userEntity.Password = passwordHash;
             userEntity.Verified = true;
 
             var tenantEntity = _mapper.Map<Tenant>(request);
@@ -86,7 +87,7 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException("Không thể cập nhật mã số thuế khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.");
             
             var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode)); 
-            if (taxCodeExists)
+            if (taxCodeExists && !taxCode.Equals(tenant.TaxNumber))
                 throw new DomainException(TenantMessage.TenantError.TAX_CODE_ALREADY_EXISTS);
             
             var result = await _taxService.GetTaxCodeDetailsAsync(taxCode);
@@ -130,7 +131,7 @@ namespace ScanToOrder.Application.Services
             tenant.IsVerifyBank = false;
             _unitOfWork.Tenants.Update(tenant);
             await _unitOfWork.SaveAsync();
-            var qrResult = BankQrLinkUtils.GenerateSePayQrUrl(accountNumber, bankExists.Code, 10000, PaymentIntent.TenantVerification);
+            var qrResult = BankQrLinkUtils.GenerateSePayQrUrl(accountNumber, bankExists.ShortName, 10000, PaymentIntent.TenantVerification);
 
             string urlToDisplay = qrResult.QrUrl;
             string codeToSave = qrResult.PaymentCode;
@@ -165,6 +166,7 @@ namespace ScanToOrder.Application.Services
             var tenants = await _unitOfWork.Tenants.GetTenantsWithSubscriptionsAsync();
             return _mapper.Map<IEnumerable<TenantDto>>(tenants);
         }
+        
         public async Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive)
         {
             var tenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(x => x.Id == tenantId, x => x.Account);
