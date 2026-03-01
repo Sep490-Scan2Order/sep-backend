@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
 
@@ -59,6 +61,14 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<Staff, StaffDto>();
             CreateMap<AuthenticationUser, AdminDto>();
+
+            CreateMap<CreateCategoryRequest, Category>();
+            CreateMap<UpdateCategoryRequest, Category>();
+            CreateMap<Category, CategoryDto>();
+
+            CreateMap<CreateDishRequest, Dish>();
+            CreateMap<UpdateDishRequest, Dish>();
+            CreateMap<Dish, DishDto>();
 
         }
     }

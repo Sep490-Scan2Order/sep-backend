@@ -55,6 +55,7 @@ public class AppDbContext : DbContext
     public DbSet<NotifyTenant> NotifyTenants { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<Banks> Banks { get; set; } = null!;
+    public DbSet<Category> Categories { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -135,6 +136,22 @@ public class AppDbContext : DbContext
             entity.HasOne(d => d.Tenant)
                   .WithMany()
                   .HasForeignKey(d => d.TenantId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+           
+            entity.Property(e => e.CategoryName)
+                  .IsRequired()
+                  .HasMaxLength(100);
+
+            
+            entity.HasOne(c => c.Tenant)
+                  .WithMany(t => t.Category) 
+                  .HasForeignKey(c => c.TenantId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }
