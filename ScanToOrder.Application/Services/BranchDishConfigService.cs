@@ -1,7 +1,9 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -31,6 +33,11 @@ namespace ScanToOrder.Application.Services
             var existingDish = await _unitOfWork.Dishes.GetByIdAsync(request.DishId);
             if (existingDish == null)
                 throw new Exception(Message.DishMessage.DishError.DISH_NOT_FOUND);
+
+            var configExists = await _unitOfWork.BranchDishConfigs.ExistsAsync(
+                x => x.RestaurantId == request.RestaurantId && x.DishId == request.DishId);
+            if (configExists)
+                throw new DomainException(BranchDishMessage.BranchDishError.BRANCH_DISH_ALREADY_EXISTS);
 
             var branchDishConfig = _mapper.Map<BranchDishConfig>(request);
 
