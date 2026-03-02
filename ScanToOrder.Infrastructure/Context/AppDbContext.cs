@@ -56,7 +56,7 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<Banks> Banks { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
-
+    public DbSet<BranchDishConfig> BranchDishConfigs { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -154,5 +154,16 @@ public class AppDbContext : DbContext
                   .HasForeignKey(c => c.TenantId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<BranchDishConfig>()
+                    .HasOne(b => b.Restaurant)
+                    .WithMany(r => r.BranchDishConfigs)
+                    .HasForeignKey(b => b.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<BranchDishConfig>()
+                    .HasOne(b => b.Dish)
+                    .WithMany(d => d.BranchDishConfigs)
+                    .HasForeignKey(b => b.DishId)
+                    .OnDelete(DeleteBehavior.Cascade);
     }
 }

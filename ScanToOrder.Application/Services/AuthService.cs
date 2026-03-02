@@ -5,6 +5,7 @@ using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
@@ -140,24 +141,25 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
             }
 
+            Console.WriteLine(user.Password);
+            Console.WriteLine(request.Password);
+
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             {
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
             }
 
-            if (request.Password != user.Password)
-            {
-                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
-            }
-
             var staff = await _unitOfWork.Staffs.GetStaffAccountIdAsync(user.Id);
 
-            Console.WriteLine(staff);
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(staff.RestaurantId);
+
+            var staffDto = _mapper.Map<StaffDto>(staff);
+            staffDto.RestaurantName = restaurant.RestaurantName;
             return new AuthResponse<StaffDto>
             {
                 AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
                 RefreshToken = _jwtService.GenerateRefreshToken(user),
-                UserInfo = _mapper.Map<StaffDto>(staff)
+                UserInfo = staffDto
             };
         }
 

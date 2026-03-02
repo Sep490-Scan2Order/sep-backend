@@ -37,5 +37,5 @@ public partial class Restaurant : BaseEntity<int>
 
     public virtual Tenant Tenant { get; set; } = null!;
 
-    public virtual ICollection<BranchDishConfig> BranchDishConfig { get; set; } = new List<BranchDishConfig>();
+    public virtual ICollection<BranchDishConfig> BranchDishConfigs { get; set; } = new List<BranchDishConfig>();
 }

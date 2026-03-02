@@ -1,10 +1,12 @@
 using AutoMapper;
 using NetTopologySuite.Geometries;
 using ScanToOrder.Application.DTOs.Configuration;
+using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.DTOs.Voucher;
 using ScanToOrder.Domain.Entities.Configuration;
+using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.Vouchers;
@@ -57,18 +59,26 @@ namespace ScanToOrder.Application.Mappings
             CreateMap<AddOn, AddOnDto>();
 
             CreateMap<CreateRestaurantRequest, Restaurant>()
-            // Map tọa độ từ Lat/Lng sang Point (GIS)
             .ForMember(dest => dest.Location, opt => opt.MapFrom(src =>
                 (src.Latitude.HasValue && src.Longitude.HasValue)
                 ? new Point(src.Longitude.Value, src.Latitude.Value) { SRID = 4326 }
                 : null))
-            // Các trường mặc định khi tạo mới
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
             .ForMember(dest => dest.IsOpened, opt => opt.MapFrom(src => false))
             .ForMember(dest => dest.IsReceivingOrders, opt => opt.MapFrom(src => false))
             .ForMember(dest => dest.TotalOrder, opt => opt.MapFrom(src => 0))
-            // QrMenu được sinh ngẫu nhiên
             .ForMember(dest => dest.QrMenu, opt => opt.MapFrom(src => $"https://scantoorder.com/menu/{Guid.NewGuid()}"));
+
+
+            CreateMap<BranchDishConfig, BranchDishConfigDto>()
+               .ForMember(dest => dest.RestaurantName,
+                   opt => opt.MapFrom(src => src.Restaurant.RestaurantName))
+               .ForMember(dest => dest.DishName,
+                   opt => opt.MapFrom(src => src.Dish.DishName))
+               .ForMember(dest => dest.DishImageUrl,
+                   opt => opt.MapFrom(src => src.Dish.ImageUrl));
+
+            CreateMap<CreateBranchDishConfig, BranchDishConfig>();
         }
     }
 }
