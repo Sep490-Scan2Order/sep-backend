@@ -5,11 +5,6 @@ using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ScanToOrder.Application.Services
 {
@@ -65,7 +60,7 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             }
 
-            var categories = await _unitOfWork.Categories.GetAllAsync(x => x.TenantId == tenantId && !x.IsDeleted);
+            var categories = await _unitOfWork.Categories.FindAsync(x => x.TenantId == tenantId && !x.IsDeleted);
             return _mapper.Map<List<CategoryDto>>(categories);
         }
 

@@ -16,7 +16,7 @@ namespace ScanToOrder.Infrastructure.Services
             _supabase = new Supabase.Client(supabaseUrl!, supabaseKey);
         }
 
-        public async Task<string> UploadQrCodeFromBytesAsync(byte[] imageBytes, string fileName, string bucketName = "restaurant_qrCode")
+        public async Task<string> UploadFromBytesAsync(byte[] imageBytes, string fileName, string bucketName = "restaurant_qrCode")
         {
             if (imageBytes == null || imageBytes.Length == 0)
             {

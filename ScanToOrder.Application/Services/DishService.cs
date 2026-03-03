@@ -50,7 +50,7 @@ namespace ScanToOrder.Application.Services
 
                     string extension = Path.GetExtension(dishDto.ImageUrl.FileName);
                     string fileName = $"dish_{Guid.NewGuid()}{extension}";
-                    uploadImageUrl = await _storageService.UploadQrCodeFromBytesAsync(fileBytes, fileName, "dishes");
+                    uploadImageUrl = await _storageService.UploadFromBytesAsync(fileBytes, fileName, "dishes");
                 }
                 catch (Exception ex)
                 {

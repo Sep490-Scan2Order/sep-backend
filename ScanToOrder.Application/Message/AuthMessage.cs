@@ -20,6 +20,7 @@
             public const string ACCOUNT_WRONG_PASSWORD_PHONE = "Số điện thoại hoặc mật khẩu không đúng.";
             public const string ACCOUNT_WRONG_PASSWORD = "Mật khẩu không đúng.";
             public const string PHONE_REGISTERED = "Số điện thoại này đã được đăng ký.";
+            public const string USER_PROFILE_NOT_FOUND = "Thông tin người dùng không tồn tại.";
         }
     }
 }
