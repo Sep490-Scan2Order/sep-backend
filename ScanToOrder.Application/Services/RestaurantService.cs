@@ -18,8 +18,8 @@ namespace ScanToOrder.Application.Services
         private readonly IQrCodeService _qrCodeService;
         private readonly IConfiguration _configuration;
         private readonly IStorageService _storageService;
-        
-        public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper, 
+
+        public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
             IStorageService storageService)
         {
@@ -228,7 +228,7 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.ExistsAsync(x => x.Id == restaurantId);
             if (!restaurant)
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
-            
+
             var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesAsync(restaurantId);
             var menu = branchDishes
                 .GroupBy(bdc => new { bdc.Dish.Category.Id, bdc.Dish.Category.CategoryName })
@@ -248,6 +248,21 @@ namespace ScanToOrder.Application.Services
                 })
                 .ToList();
             return menu;
+        }
+
+        public async Task<string> UpdateReceivingOrdersAsync(int restaurantId, bool isReceivingOrders)
+        {
+            var restaurant = await _unitOfWork.Restaurants
+                .GetByIdAsync(restaurantId);
+
+            if (restaurant == null)
+                return null;
+
+            restaurant.IsReceivingOrders = isReceivingOrders;
+            _unitOfWork.Restaurants.Update(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return Message.RestaurantMessage.RestaurantSuccess.RESTAURANT_RECEIVING_STATUS_UPDATED;
         }
     }
 }

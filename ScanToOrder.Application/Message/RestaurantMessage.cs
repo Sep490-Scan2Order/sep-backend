@@ -18,6 +18,7 @@ namespace ScanToOrder.Application.Message
             public const string RESTAURANT_CREATED = "Tạo nhà hàng thành công.";
             public const string RESTAURANT_UPDATED = "Cập nhật nhà hàng thành công.";
             public const string RESTAURANT_DELETED = "Xóa nhà hàng thành công.";
+            public const string RESTAURANT_RECEIVING_STATUS_UPDATED = "Cập nhật trạng thái nhận đơn của nhà hàng thành công.";
         }
     }
 }

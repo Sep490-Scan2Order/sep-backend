@@ -50,7 +50,7 @@ namespace ScanToOrder.Api.Controllers
             var result = await _restaurantService.GetNearbyRestaurantsAsync(latitude, longitude, radiusKm, limit);
             return Success(result);
         }
-        
+
         [HttpGet("{slug}")]
         public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetBySlug(string slug)
         {
@@ -59,7 +59,7 @@ namespace ScanToOrder.Api.Controllers
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             return Success(result);
         }
-        
+
         [HttpGet("{restaurantId:int}/menu")]
         public async Task<ActionResult<ApiResponse<List<MenuCategoryDto>>>> GetRestaurantMenu([FromRoute] int restaurantId)
         {
@@ -134,6 +134,12 @@ namespace ScanToOrder.Api.Controllers
             return Success(result.ToList());
         }
 
-        
+        [HttpPatch("{id}/receiving-orders")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateReceivingOrders(int id, bool isReceivingOrders)
+        {
+            var result = await _restaurantService.UpdateReceivingOrdersAsync(id, isReceivingOrders);
+
+            return Success(result);
+        }
     }
 }
