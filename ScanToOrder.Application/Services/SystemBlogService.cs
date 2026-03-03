@@ -32,7 +32,7 @@ namespace ScanToOrder.Application.Services
 
                         string fileName = $"blog_{Guid.NewGuid():N}_{file.FileName}";
 
-                        string url = await _storageService.UploadQrCodeFromBytesAsync(fileBytes, fileName, "s2o_blog");
+                        string url = await _storageService.UploadFromBytesAsync(fileBytes, fileName, "s2o_blog");
                         imageUrls.Add(url);
                     }
                 }

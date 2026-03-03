@@ -4,6 +4,6 @@ namespace ScanToOrder.Application.Interfaces
 {
     public interface IStorageService
     {
-        Task<string> UploadQrCodeFromBytesAsync(byte[] imageBytes, string fileName, string bucketName = "restaurant_qrCode");
+        Task<string> UploadFromBytesAsync(byte[] imageBytes, string fileName, string bucketName = "restaurant_qrCode");
     }
 }

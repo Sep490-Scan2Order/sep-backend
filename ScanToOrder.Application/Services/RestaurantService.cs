@@ -125,7 +125,7 @@ namespace ScanToOrder.Application.Services
                 using var ms = new MemoryStream();
                 await request.Image.CopyToAsync(ms);
 
-                restaurant.Image = await _storageService.UploadQrCodeFromBytesAsync(
+                restaurant.Image = await _storageService.UploadFromBytesAsync(
                     ms.ToArray(),
                     $"{restaurant.Slug}_main.png",
                     "restaurant_images"
@@ -142,7 +142,7 @@ namespace ScanToOrder.Application.Services
             string fileName = $"{restaurant.Slug}_qr.png";
 
 
-            restaurant.QrMenu = await _storageService.UploadQrCodeFromBytesAsync(
+            restaurant.QrMenu = await _storageService.UploadFromBytesAsync(
                 qrBytes,
                 $"{restaurant.Slug}_qr.png"
             );
@@ -183,7 +183,7 @@ namespace ScanToOrder.Application.Services
                 using var ms = new MemoryStream();
                 await request.Image.CopyToAsync(ms);
 
-                restaurant.Image = await _storageService.UploadQrCodeFromBytesAsync(
+                restaurant.Image = await _storageService.UploadFromBytesAsync(
                     ms.ToArray(),
                     $"{restaurant.Slug}_main.png",
                     "restaurant_images"
