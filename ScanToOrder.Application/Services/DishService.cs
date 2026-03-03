@@ -62,7 +62,7 @@ namespace ScanToOrder.Application.Services
                 //    throw new DomainException(DishMessage.DishError.DISH_OUT_OF_LIMIT);
                 //}
 
-                var dishEntity = _mapper.Map<Dish>(dishDto);
+            var dishEntity = _mapper.Map<Dish>(dishDto);
             dishEntity.CategoryId = categoryId;
             dishEntity.DishName = dishDto.DishName;
             dishEntity.Price = dishDto.Price;
