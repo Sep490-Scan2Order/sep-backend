@@ -15,8 +15,22 @@ namespace ScanToOrder.Api.Controllers
 
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateTemplateResponseDto>>> CreateTemplate([FromBody] CreateTemplateRequestDto request)
-        {
+        {   
             var result = await _menuTemplateService.CreateTemplateAsync(request);
+            return Success(result);
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<IEnumerable<MenuTemplateDto>>>> GetTemplates()
+        {
+            var result = await _menuTemplateService.GetTemplatesAsync();
+            return Success(result);
+        }
+
+        [HttpGet("{templateId:int}")]
+        public async Task<ActionResult<ApiResponse<MenuTemplateDto>>> GetTemplateById(int templateId)
+        {
+            var result = await _menuTemplateService.GetTemplateByIdAsync(templateId);
             return Success(result);
         }
     }

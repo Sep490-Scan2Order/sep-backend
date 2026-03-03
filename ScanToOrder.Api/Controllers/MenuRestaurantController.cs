@@ -12,7 +12,7 @@ namespace ScanToOrder.Api.Controllers
         {
             _menuRestaurantService = menuRestaurantService;
         }
-        [HttpGet("{restaurantId}")]
+        [HttpGet("{restaurantId:int}")]
         public async Task<ActionResult<ApiResponse<IEnumerable<MenuRestaurantDto>>>> GetMenuByRestaurantId(int restaurantId)
         {
             var result = await _menuRestaurantService.GetMenuByRestaurantIdAsync(restaurantId);

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Interfaces;
 
@@ -28,6 +29,16 @@ namespace ScanToOrder.Application.Services
         {
             var templates = await _unitOfWork.MenuTemplates.GetAllAsync();
             return _mapper.Map<IEnumerable<MenuTemplateDto>>(templates);
+        }
+
+        public async Task<MenuTemplateDto> GetTemplateByIdAsync(int templateId)
+        {
+            var template = await _unitOfWork.MenuTemplates.GetByIdAsync(templateId);
+            if (template == null)
+            {
+                throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
+            }
+            return _mapper.Map<MenuTemplateDto>(template);
         }
     }
 }
