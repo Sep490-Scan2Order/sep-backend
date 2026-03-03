@@ -7,5 +7,8 @@ namespace ScanToOrder.Domain.Interfaces
         Task<List<BranchDishConfig>> GetByRestaurantIdWithIncludeAsync(int restaurantId);
 
         Task<BranchDishConfig?> GetByIdWithIncludeAsync(int id);
+
+        Task AddRangeAsync(List<BranchDishConfig> configs);
+
     }
 }

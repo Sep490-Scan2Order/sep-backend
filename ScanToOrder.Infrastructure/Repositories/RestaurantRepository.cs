@@ -147,5 +147,13 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _context.Restaurants.CountAsync(predicate);
         }
+
+        public async Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId)
+        {
+            return await _context.Restaurants
+                .AsNoTracking()
+                .Where(r => r.TenantId == tenantId && !r.IsDeleted)
+                .ToListAsync();
+        }
     }
 }
