@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.Dishes;
+using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
 
@@ -71,6 +73,13 @@ namespace ScanToOrder.Application.Mappings
             CreateMap<Dish, DishDto>()
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.CategoryName));
 
+            CreateMap<CreateTemplateRequestDto, MenuTemplate>();
+            CreateMap<MenuTemplate, CreateTemplateResponseDto>();
+            CreateMap<MenuTemplate, MenuTemplateDto>();
+
+            CreateMap<MenuRestaurant, MenuRestaurantDto>();
+            CreateMap<CreateMenuRestaurantRequestDto, MenuRestaurant>()
+                .ForMember(dest => dest.MenuTemplateId, opt => opt.MapFrom(src => src.TemplateId));
         }
     }
 }
