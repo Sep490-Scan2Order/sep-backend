@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using FluentValidation;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Http;
 using ScanToOrder.Application.DTOs.Dishes;
@@ -16,13 +17,20 @@ namespace ScanToOrder.Application.Services
         private readonly IMapper _mapper;
         private readonly IStorageService _storageService;
         private readonly IBranchDishConfigService _branchDishConfigService;
+        private readonly IValidator<UpdateDishRequest> _updateDishValidator;
 
-        public DishService(IUnitOfWork unitOfWork, IMapper mapper, IStorageService storageService, IBranchDishConfigService branchDishConfigService)
+        public DishService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IStorageService storageService,
+            IBranchDishConfigService branchDishConfigService,
+            IValidator<UpdateDishRequest> updateDishValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _storageService = storageService;
             _branchDishConfigService = branchDishConfigService;
+            _updateDishValidator = updateDishValidator;
         }
 
         public async Task<DishDto> CreateDish(Guid tenantId, int categoryId, CreateDishRequest dishDto)
@@ -116,6 +124,12 @@ namespace ScanToOrder.Application.Services
 
         public async Task<DishDto> UpdateDish(Guid tenantId, int categoryId, int dishId, UpdateDishRequest dishDto)
         {
+            var validationResult = await _updateDishValidator.ValidateAsync(dishDto);
+            if (!validationResult.IsValid)
+            {
+                throw new ValidationException(validationResult.Errors);
+            }
+
             var existTenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (existTenant == null)
             {
@@ -137,12 +151,49 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
             }
 
-            existingDish.DishName = dishDto.DishName;
-            existingDish.Price = dishDto.Price;
-            existingDish.Description = dishDto.Description;
-            existingDish.ImageUrl = dishDto.ImageUrl;
-            existingDish.DishAvailability = dishDto.DishAvailability;
-            existingDish.IsAvailable = dishDto.DishAvailability > 0;
+            string uploadImageUrl = existingDish.ImageUrl;
+
+            if (dishDto.ImageUrl != null && dishDto.ImageUrl.Length > 0)
+            {
+                try
+                {
+                    using var ms = new MemoryStream();
+                    await dishDto.ImageUrl.CopyToAsync(ms);
+                    var fileBytes = ms.ToArray();
+
+                    string extension = Path.GetExtension(dishDto.ImageUrl.FileName);
+                    string fileName = $"dish_{Guid.NewGuid()}{extension}";
+                    uploadImageUrl = await _storageService.UploadFromBytesAsync(fileBytes, fileName, "dishes");
+                }
+                catch (Exception ex)
+                {
+                    throw new DomainException($"Lỗi khi tải ảnh lên: {ex.Message}");
+                }
+            }
+
+            if (dishDto.DishName != null)
+            {
+                existingDish.DishName = dishDto.DishName.Trim();
+            }
+
+            if (dishDto.Price.HasValue)
+            {
+                existingDish.Price = dishDto.Price.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dishDto.Description))
+            {
+                existingDish.Description = dishDto.Description;
+            }
+
+            existingDish.ImageUrl = uploadImageUrl;
+
+            if (dishDto.DishAvailability.HasValue)
+            {
+                existingDish.DishAvailability = dishDto.DishAvailability.Value;
+                existingDish.IsAvailable = dishDto.DishAvailability.Value > 0;
+            }
+
             existingDish.CategoryId = categoryId;
 
             _unitOfWork.Dishes.Update(existingDish);

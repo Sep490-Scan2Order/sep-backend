@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Exceptions;
@@ -44,6 +45,14 @@ namespace ScanToOrder.Api.Middleware
                     statusCode = baseEx.StatusCode;
                     message = baseEx.Message;
                     errors = baseEx.Errors;
+                    break;
+
+                case ValidationException validationException:
+                    statusCode = (int)HttpStatusCode.BadRequest;
+                    message = "One or more validation errors occurred.";
+                    errors = validationException.Errors
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
                     break;
 
                 case UnauthorizedAccessException:
