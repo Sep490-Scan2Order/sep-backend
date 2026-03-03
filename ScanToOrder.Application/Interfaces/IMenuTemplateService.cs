@@ -6,5 +6,6 @@ namespace ScanToOrder.Application.Interfaces
     {
         Task<CreateTemplateResponseDto> CreateTemplateAsync(CreateTemplateRequestDto request);
         Task<IEnumerable<MenuTemplateDto>> GetTemplatesAsync();
+        Task<MenuTemplateDto> GetTemplateByIdAsync(int templateId);
     }
 }

@@ -29,11 +29,20 @@ namespace ScanToOrder.Application.Services
             {
                 throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
             }
-
+            bool isExist = await CheckTemplateExistWithRestaurantsAsync(createMenuRestaurantRequestDto.TemplateId, createMenuRestaurantRequestDto.RestaurantId);
+            if (isExist) {
+                throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_EXIST_WITH_RESTAURANT);
+            }
             var menuRestaurant = _mapper.Map<MenuRestaurant>(createMenuRestaurantRequestDto);
             await _unitOfWork.MenuRestaurants.AddAsync(menuRestaurant);
             await _unitOfWork.SaveAsync();
             return _mapper.Map<MenuRestaurantDto>(menuRestaurant);
+        }
+
+        private async Task<bool> CheckTemplateExistWithRestaurantsAsync(int templateId, int restaurantId)
+        {
+            var menuRestaurant = await _unitOfWork.MenuRestaurants.FindAsync(x => x.RestaurantId == restaurantId && x.MenuTemplateId == templateId);
+            return menuRestaurant != null && menuRestaurant.Any();
         }
     }
 }
