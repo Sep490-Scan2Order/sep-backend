@@ -26,7 +26,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("create-dish/{categoryId:int}")]
-        public async Task<ActionResult<ApiResponse<DishDto>>> CreateDish(int categoryId, [FromBody] CreateDishRequest request)
+        public async Task<ActionResult<ApiResponse<DishDto>>> CreateDish(int categoryId, [FromForm] CreateDishRequest request)
         {
             var tenantId = _authenticatedUserService.ProfileId.Value;
             var dish = await dishService.CreateDish(tenantId, categoryId, request);

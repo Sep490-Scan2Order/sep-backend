@@ -4,9 +4,6 @@ using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using ScanToOrder.Domain.Entities.Dishes;
 
 namespace ScanToOrder.Application.Services
@@ -15,11 +12,13 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IStorageService _storageService;
 
-        public DishService(IUnitOfWork unitOfWork, IMapper mapper)
+        public DishService(IUnitOfWork unitOfWork, IMapper mapper, IStorageService storageService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _storageService = storageService;
         }
 
         public async Task<DishDto> CreateDish(Guid tenantId, int categoryId, CreateDishRequest dishDto)
@@ -35,17 +34,38 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
             var totalDishes = await _unitOfWork.Dishes.GetTotalDishesByTenant(tenantId);
-            if (totalDishes >= existTenant.TotalDishes) 
+
+            string uploadImageUrl = string.Empty;
+            if (dishDto.ImageUrl != null && dishDto.ImageUrl.Length > 0)
             {
-                throw new DomainException(DishMessage.DishError.DISH_OUT_OF_LIMIT);
+                try
+                {
+                    using var ms = new MemoryStream();
+                    await dishDto.ImageUrl.CopyToAsync(ms);
+                    var fileBytes = ms.ToArray();
+
+                    string extension = Path.GetExtension(dishDto.ImageUrl.FileName);
+                    string fileName = $"dish_{Guid.NewGuid()}{extension}";
+                    uploadImageUrl = await _storageService.UploadQrCodeFromBytesAsync(fileBytes, fileName, "dishes");
+                }
+                catch (Exception ex)
+                {
+                    throw new DomainException($"Lỗi khi tải ảnh lên: {ex.Message}");
+                }
             }
 
-            var dishEntity = _mapper.Map<Dish>(dishDto);
+                // Đang bỏ giới hạn số lượng món ăn, nếu muốn giới hạn thì bỏ comment đoạn code dưới và thêm trường TotalDishes vào Tenant
+                //if (totalDishes >= existTenant.TotalDishes) 
+                //{
+                //    throw new DomainException(DishMessage.DishError.DISH_OUT_OF_LIMIT);
+                //}
+
+                var dishEntity = _mapper.Map<Dish>(dishDto);
             dishEntity.CategoryId = categoryId;
             dishEntity.DishName = dishDto.DishName;
             dishEntity.Price = dishDto.Price;
             dishEntity.Description = dishDto.Description;
-            dishEntity.ImageUrl = dishDto.ImageUrl;
+            dishEntity.ImageUrl = uploadImageUrl;
             dishEntity.DishAvailability = dishDto.DishAvailability;
             dishEntity.IsAvailable = true;
             dishEntity.CreatedAt = DateTime.UtcNow;

@@ -68,7 +68,8 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<CreateDishRequest, Dish>();
             CreateMap<UpdateDishRequest, Dish>();
-            CreateMap<Dish, DishDto>();
+            CreateMap<Dish, DishDto>()
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.CategoryName));
 
         }
     }

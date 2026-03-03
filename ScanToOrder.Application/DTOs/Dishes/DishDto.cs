@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ScanToOrder.Application.DTOs.Dishes
+﻿namespace ScanToOrder.Application.DTOs.Dishes
 {
     public class DishDto
     {   
         public int Id { get; set; }
         public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = null!;
         public string DishName { get; set; } = null!;
         public decimal Price { get; set; }
 

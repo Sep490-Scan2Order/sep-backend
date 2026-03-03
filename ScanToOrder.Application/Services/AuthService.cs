@@ -5,7 +5,6 @@ using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Authentication;
-using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
@@ -103,10 +102,10 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
             }
 
-             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-             {
-                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
-             }
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+            }
 
             //if (!user.Password.Equals(request.Password))
             //{
