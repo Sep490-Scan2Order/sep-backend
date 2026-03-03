@@ -13,12 +13,14 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IStorageService _storageService;
+        private readonly IBranchDishConfigService _branchDishConfigService;
 
-        public DishService(IUnitOfWork unitOfWork, IMapper mapper, IStorageService storageService)
+        public DishService(IUnitOfWork unitOfWork, IMapper mapper, IStorageService storageService, IBranchDishConfigService branchDishConfigService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _storageService = storageService;
+            _branchDishConfigService = branchDishConfigService;
         }
 
         public async Task<DishDto> CreateDish(Guid tenantId, int categoryId, CreateDishRequest dishDto)
@@ -73,6 +75,28 @@ namespace ScanToOrder.Application.Services
 
             await _unitOfWork.Dishes.AddAsync(dishEntity);
             await _unitOfWork.SaveAsync();
+
+            var restaurantId = await _unitOfWork.Restaurants.GetByTenantIdAsync(tenantId);
+
+            var branchConfigs = new List<BranchDishConfig>();
+
+            foreach (var res in restaurantId)
+            {
+                var config = new BranchDishConfig
+                {
+                    RestaurantId = res.Id,
+                    DishId = dishEntity.Id, 
+                    Price = dishEntity.Price,
+                    IsSelling = true,
+                    IsSoldOut = false
+                };
+                branchConfigs.Add(config);
+            }
+
+            await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigs);
+
+            await _unitOfWork.SaveAsync();
+
             return _mapper.Map<DishDto>(dishEntity);
         }
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
@@ -17,6 +18,7 @@ namespace ScanToOrder.Application.Services
         private readonly IQrCodeService _qrCodeService;
         private readonly IConfiguration _configuration;
         private readonly IStorageService _storageService;
+        
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper, 
             IQrCodeService qrCodeService, IConfiguration configuration,
             IStorageService storageService)
@@ -219,6 +221,33 @@ namespace ScanToOrder.Application.Services
             var restaurants = await _unitOfWork.Restaurants.FindAsync(r => r.TenantId == tenantId);
             var dtos = restaurants.Select(r => _mapper.Map<RestaurantDto>(r));
             return dtos;
+        }
+
+        public async Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId)
+        {
+            var restaurant = await _unitOfWork.Restaurants.ExistsAsync(x => x.Id == restaurantId);
+            if (!restaurant)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            
+            var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesAsync(restaurantId);
+            var menu = branchDishes
+                .GroupBy(bdc => new { bdc.Dish.Category.Id, bdc.Dish.Category.CategoryName })
+                .Select(group => new MenuCategoryDto
+                {
+                    CategoryId = group.Key.Id,
+                    CategoryName = group.Key.CategoryName,
+                    Dishes = group.Select(bdc => new MenuDishItemDto
+                    {
+                        DishId = bdc.DishId,
+                        DishName = bdc.Dish.DishName,
+                        Description = bdc.Dish.Description,
+                        ImageUrl = bdc.Dish.ImageUrl,
+                        Price = (int)bdc.Price,
+                        IsSoldOut = bdc.IsSoldOut
+                    }).ToList()
+                })
+                .ToList();
+            return menu;
         }
     }
 }

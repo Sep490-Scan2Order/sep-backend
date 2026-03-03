@@ -5,7 +5,8 @@ namespace ScanToOrder.Domain.Interfaces
     public interface IBranchDishConfigRepository : IGenericRepository<BranchDishConfig>
     {
         Task<List<BranchDishConfig>> GetByRestaurantIdWithIncludeAsync(int restaurantId);
-
         Task<BranchDishConfig?> GetByIdWithIncludeAsync(int id);
+        Task<List<BranchDishConfig>> GetSellingDishesAsync(int restaurantId);
+        Task AddRangeAsync(List<BranchDishConfig> configs);
     }
 }

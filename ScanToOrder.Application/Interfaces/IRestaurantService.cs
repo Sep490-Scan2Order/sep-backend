@@ -13,5 +13,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<byte[]> GetRestaurantQrImageBySlugAsync(string slug);
         Task<RestaurantDto> GetRestaurantBySlugAsync(string slug);
         Task<IEnumerable<RestaurantDto>> GetRestaurantsByTenantIdAsync(Guid tenantId);
+        Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId);
     }
 }

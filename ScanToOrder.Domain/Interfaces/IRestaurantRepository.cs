@@ -19,5 +19,7 @@ namespace ScanToOrder.Domain.Interfaces
 
         Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize);
         Task<int> CountAsync(Expression<Func<Restaurant, bool>> predicate);
+
+        Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId);
     }
 }

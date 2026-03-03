@@ -40,10 +40,10 @@ namespace ScanToOrder.Application.Services
             var totalCategories = await _unitOfWork.Categories.GetTotalCategoriesByTenant(tenantId);
 
             // Đang bỏ giới hạn số lượng danh mục, nếu muốn giới hạn thì bỏ comment đoạn code dưới và thêm trường TotalCategories vào Tenant
-            //if (totalCategories >= existTenant.TotalCategories)
-            //{
-            //    throw new DomainException(CategoryMessage.CategoryError.CATEGORY_OUT_OF_LIMIT);
-            //}
+            // if (totalCategories >= existTenant.TotalCategories)
+            // {
+            //     throw new DomainException(CategoryMessage.CategoryError.CATEGORY_OUT_OF_LIMIT);
+            // }
 
             var categoryEntity = _mapper.Map<Category>(categoryDto);
             categoryEntity.TenantId = tenantId;
@@ -65,9 +65,8 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             }
 
-            var categories = await _unitOfWork.Categories.GetAllCategoriesByTenant(tenantId);
+            var categories = await _unitOfWork.Categories.GetAllAsync(x => x.TenantId == tenantId && !x.IsDeleted);
             return _mapper.Map<List<CategoryDto>>(categories);
-
         }
 
         public async Task<CategoryDto> UpdateCategory(Guid tenantId, int categoryId, UpdateCategoryRequest categoryDto)

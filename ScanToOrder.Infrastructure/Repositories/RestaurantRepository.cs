@@ -5,6 +5,7 @@ using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System.Linq.Expressions;
+using ScanToOrder.Domain.Entities.Dishes;
 
 namespace ScanToOrder.Infrastructure.Repositories
 {
@@ -147,5 +148,14 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _context.Restaurants.CountAsync(predicate);
         }
+
+        public async Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId)
+        {
+            return await _context.Restaurants
+                .AsNoTracking()
+                .Where(r => r.TenantId == tenantId && !r.IsDeleted)
+                .ToListAsync();
+        }
+        
     }
 }
