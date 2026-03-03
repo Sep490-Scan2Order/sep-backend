@@ -18,6 +18,17 @@ namespace ScanToOrder.Api.Controllers
             return Ok(response);
         }
 
+        protected ActionResult<ApiResponse<T>> Fail<T>(string message)
+        {
+            var response = new ApiResponse<T>
+            {
+                IsSuccess = false,
+                Message = message,
+                Data = default!
+            };
+            return BadRequest(response);
+        }
+
         protected IActionResult CreatedSuccess<T>(string actionName, object routeValues, T data, string message = "Resource created successfully")
         {
             var response = new ApiResponse<T>

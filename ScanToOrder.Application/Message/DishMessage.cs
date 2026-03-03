@@ -14,6 +14,7 @@ namespace ScanToOrder.Application.Message
             public const string DISH_NOT_FOUND = "Không tìm thấy món ăn.";
             public const string DISH_OUT_OF_LIMIT = "Số lượng món ăn đã đạt giới hạn, vui lòng nâng cấp để sử dụng thêm.";
             public const string INVALID_DISH_AVAILABILITY = "Số lượng món ăn không được bé hơn số lượng hiện tại.";
+            public const string DISH_IMPORT_FILE_INVALID = "File import món ăn không hợp lệ.";
         }
 
         public class DishSuccess
