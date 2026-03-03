@@ -134,7 +134,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result.ToList());
         }
 
-        [HttpPatch("{id}/receiving-orders")]
+        [HttpPut("{id}/receiving-orders")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateReceivingOrders(int id, bool isReceivingOrders)
         {
             var result = await _restaurantService.UpdateReceivingOrdersAsync(id, isReceivingOrders);
