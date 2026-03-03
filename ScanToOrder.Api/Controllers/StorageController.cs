@@ -29,7 +29,7 @@ namespace ScanToOrder.Api.Controllers
 
             var fileName = $"{Guid.NewGuid()}_{request.File.FileName}";
 
-            var result = await _storageService.UploadQrCodeFromBytesAsync(fileBytes, fileName);
+            var result = await _storageService.UploadFromBytesAsync(fileBytes, fileName);
             return Success(result);
         }
     }
