@@ -168,20 +168,57 @@ namespace ScanToOrder.Application.Services
                 (await _unitOfWork.Subscriptions.GetByFieldsIncludeAsync(s => s.TenantId == tenantId && s.IsActive, s => s.AddOn))
                 .OrThrow("Không tìm thấy đăng ký hiện tại.");
 
-            if (currentSubscription.AddOnId <= newAddon.Id)
+            if (currentSubscription.AddOnId >= newAddon.Id)
                 throw new DomainException("Addon mới phải có cấp độ cao hơn gói hiện tại.");
             
+            // Calculate prorated cost for the upgrade
             var daysRemaining = (currentSubscription.EndDate - now).TotalDays;
             daysRemaining = daysRemaining < 0 ? 0 : daysRemaining;
-            var amountRemaining = (newAddon.Price / 30) * (decimal)daysRemaining;
+            var amountRemaining = (currentSubscription.AddOn.Price / 30) * (decimal)daysRemaining;
             
-            var amountDailyPrice = newAddon.Price / 30;
-            var upgradeCost = amountDailyPrice * (decimal)daysRemaining - amountRemaining;
+            var amountNewDailyAddonPrice = newAddon.Price / 30;
+            var upgradeCost = amountNewDailyAddonPrice * (decimal)daysRemaining - amountRemaining;
             upgradeCost = Math.Max(upgradeCost, 0);
             
             if (wallet.WalletBalance < upgradeCost)
                 throw new DomainException("Số dư ví không đủ để mua gói này.");
-            throw new NotImplementedException();
+            
+            // Create wallet transaction for the upgrade
+            var newTransaction = new WalletTransaction
+            {
+                TenantWalletId = wallet.Id,
+                Amount = upgradeCost,
+                BalanceBefore = wallet.WalletBalance,
+                BalanceAfter = wallet.WalletBalance - upgradeCost,
+                PaymentDate = now,
+                TransactionStatus = TransactionStatus.Success,
+                TransactionType = TransactionType.Substract,
+                Note = NoteWalletTransaction.PlanUpgrade,
+                SubscriptionId = currentSubscription.Id,
+                OrderCode = 0
+            };
+            
+            // Update wallet balance
+            wallet.WalletBalance -= upgradeCost;
+            wallet.UpdatedAt = now;
+            
+            // Update current subscription with new addon
+            currentSubscription.AddOnId = newAddon.Id;
+            
+            // Update tenant limits based on the new addon
+            tenant.TotalCategories = newAddon.MaxCategoriesCount;
+            tenant.TotalDishes = newAddon.MaxDishesCount;
+            
+            await _unitOfWork.WalletTransactions.AddAsync(newTransaction);
+            _unitOfWork.Subscriptions.Update(currentSubscription);
+            _unitOfWork.TenantWallets.Update(wallet);
+            _unitOfWork.Tenants.Update(tenant);
+            await _unitOfWork.SaveAsync();
+        }
+
+        public async Task RenewPreviousSubscription (Guid tenantId)
+        {
+            
         }
     }
 }
