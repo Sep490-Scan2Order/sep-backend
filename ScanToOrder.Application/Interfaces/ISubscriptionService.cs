@@ -11,5 +11,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<string> SubscribePlanAsync(Guid tenantId, int planId);
         Task UpgradePlanAsync(Guid tenantId, int newPlanId);
         Task UpgradeAddonAsync(Guid tenantId, int newAddonId);
+        Task RenewPreviousSubscription(Guid tenantId);
     }
 }

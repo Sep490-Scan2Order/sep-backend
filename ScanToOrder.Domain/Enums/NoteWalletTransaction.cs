@@ -31,5 +31,8 @@ namespace ScanToOrder.Domain.Enums
         
         // 8. Verify tài khoản (ví dụ: trừ tiền để verify MST)
         AccountVerification = 8
+        
+        // 9. Gia hạn gói cước (ví dụ: trừ tiền để gia hạn gói cước khi hết hạn)
+        ,PlanRenewal = 9
     }
 }

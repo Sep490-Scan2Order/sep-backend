@@ -54,5 +54,17 @@ namespace ScanToOrder.Api.Controllers
             }
             throw new DomainException("ProfileId is null");
         }
+        
+        [Authorize (Roles = "Tenant")]
+        [HttpPost("renew-subscription")]
+        public async Task<ActionResult<ApiResponse<string>>> RenewSubscription()
+        {
+            if (_authenticatedUserService.ProfileId != null)
+            {
+                await _subscriptionService.RenewPreviousSubscription(_authenticatedUserService.ProfileId.Value);
+                return Success(string.Empty);
+            }
+            throw new DomainException("ProfileId is null");
+        }
     }
 }

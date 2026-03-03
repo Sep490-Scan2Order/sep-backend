@@ -95,7 +95,8 @@ namespace ScanToOrder.Application.Services
             var tenant = (await _unitOfWork.Tenants.GetByIdAsync(tenantId))
                 .OrThrow("Không tìm thấy tenant");
             var currentSubscription =
-                (await _unitOfWork.Subscriptions.GetByFieldsIncludeAsync(s => s.TenantId == tenantId && s.IsActive, s => s.Plan))
+                (await _unitOfWork.Subscriptions.GetByFieldsIncludeAsync(s => s.TenantId == tenantId && s.IsActive && s.EndDate > now,
+                    s => s.Plan))
                 .OrThrow("Không tìm thấy đăng ký hiện tại.");
 
             if (newPlan.Id <= currentSubscription.PlanId)
@@ -104,10 +105,9 @@ namespace ScanToOrder.Application.Services
             var daysRemaining = (currentSubscription.EndDate - now).TotalDays;
             daysRemaining = daysRemaining < 0 ? 0 : daysRemaining;
 
-            decimal currentDailyPrice = currentSubscription.Plan.Price / currentSubscription.Plan.DurationInDays;
-            decimal amountRemaining = currentDailyPrice * (decimal)daysRemaining;
-            decimal upgradeCost = newPlan.Price - amountRemaining;
-            upgradeCost = Math.Max(upgradeCost, 0);
+            decimal oldDailyPrice = currentSubscription.Plan.Price / (decimal)currentSubscription.Plan.DurationInDays;
+            decimal newDailyPrice = newPlan.Price / (decimal)newPlan.DurationInDays;
+            decimal upgradeCost = Math.Round((newDailyPrice - oldDailyPrice) * (decimal)daysRemaining, 0);
             
             if (wallet.WalletBalance < upgradeCost)
                 throw new DomainException("Số dư ví không đủ để mua gói này.");
@@ -131,27 +131,21 @@ namespace ScanToOrder.Application.Services
             wallet.WalletBalance -= upgradeCost;
             wallet.UpdatedAt = now;
 
-            // Revoke current subscription and create new subscription
-            currentSubscription.IsActive = false;
-            var newSubscription = new Subscription
-            {
-                TenantId = tenantId,
-                PlanId = newPlan.Id,
-                StartDate = now,
-                EndDate = now.AddDays(newPlan.DurationInDays),
-                IsActive = true,
-                AddOnId = currentSubscription.AddOnId
-            };
+            // Update current subscription with new plan
+            currentSubscription.PlanId = newPlan.Id;
+            currentSubscription.UpdatedAt = now;
 
             // Update tenant limits based on the new plan
             tenant.TotalRestaurants = newPlan.MaxRestaurantsCount;
-            tenant.SubscriptionExpiryDate = newSubscription.EndDate;
-
+            tenant.UpdatedAt = now;
+            
+            // Save all changes in a single transaction
             await _unitOfWork.WalletTransactions.AddAsync(newTransaction);
-            await _unitOfWork.Subscriptions.AddAsync(newSubscription);
+            
             _unitOfWork.TenantWallets.Update(wallet);
             _unitOfWork.Subscriptions.Update(currentSubscription);
             _unitOfWork.Tenants.Update(tenant);
+            
             await _unitOfWork.SaveAsync();
         }
 
@@ -165,24 +159,25 @@ namespace ScanToOrder.Application.Services
             var tenant = (await _unitOfWork.Tenants.GetByIdAsync(tenantId))
                 .OrThrow("Không tìm thấy tenant");
             var currentSubscription =
-                (await _unitOfWork.Subscriptions.GetByFieldsIncludeAsync(s => s.TenantId == tenantId && s.IsActive, s => s.AddOn))
+                (await _unitOfWork.Subscriptions.GetByFieldsIncludeAsync(s => s.TenantId == tenantId && s.IsActive && s.EndDate > now,
+                    s => s.AddOn))
                 .OrThrow("Không tìm thấy đăng ký hiện tại.");
 
             if (currentSubscription.AddOnId >= newAddon.Id)
                 throw new DomainException("Addon mới phải có cấp độ cao hơn gói hiện tại.");
-            
+
             // Calculate prorated cost for the upgrade
             var daysRemaining = (currentSubscription.EndDate - now).TotalDays;
             daysRemaining = daysRemaining < 0 ? 0 : daysRemaining;
             var amountRemaining = (currentSubscription.AddOn.Price / 30) * (decimal)daysRemaining;
-            
+
             var amountNewDailyAddonPrice = newAddon.Price / 30;
             var upgradeCost = amountNewDailyAddonPrice * (decimal)daysRemaining - amountRemaining;
-            upgradeCost = Math.Max(upgradeCost, 0);
+            upgradeCost = Math.Round(Math.Max(upgradeCost, 0), 0);
             
             if (wallet.WalletBalance < upgradeCost)
                 throw new DomainException("Số dư ví không đủ để mua gói này.");
-            
+
             // Create wallet transaction for the upgrade
             var newTransaction = new WalletTransaction
             {
@@ -193,32 +188,103 @@ namespace ScanToOrder.Application.Services
                 PaymentDate = now,
                 TransactionStatus = TransactionStatus.Success,
                 TransactionType = TransactionType.Substract,
-                Note = NoteWalletTransaction.PlanUpgrade,
+                Note = NoteWalletTransaction.AddonPurchase,
                 SubscriptionId = currentSubscription.Id,
                 OrderCode = 0
             };
-            
+
             // Update wallet balance
             wallet.WalletBalance -= upgradeCost;
             wallet.UpdatedAt = now;
-            
+
             // Update current subscription with new addon
             currentSubscription.AddOnId = newAddon.Id;
-            
+
             // Update tenant limits based on the new addon
             tenant.TotalCategories = newAddon.MaxCategoriesCount;
             tenant.TotalDishes = newAddon.MaxDishesCount;
+            tenant.UpdatedAt = now;
             
+            // Save all changes in a single transaction
             await _unitOfWork.WalletTransactions.AddAsync(newTransaction);
+            
             _unitOfWork.Subscriptions.Update(currentSubscription);
             _unitOfWork.TenantWallets.Update(wallet);
             _unitOfWork.Tenants.Update(tenant);
+            
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task RenewPreviousSubscription (Guid tenantId)
+        public async Task RenewPreviousSubscription(Guid tenantId)
         {
+            var now = DateTime.UtcNow;
+            var wallet = (await _unitOfWork.TenantWallets.GetByTenantIdAsync(tenantId))
+                .OrThrow("Không tìm thấy ví của người dùng.");
+            var tenant = (await _unitOfWork.Tenants.GetByIdAsync(tenantId))
+                .OrThrow("Không tìm thấy tenant");
+            var currentSubscription =
+                (await _unitOfWork.Subscriptions.GetByFieldsIncludeAsync(s => s.TenantId == tenantId && s.IsActive,
+                    s => s.Plan, s => s.AddOn))
+                .OrThrow("Không tìm thấy đăng ký hiện tại.");
             
+            // Calculate total renewal cost (plan price + prorated addon price)
+            decimal addonRenewalPrice = (currentSubscription.AddOn.Price / 30) * currentSubscription.Plan.DurationInDays;
+            decimal totalRenewalCost = Math.Round(currentSubscription.Plan.Price + addonRenewalPrice, 0);
+
+            // Check if wallet balance is sufficient for renewal
+            if (wallet.WalletBalance < totalRenewalCost)
+                throw new DomainException($"Số dư ví không đủ để gia hạn. Cần thanh toán: {totalRenewalCost:N0} VNĐ.");
+
+            
+            DateTime newEndDate = currentSubscription.EndDate > now
+                ? currentSubscription.EndDate.AddDays(currentSubscription.Plan.DurationInDays)
+                : now.AddDays(currentSubscription.Plan.DurationInDays);
+            
+            // Create wallet transaction for the renewal
+            var transaction = new WalletTransaction
+            {
+                TenantWalletId = wallet.Id,
+                Amount = totalRenewalCost,
+                BalanceBefore = wallet.WalletBalance,
+                BalanceAfter = wallet.WalletBalance - totalRenewalCost,
+                PaymentDate = now,
+                TransactionStatus = TransactionStatus.Success,
+                TransactionType = TransactionType.Substract,
+                Note = NoteWalletTransaction.PlanRenewal,
+                SubscriptionId = currentSubscription.Id
+            };
+            
+            // Update wallet balance
+            wallet.WalletBalance -= totalRenewalCost;
+            wallet.UpdatedAt = now;
+        
+            // Revoke current subscription and create new subscription with extended end date
+            currentSubscription.IsActive = false;
+            currentSubscription.UpdatedAt = now;
+
+            var newSubscription = new Subscription
+            {
+                TenantId = tenantId,
+                PlanId = currentSubscription.PlanId,
+                AddOnId = currentSubscription.AddOnId,
+                StartDate = currentSubscription.EndDate > now ? currentSubscription.EndDate : now,
+                EndDate = newEndDate,
+                IsActive = true
+            };
+            
+            // Update tenant's subscription expiry date
+            tenant.SubscriptionExpiryDate = newEndDate;
+            tenant.UpdatedAt = now;
+            
+            // Save all changes in a single transaction
+            await _unitOfWork.WalletTransactions.AddAsync(transaction);
+            await _unitOfWork.Subscriptions.AddAsync(newSubscription);
+
+            _unitOfWork.TenantWallets.Update(wallet);
+            _unitOfWork.Subscriptions.Update(currentSubscription);
+            _unitOfWork.Tenants.Update(tenant);
+
+            await _unitOfWork.SaveAsync();
         }
     }
 }
