@@ -34,5 +34,17 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             await _dbSet.AddRangeAsync(configs);
         }
+        
+        public async Task<List<BranchDishConfig>> GetSellingDishesAsync(int restaurantId)
+        {
+            return await _context.BranchDishConfigs
+                .Include(bdc => bdc.Dish)
+                .ThenInclude(d => d.Category)
+                .Where(bdc => bdc.RestaurantId == restaurantId 
+                              && bdc.IsSelling 
+                              && !bdc.IsDeleted 
+                              && !bdc.Dish.IsDeleted)
+                .ToListAsync();
+        }
     }
 }

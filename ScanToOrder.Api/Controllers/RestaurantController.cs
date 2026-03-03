@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
@@ -18,6 +19,7 @@ namespace ScanToOrder.Api.Controllers
             _authenticatedUserService = authenticatedUserService;
         }
 
+        // Restaurant Retrieval  
         [HttpGet("{id:int}")]
         public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetById(int id)
         {
@@ -48,9 +50,27 @@ namespace ScanToOrder.Api.Controllers
             var result = await _restaurantService.GetNearbyRestaurantsAsync(latitude, longitude, radiusKm, limit);
             return Success(result);
         }
+        
+        [HttpGet("{slug}")]
+        public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetBySlug(string slug)
+        {
+            var result = await _restaurantService.GetRestaurantBySlugAsync(slug);
+            if (result == null)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            return Success(result);
+        }
+        
+        [HttpGet("{restaurantId:int}/menu")]
+        public async Task<ActionResult<ApiResponse<List<MenuCategoryDto>>>> GetRestaurantMenu([FromRoute] int restaurantId)
+        {
+            var menu = await _restaurantService.GetRestaurantMenuAsync(restaurantId);
+            return Success(menu);
+        }
 
+        // Restaurant Management for Tenant
         [HttpPost]
         [Consumes("multipart/form-data")]
+        [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<RestaurantDto>>> Create([FromForm] CreateRestaurantRequest request)
         {
             if (!_authenticatedUserService.ProfileId.HasValue)
@@ -68,6 +88,7 @@ namespace ScanToOrder.Api.Controllers
 
         [HttpPut("{id:int}")]
         [Consumes("multipart/form-data")]
+        [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<RestaurantDto>>> Update(int id, [FromForm] UpdateRestaurantRequest request)
         {
             if (!_authenticatedUserService.ProfileId.HasValue)
@@ -101,24 +122,18 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("get-all-restaurant-by-tenant")]
+        [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<List<RestaurantDto>>>> GetByTenantId()
         {
             if (!_authenticatedUserService.ProfileId.HasValue)
             {
-                return BadRequest(new { message = RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER });
+                throw new DomainException(RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER);
             }
 
             var result = await _restaurantService.GetRestaurantsByTenantIdAsync(_authenticatedUserService.ProfileId.Value);
             return Success(result.ToList());
         }
 
-        [HttpGet("{slug}")]
-        public async Task<ActionResult<ApiResponse<RestaurantDto>>> GetBySlug(string slug)
-        {
-            var result = await _restaurantService.GetRestaurantBySlugAsync(slug);
-            if (result == null)
-                return NotFound(ApiResponse<RestaurantDto>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
-            return Success(result);
-        }
+        
     }
 }

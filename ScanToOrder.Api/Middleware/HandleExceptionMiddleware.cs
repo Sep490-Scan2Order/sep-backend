@@ -61,14 +61,12 @@ namespace ScanToOrder.Api.Middleware
                     message = exception.Message;
                     break;
 
-                case DbUpdateException dbEx:
-                    message = dbEx.InnerException?.Message ?? dbEx.Message;
-                    errors = new List<string> { dbEx.ToString() };
+                case DbUpdateException:
+                    message = "A database error occurred.";
                     break;
 
                 default:
-                    message = exception.InnerException?.Message ?? exception.Message;
-                    errors = new List<string> { exception.StackTrace ?? "No stack trace available." };
+                    message = "An unexpected error occurred.";
                     break;
             }
 

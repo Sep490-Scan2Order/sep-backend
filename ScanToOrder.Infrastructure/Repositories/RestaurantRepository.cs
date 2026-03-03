@@ -5,6 +5,7 @@ using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System.Linq.Expressions;
+using ScanToOrder.Domain.Entities.Dishes;
 
 namespace ScanToOrder.Infrastructure.Repositories
 {
@@ -155,5 +156,6 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Where(r => r.TenantId == tenantId && !r.IsDeleted)
                 .ToListAsync();
         }
+        
     }
 }

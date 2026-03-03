@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -13,13 +14,17 @@ namespace ScanToOrder.Api.Controllers
         {
             _configurationService = configurationService;
         }
+        
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<ConfigurationResponse>>> GetConfigurations()
         {
             var configurations = await _configurationService.GetConfigurationsAsync();
             return Success(configurations);
         }
+        
         [HttpPut]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<ConfigurationResponse>>> UpdateConfigurations([FromBody] Configurations configurations)
         {
             var updatedConfig = await _configurationService.UpdateConfigurationsAsync(configurations);

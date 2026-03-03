@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -22,11 +23,12 @@ namespace ScanToOrder.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<string>>> Subscription([FromQuery] int planId)
         {
-
-            var result = await _subscriptionService.SubscribePlanAsync(_authenticatedUserService.ProfileId.Value ,planId);
-            return Success(string.Empty, result);
+            if (_authenticatedUserService.ProfileId != null)
+            {
+                var result = await _subscriptionService.SubscribePlanAsync(_authenticatedUserService.ProfileId.Value ,planId);
+                return Success(string.Empty, result);
+            }
+            throw new DomainException("ProfileId is null");
         }
-
-
     }
 }
