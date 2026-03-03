@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -15,7 +16,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("config-dish")]
-
+        [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<BranchDishConfigDto>>> ConfigDishByRestaurant([FromBody] CreateBranchDishConfig request)
         {
             var result = await _branchDishConfigService.ConfigDishByRestaurant(request);
@@ -23,6 +24,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("restaurants/{restaurantId}/branch-dishes")]
+        [Authorize(Roles = "Tenant, Staff")]
         public async Task<ActionResult<ApiResponse<List<BranchDishConfigDto>>>> GetBranchDishByRestaurant(int restaurantId)
         {
             var result = await _branchDishConfigService.GetBranchDishByRestaurant(restaurantId);
@@ -31,6 +33,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPut("toggle-sold-out/{id}")]
+        [Authorize(Roles = "Staff")]
         public async Task<ActionResult<ApiResponse<BranchDishConfigDto>>> ToggleSoldOut(int id, [FromQuery] bool isSoldOut)
         {
             var result = await _branchDishConfigService.ToggleSoldOutAsync(id, isSoldOut);

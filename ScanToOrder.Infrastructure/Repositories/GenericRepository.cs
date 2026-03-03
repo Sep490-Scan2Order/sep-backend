@@ -17,15 +17,19 @@ namespace ScanToOrder.Infrastructure.Repositories
             _dbSet = context.Set<T>();
         }
 
-        public async Task<List<T>> GetAllAsync(params Expression<Func<T, object>>[] includes)
+        public async Task<List<T>> GetAllAsync(Expression<Func<T, bool>>? predicate = null, params Expression<Func<T, object>>[] includes)
         {
-            IQueryable<T> query = _dbSet;
+            IQueryable<T> query = _dbSet.AsNoTracking();
+
+            if (predicate != null)
+                query = query.Where(predicate);
+
             foreach (var include in includes)
-            {
                 query = query.Include(include);
-            }
+
             return await query.ToListAsync();
         }
+        
         public async Task<T?> GetByIdAsync(object id)
         {
             return await _dbSet.FindAsync(id);
@@ -83,7 +87,6 @@ namespace ScanToOrder.Infrastructure.Repositories
                 }
             }
 
-            // EF Core sẽ thực thi predicate này dưới SQL
             return await query.FirstOrDefaultAsync(predicate);
         }
 

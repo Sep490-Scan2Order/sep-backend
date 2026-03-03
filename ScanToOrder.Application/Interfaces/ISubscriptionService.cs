@@ -9,5 +9,6 @@ namespace ScanToOrder.Application.Interfaces
     public interface ISubscriptionService
     {
         Task<string> SubscribePlanAsync(Guid tenantId, int planId);
+        Task UpgradePlanAsync(Guid tenantId, int newPlanId);
     }
 }

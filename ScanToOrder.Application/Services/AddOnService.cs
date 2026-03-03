@@ -26,8 +26,7 @@ namespace ScanToOrder.Application.Services
         public async Task<AddOnDto> CreateAddOn(CreateAddOnRequest addOnDto)
         {
             var addOnEntity = _mapper.Map<AddOn>(addOnDto);
-
-
+            
             await _unitOfWork.AddOns.AddAsync(addOnEntity);
 
             await _unitOfWork.SaveAsync();

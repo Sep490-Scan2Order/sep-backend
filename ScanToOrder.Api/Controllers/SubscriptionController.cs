@@ -30,5 +30,17 @@ namespace ScanToOrder.Api.Controllers
             }
             throw new DomainException("ProfileId is null");
         }
+        
+        [Authorize (Roles = "Tenant")]
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<string>>> UpgradeSubscription([FromQuery] int newPlanId)
+        {
+            // if (_authenticatedUserService.ProfileId != null)
+            // {
+            //     var result = await _subscriptionService.SubscribePlanAsync(_authenticatedUserService.ProfileId.Value ,planId);
+            //     return Success(string.Empty, result);
+            // }
+            throw new DomainException("ProfileId is null");
+        }
     }
 }
