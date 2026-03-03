@@ -62,5 +62,26 @@ namespace ScanToOrder.Api.Controllers
             }
             throw new DomainException("ProfileId is null");
         }
+
+        [HttpPost("import-dishes")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ApiResponse<int>>> ImportDishes(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Fail<int>(DishMessage.DishError.DISH_IMPORT_FILE_INVALID);
+            }
+
+            if (_authenticatedUserService.ProfileId == null)
+            {
+                throw new DomainException("ProfileId is null");
+            }
+
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var count = await dishService.ImportDishesFromExcelAsync(tenantId, file);
+
+            return Success(count, $"Import thành công {count} món ăn");
+        }
+
     }
 }

@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
+using ClosedXML.Excel;
+using Microsoft.AspNetCore.Http;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
-using ScanToOrder.Domain.Entities.Dishes;
 
 namespace ScanToOrder.Application.Services
 {
@@ -179,6 +181,111 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             return true;
+        }
+
+        public async Task<int> ImportDishesFromExcelAsync(Guid tenantId, IFormFile file)
+        {
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+            if (tenant == null)
+            {
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            }
+
+            var restaurants = await _unitOfWork.Restaurants.GetByTenantIdAsync(tenantId);
+            if (restaurants == null || restaurants.Count == 0)
+            {
+                throw new DomainException(RestaurantMessage.RestaurantError.NOT_FOUND_RESTAURANT_FOR_USER);
+            }
+
+            var categories = await _unitOfWork.Categories.GetAllCategoriesByTenant(tenantId);
+            var categoryDict = categories.ToDictionary(c => c.CategoryName.Trim(), c => c.Id);
+
+            var createdCount = 0;
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+            var lastUsedRow = worksheet.LastRowUsed();
+            if (lastUsedRow == null)
+            {
+                return 0;
+            }
+
+            var lastRow = lastUsedRow.RowNumber();
+
+            for (var row = 2; row <= lastRow; row++)
+            {
+                var categoryName = worksheet.Cell(row, 1).GetString().Trim();
+                var dishName = worksheet.Cell(row, 2).GetString().Trim();
+                if (string.IsNullOrWhiteSpace(categoryName) || string.IsNullOrWhiteSpace(dishName))
+                {
+                    continue;
+                }
+
+                var price = worksheet.Cell(row, 3).GetValue<decimal>();
+                var description = worksheet.Cell(row, 4).GetString();
+
+                if (!categoryDict.TryGetValue(categoryName, out var categoryId))
+                {
+                    var category = new Category
+                    {
+                        CategoryName = categoryName,
+                        TenantId = tenantId,
+                        IsActive = true,
+                        IsDeleted = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _unitOfWork.Categories.AddAsync(category);
+                    await _unitOfWork.SaveAsync();
+
+                    categoryId = category.Id;
+                    categoryDict[categoryName] = categoryId;
+                }
+
+                var dish = new Dish
+                {
+                    CategoryId = categoryId,
+                    DishName = dishName,
+                    Price = price,
+                    Description = description,
+                    ImageUrl = string.Empty,
+                    DishAvailability = 1,
+                    IsAvailable = true,
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+
+                await _unitOfWork.Dishes.AddAsync(dish);
+                await _unitOfWork.SaveAsync();
+
+                var branchConfigs = new List<BranchDishConfig>();
+
+                foreach (var restaurant in restaurants)
+                {
+                    branchConfigs.Add(new BranchDishConfig
+                    {
+                        RestaurantId = restaurant.Id,
+                        DishId = dish.Id,
+                        Price = dish.Price,
+                        IsSelling = true,
+                        IsSoldOut = false
+                    });
+                }
+
+                if (branchConfigs.Count > 0)
+                {
+                    await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigs);
+                    await _unitOfWork.SaveAsync();
+                }
+
+                createdCount++;
+            }
+
+            return createdCount;
         }
     }
 }

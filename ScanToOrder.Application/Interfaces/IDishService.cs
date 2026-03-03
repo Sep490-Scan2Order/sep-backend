@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Application.DTOs.Dishes;
+﻿using Microsoft.AspNetCore.Http;
+using ScanToOrder.Application.DTOs.Dishes;
 
 namespace ScanToOrder.Application.Interfaces
 {
@@ -11,5 +12,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<DishDto>> GetAllDishesByTenant(Guid tenantId);
 
         Task<bool> UpdateDishAvailability(Guid tenantId, int dishId, int availabilityStatus);
+        Task<int> ImportDishesFromExcelAsync(Guid tenantId, IFormFile file);
     }
 }
