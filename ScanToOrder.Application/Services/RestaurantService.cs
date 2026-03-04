@@ -249,5 +249,6 @@ namespace ScanToOrder.Application.Services
                 .ToList();
             return menu;
         }
+
     }
 }

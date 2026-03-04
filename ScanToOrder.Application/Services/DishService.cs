@@ -58,11 +58,11 @@ namespace ScanToOrder.Application.Services
                 }
             }
 
-                // Đang bỏ giới hạn số lượng món ăn, nếu muốn giới hạn thì bỏ comment đoạn code dưới và thêm trường TotalDishes vào Tenant
-                //if (totalDishes >= existTenant.TotalDishes) 
-                //{
-                //    throw new DomainException(DishMessage.DishError.DISH_OUT_OF_LIMIT);
-                //}
+            // Đang bỏ giới hạn số lượng món ăn, nếu muốn giới hạn thì bỏ comment đoạn code dưới và thêm trường TotalDishes vào Tenant
+            //if (totalDishes >= existTenant.TotalDishes) 
+            //{
+            //    throw new DomainException(DishMessage.DishError.DISH_OUT_OF_LIMIT);
+            //}
 
             var dishEntity = _mapper.Map<Dish>(dishDto);
             dishEntity.CategoryId = categoryId;
@@ -87,7 +87,7 @@ namespace ScanToOrder.Application.Services
                 var config = new BranchDishConfig
                 {
                     RestaurantId = res.Id,
-                    DishId = dishEntity.Id, 
+                    DishId = dishEntity.Id,
                     Price = dishEntity.Price,
                     IsSelling = true,
                     IsSoldOut = false
@@ -162,7 +162,7 @@ namespace ScanToOrder.Application.Services
 
             var existingDish = await _unitOfWork.Dishes.GetByFieldsIncludeAsync(
                 x => x.Id == dishId,
-                x => x.Category 
+                x => x.Category
             );
 
             if (existingDish == null || existingDish.Category.TenantId != tenantId)
