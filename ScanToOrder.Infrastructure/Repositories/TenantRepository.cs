@@ -35,5 +35,12 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .ThenInclude(s => s.Plan)
                 .FirstOrDefaultAsync(t => t.AccountId == accountId);
         }
+
+        public async Task<Tenant?> GetByIdWithAccountAsync(Guid tenantId)
+        {
+            return await _context.Tenants
+                .Include(x => x.Account)
+                .FirstOrDefaultAsync(x => x.Id == tenantId);
+        }
     }
 }

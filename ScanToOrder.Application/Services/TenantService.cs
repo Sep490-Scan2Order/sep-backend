@@ -24,13 +24,13 @@ namespace ScanToOrder.Application.Services
         private readonly ITransactionRedisService _transactionRedisService;
 
         public TenantService(
-            IUnitOfWork unitOfWork, 
+            IUnitOfWork unitOfWork,
             IMapper mapper,
-            ITaxService taxService, 
+            ITaxService taxService,
             IOtpRedisService otpRedisService,
-            ITenantWalletService tenantWalletService, 
-            IAuthenticatedUserService authenticatedUserService, 
-            IBankLookupService bankLookupService, 
+            ITenantWalletService tenantWalletService,
+            IAuthenticatedUserService authenticatedUserService,
+            IBankLookupService bankLookupService,
             ITransactionRedisService transactionRedisService)
         {
             _unitOfWork = unitOfWork;
@@ -59,7 +59,7 @@ namespace ScanToOrder.Application.Services
             }
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             var userEntity = _mapper.Map<AuthenticationUser>(request);
-      
+
             userEntity.Password = passwordHash;
             userEntity.Verified = true;
 
@@ -80,16 +80,16 @@ namespace ScanToOrder.Application.Services
         public async Task<bool> ValidationTaxCodeAsync(string taxCode)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(_authenticatedUserService.ProfileId!.Value);
-            
+
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             if (tenant.IsVerifyTax)
                 throw new DomainException("Không thể cập nhật mã số thuế khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.");
-            
-            var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode)); 
+
+            var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode));
             if (taxCodeExists && !taxCode.Equals(tenant.TaxNumber))
                 throw new DomainException(TenantMessage.TenantError.TAX_CODE_ALREADY_EXISTS);
-            
+
             var result = await _taxService.GetTaxCodeDetailsAsync(taxCode);
             if (result.IsValid)
             {
@@ -101,7 +101,7 @@ namespace ScanToOrder.Application.Services
             }
             return false;
         }
-        
+
         public async Task<string> UpdateBankInfoAsync(Guid bankId, string accountNumber)
         {
             var tenantId = _authenticatedUserService.ProfileId!.Value;
@@ -138,7 +138,7 @@ namespace ScanToOrder.Application.Services
             await _transactionRedisService.SaveTransactionCodeAsync(codeToSave, tenantId);
             return urlToDisplay;
         }
-        
+
         public async Task<bool> VerifyBankAccountAsync(string paymentCode)
         {
             var tenantId = await _transactionRedisService.GetTenantIdByTransactionCodeAsync(paymentCode);
@@ -166,17 +166,17 @@ namespace ScanToOrder.Application.Services
             var tenants = await _unitOfWork.Tenants.GetTenantsWithSubscriptionsAsync();
             return _mapper.Map<IEnumerable<TenantDto>>(tenants);
         }
-        
+
         public async Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive)
         {
             var tenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(x => x.Id == tenantId, x => x.Account);
-    
+
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
             if (tenant.Account.IsActive == isActive)
             {
-                throw new DomainException(isActive ? TenantMessage.TenantError.TENANT_ALREADY_ACTIVE : 
+                throw new DomainException(isActive ? TenantMessage.TenantError.TENANT_ALREADY_ACTIVE :
                                                      TenantMessage.TenantError.TENANT_ALREADY_BLOCKED);
             }
 
@@ -221,6 +221,17 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             return TenantMessage.TenantSuccess.TENANT_UPDATED;
+        }
+
+        public async Task<TenantDto> GetTenantByIdAsync(Guid tenantId)
+        {
+            var tenant = await _unitOfWork.Tenants
+                .GetByIdWithAccountAsync(tenantId);
+
+            if (tenant == null)
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+            return _mapper.Map<TenantDto>(tenant);
         }
     }
 }

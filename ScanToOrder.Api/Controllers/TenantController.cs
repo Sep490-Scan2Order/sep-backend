@@ -43,7 +43,7 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(string.Empty);
         }
-        
+
         // Validation
         [Authorize(Roles = "Tenant")]
         [HttpPut("tax-validation")]
@@ -55,20 +55,20 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(string.Empty);
         }
-        
+
         [Authorize(Roles = "Tenant")]
         [HttpPost("bank-lookup")]
         public async Task<ActionResult<ApiResponse<object?>>> LookupBank([FromBody] BankLookRequest request)
         {
             return Success<object?>(await _lookupService.LookupAccountAsync(request));
         }
-        
+
         [Authorize(Roles = "Tenant")]
         [HttpPut("update-bank-info")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateBankInfo([FromQuery] Guid bankId, [FromQuery] string accountNumber)
         {
-            var result=  await _tenantService.UpdateBankInfoAsync(bankId, accountNumber);
-            return Success(result,"Cập nhật thông tin ngân hàng thành công, vui lòng chuyen khoản 10.000 VND để xác thực tài khoản");
+            var result = await _tenantService.UpdateBankInfoAsync(bankId, accountNumber);
+            return Success(result, "Cập nhật thông tin ngân hàng thành công, vui lòng chuyen khoản 10.000 VND để xác thực tài khoản");
         }
         //
 
@@ -77,6 +77,14 @@ namespace ScanToOrder.Api.Controllers
         public async Task<ActionResult<ApiResponse<string>>> UpdateTenant([FromBody] UpdateTenantDtoRequest request)
         {
             var result = await _tenantService.UpdateTenantAsync(request);
+            return Success(result);
+        }
+
+        [Authorize(Roles = "Tenant,Admin")]
+        [HttpGet("{tenantId}")]
+        public async Task<ActionResult<ApiResponse<TenantDto>>> GetTenantById(Guid tenantId)
+        {
+            var result = await _tenantService.GetTenantByIdAsync(tenantId);
             return Success(result);
         }
     }
