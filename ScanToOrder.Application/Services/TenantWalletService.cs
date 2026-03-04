@@ -6,6 +6,7 @@ using ScanToOrder.Application.DTOs.Wallet;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services;
@@ -189,5 +190,27 @@ public class TenantWalletService : ITenantWalletService
             .Normalize(NormalizationForm.FormC)
             .Replace('đ', 'd')
             .Replace('Đ', 'D');
+    }
+    
+    public async Task<TenantWalletDto> GetTenantLoginWalletAsync()
+    {
+        if (_authenticatedUserService.ProfileId == null)
+        {
+            throw new DomainException("Token không hợp lệ hoặc đã hết hạn.");
+        }
+        var tenantId = _authenticatedUserService.ProfileId.Value;
+        var wallet = await _unitOfWork.TenantWallets.GetByTenantIdAsync(tenantId);
+        if (wallet == null)
+        {
+            throw new Exception("Ví của Tenant không tồn tại.");
+        }
+
+        return new TenantWalletDto
+        {
+            Id = wallet.Id,
+            TenantId = wallet.TenantId,
+            WalletBalance = wallet.WalletBalance,
+            IsBlocked = wallet.IsBlocked
+        };
     }
 }

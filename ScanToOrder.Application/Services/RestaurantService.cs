@@ -279,11 +279,11 @@ namespace ScanToOrder.Application.Services
                         // Combine Base promos (e.g., Grand Opening) with Specific promos (e.g., Happy Hour)
                         var allEligiblePromotions = basePromotions.Concat(specificDishPromos);
 
-                        // 6. Identify the "Winning" promotion (Highest Priority, then Highest Value)
+                        // 6. Identify the "Winning" promotion (Highest Priority, then Highest Value) 
                         var winningPromo = allEligiblePromotions
                             .Where(p => p.IsValidAt(now))
                             .OrderByDescending(p => p.Priority)
-                            .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
+                                .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                             .FirstOrDefault();
 
                         // 7. Calculate final price and UI labels

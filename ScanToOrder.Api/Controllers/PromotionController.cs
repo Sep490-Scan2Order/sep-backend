@@ -28,4 +28,25 @@ public class PromotionController : BaseController
         await _promotionService.CreatePromotionAsync(tenantId, request);
         return Success(string.Empty); 
     }
+    
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<PromotionResponseDto>>> GetPromotionById([FromRoute] int id)
+    {
+        var result = await _promotionService.GetPromotionByIdAsync(id);
+        return Success(result);
+    }
+    
+    [HttpPut]
+    public async Task<ActionResult<ApiResponse<string>>> UpdatePromotion([FromBody] UpdatePromotionDto request)
+    {
+        await _promotionService.UpdatePromotionAsync(request);
+        return Success(string.Empty); 
+    }
+    
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<ApiResponse<string>>> DeletePromotion([FromRoute] int id)
+    {
+        await _promotionService.DeletePromotionAsync(id);
+        return Success(string.Empty); 
+    }
 }
