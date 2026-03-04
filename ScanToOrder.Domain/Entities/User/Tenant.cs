@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Authentication;
+using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Bank;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
@@ -22,6 +22,10 @@ public partial class Tenant : BaseEntity<Guid>
     public DateTime? SubscriptionExpiryDate { get; set; }
     public DateTime? LastWarningSentAt { get; set; }
     public decimal TotalDebtAmount { get; set; }
+    
+    public DateTime? NextFeeDueAt { get; set; }
+    public bool IsSuspended { get; set; }
+    public DateTime? SuspendedAt { get; set; }
     
     public int TotalRestaurants { get; set; }
     public int TotalDishes { get; set; }
