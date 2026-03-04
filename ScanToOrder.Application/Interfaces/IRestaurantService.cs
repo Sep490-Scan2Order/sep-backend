@@ -14,5 +14,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<RestaurantDto> GetRestaurantBySlugAsync(string slug);
         Task<IEnumerable<RestaurantDto>> GetRestaurantsByTenantIdAsync(Guid tenantId);
         Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId);
+        Task<string> UpdateReceivingOrdersAsync(int restaurantId, bool isReceivingOrders);
     }
 }

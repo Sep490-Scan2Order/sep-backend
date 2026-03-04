@@ -49,6 +49,7 @@ public class AppDbContext : DbContext
     public DbSet<MenuTemplate> MenuTemplates { get; set; } = null!;
     public DbSet<MenuRestaurant> MenuRestaurants { get; set; } = null!;
     public DbSet<RestaurantPromotion> RestaurantPromotions { get; set; } = null!;
+    public DbSet<PromotionDish> PromotionDishes { get; set; } = null!;
     public DbSet<PointHistory> PointHistories { get; set; } = null!;
     public DbSet<Configurations> Configurations { get; set; } = null!;
     public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -40,7 +40,8 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPut("update-dish/{categoryId:int}/{dishId:int}")]
-        public async Task<ActionResult<ApiResponse<DishDto>>> UpdateDish(int categoryId, int dishId, [FromBody] UpdateDishRequest request)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ApiResponse<DishDto>>> UpdateDish(int categoryId, int dishId, [FromForm] UpdateDishRequest request)
         {
             if (_authenticatedUserService.ProfileId != null)
             {
