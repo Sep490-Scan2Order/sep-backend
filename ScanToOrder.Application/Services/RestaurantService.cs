@@ -4,7 +4,9 @@ using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using SlugGenerator;
@@ -39,7 +41,8 @@ namespace ScanToOrder.Application.Services
             return dto;
         }
 
-        public async Task<PagedRestaurantResultDto> GetRestaurantsPagedAsync(double? latitude, double? longitude, int page = 1, int pageSize = 20)
+        public async Task<PagedRestaurantResultDto> GetRestaurantsPagedAsync(double? latitude, double? longitude,
+            int page = 1, int pageSize = 20)
         {
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 20;
@@ -68,7 +71,8 @@ namespace ScanToOrder.Application.Services
                 };
             }
 
-            var (restaurants, totalCountByOrder) = await _unitOfWork.Restaurants.GetRestaurantsSortedByTotalOrderPagedAsync(page, pageSize);
+            var (restaurants, totalCountByOrder) =
+                await _unitOfWork.Restaurants.GetRestaurantsSortedByTotalOrderPagedAsync(page, pageSize);
             var dtosByOrder = _mapper.Map<List<RestaurantDto>>(restaurants);
 
             return new PagedRestaurantResultDto
@@ -80,7 +84,8 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        public async Task<List<RestaurantDto>> GetNearbyRestaurantsAsync(double latitude, double longitude, double radiusKm, int limit = 10)
+        public async Task<List<RestaurantDto>> GetNearbyRestaurantsAsync(double latitude, double longitude,
+            double radiusKm, int limit = 10)
         {
             var restaurantsWithDistance = await _unitOfWork.Restaurants.GetNearbyRestaurantsAsync(
                 latitude,
@@ -105,10 +110,14 @@ namespace ScanToOrder.Application.Services
 
             _ = true switch
             {
-                _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_TAX_NUMBER),
-                _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_BANK),
-                _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_CARD),
-                _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError.TENANT_MISSING_PHONE),
+                _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_MISSING_TAX_NUMBER),
+                _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage
+                    .TenantError.TENANT_MISSING_BANK),
+                _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_MISSING_CARD),
+                _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_MISSING_PHONE),
                 _ => true
             };
 
@@ -153,7 +162,8 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<RestaurantDto>(restaurant);
         }
 
-        public async Task<RestaurantDto> UpdateRestaurantAsync(int restaurantId, Guid tenantId, UpdateRestaurantRequest request)
+        public async Task<RestaurantDto> UpdateRestaurantAsync(int restaurantId, Guid tenantId,
+            UpdateRestaurantRequest request)
         {
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
             if (restaurant == null)
@@ -172,10 +182,11 @@ namespace ScanToOrder.Application.Services
                 if (!(request.Latitude.HasValue && request.Longitude.HasValue))
                     throw new DomainException(RestaurantMessage.RestaurantError.INVALID_RESTAURANT_LOCATION);
 
-                restaurant.Location = new NetTopologySuite.Geometries.Point(request.Longitude.Value, request.Latitude.Value)
-                {
-                    SRID = 4326
-                };
+                restaurant.Location =
+                    new NetTopologySuite.Geometries.Point(request.Longitude.Value, request.Latitude.Value)
+                    {
+                        SRID = 4326
+                    };
             }
 
             if (request.Image != null && request.Image.Length > 0)
@@ -225,29 +236,145 @@ namespace ScanToOrder.Application.Services
 
         public async Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId)
         {
-            var restaurant = await _unitOfWork.Restaurants.ExistsAsync(x => x.Id == restaurantId);
-            if (!restaurant)
-                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            // 0. Use consistent time with UTC+7 offset for local business logic
+            var now = DateTime.UtcNow.AddHours(7);
 
+            // 1. Verify restaurant and get TenantId
+            var restaurantEntity = (await _unitOfWork.Restaurants.GetByIdAsync(restaurantId))
+                .OrThrow(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+            var tenantId = restaurantEntity.TenantId;
+
+            // 2. Fetch "Base" promotions (Those that apply to ALL dishes in the restaurant)
+            // Logic: IsGlobal (Tenant-wide) OR (Restaurant-mapped AND NO specific dishes assigned)
+            var basePromotions = await _unitOfWork.Promotions.GetAllAsync(p =>
+                p.TenantId == tenantId &&
+                p.IsActive &&
+                !p.IsDeleted &&
+                p.Scope == PromotionScope.Dish &&
+                (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
+                                && !p.PromotionDishes.Any()))
+            );
+
+            // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
             var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesAsync(restaurantId);
+
+            // 4. Build Menu structure
             var menu = branchDishes
                 .GroupBy(bdc => new { bdc.Dish.Category.Id, bdc.Dish.Category.CategoryName })
                 .Select(group => new MenuCategoryDto
                 {
                     CategoryId = group.Key.Id,
                     CategoryName = group.Key.CategoryName,
-                    Dishes = group.Select(bdc => new MenuDishItemDto
+                    Dishes = group.Select(bdc =>
                     {
-                        DishId = bdc.DishId,
-                        DishName = bdc.Dish.DishName,
-                        Description = bdc.Dish.Description,
-                        ImageUrl = bdc.Dish.ImageUrl,
-                        Price = (int)bdc.Price,
-                        IsSoldOut = bdc.IsSoldOut
+                        // 5. Identify promotions specifically mapped to THIS dish
+                        var specificDishPromos = bdc.Dish.PromotionDishes?
+                                                     .Select(pd => pd.Promotion)
+                                                     .Where(p => p.Scope == PromotionScope.Dish &&
+                                                                 p.IsActive &&
+                                                                 !p.IsDeleted)
+                                                 ?? Enumerable.Empty<Promotion>();
+
+                        // Combine Base promos (e.g., Grand Opening) with Specific promos (e.g., Happy Hour)
+                        var allEligiblePromotions = basePromotions.Concat(specificDishPromos);
+
+                        // 6. Identify the "Winning" promotion (Highest Priority, then Highest Value)
+                        var winningPromo = allEligiblePromotions
+                            .Where(p => p.IsValidAt(now))
+                            .OrderByDescending(p => p.Priority)
+                            .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
+                            .FirstOrDefault();
+
+                        // 7. Calculate final price and UI labels
+                        int discountedPrice = (int)bdc.Price;
+                        string? promoLabel = null;
+
+                        if (winningPromo != null)
+                        {
+                            var discountAmount = CalculateDiscountValue(bdc.Price, winningPromo);
+                            discountedPrice = (int)Math.Max(bdc.Price - discountAmount, 0);
+
+                            // Generate UI Label: "-20%" or "-15k"
+                            promoLabel = winningPromo.DiscountType == DiscountType.Percentage
+                                ? $"-{winningPromo.DiscountValue}%"
+                                : $"-{(winningPromo.DiscountValue / 1000):G}k";
+                        }
+
+                        return new MenuDishItemDto
+                        {
+                            DishId = bdc.DishId,
+                            DishName = bdc.Dish.DishName,
+                            Description = bdc.Dish.Description,
+                            ImageUrl = bdc.Dish.ImageUrl,
+                            Price = (int)bdc.Price,
+                            DiscountedPrice = discountedPrice,
+                            PromotionName = winningPromo?.Name,
+                            PromotionLabel = promoLabel,
+                            PromoType = winningPromo?.Type,
+                            // Calculate real-time expiration for UI countdown
+                            ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
+                            IsSoldOut = bdc.IsSoldOut
+                        };
                     }).ToList()
                 })
                 .ToList();
+
             return menu;
+        }
+
+        private decimal CalculateDiscountValue(decimal price, Promotion p)
+        {
+            // Fixed amount discount (e.g., subtract 20,000đ)
+            if (p.DiscountType == DiscountType.FixedAmount)
+                return p.DiscountValue;
+
+            // Percentage discount (e.g., 10% of 45,000đ)
+            var discount = price * (p.DiscountValue / 100);
+
+            // Apply cap if MaxDiscountValue is defined (e.g., 10% but max 50k)
+            return p.MaxDiscountValue.HasValue
+                ? Math.Min(discount, p.MaxDiscountValue.Value)
+                : discount;
+        }
+
+        private DateTime? CalculateTrueExpiredAt(Promotion p, DateTime now)
+        {
+            // Use the Date from the 'now' parameter to stay consistent with UTC+7 context
+            var today = now.Date;
+            DateTime? trueExpiredAt = p.EndDate;
+
+            switch (p.Type)
+            {
+                case PromotionType.HappyHour:
+                case PromotionType.WeeklySpecial:
+                    // If it has a specific time of day, that's the real expiration for today
+                    if (p.DailyEndTime.HasValue)
+                    {
+                        trueExpiredAt = today.Add(p.DailyEndTime.Value);
+                    }
+                    else if (p.Type == PromotionType.WeeklySpecial)
+                    {
+                        // If no specific time, it ends at the end of the day
+                        trueExpiredAt = today.AddDays(1).AddTicks(-1);
+                    }
+
+                    break;
+
+                case PromotionType.Clearance:
+                case PromotionType.Standard:
+                    // For campaign-based promos, use the overall campaign end date
+                    trueExpiredAt = p.EndDate;
+                    break;
+            }
+
+            // Guard: The "today's" end time should never exceed the campaign's final EndDate
+            if (p.EndDate.HasValue && trueExpiredAt > p.EndDate.Value)
+            {
+                trueExpiredAt = p.EndDate.Value;
+            }
+
+            return trueExpiredAt;
         }
 
         public async Task<string> UpdateReceivingOrdersAsync(int restaurantId, bool isReceivingOrders)

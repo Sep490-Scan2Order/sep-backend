@@ -21,7 +21,7 @@ public class PromotionService : IPromotionService
     public async Task CreatePromotionAsync(Guid tenantId, CreatePromotionDto dto)
     {
         var promotion = _mapper.Map<Promotion>(dto);
-        
+
         // Set TenantId and Priority
         promotion.TenantId = tenantId;
         if (dto.Priority.HasValue)
@@ -32,7 +32,7 @@ public class PromotionService : IPromotionService
         {
             promotion.SetDefaultPriority();
         }
-        
+
         // Reset fields based on PromotionType to ensure data integrity
         switch (promotion.Type)
         {
@@ -50,29 +50,35 @@ public class PromotionService : IPromotionService
             case PromotionType.WeeklySpecial:
                 break;
         }
+
         promotion.Validate();
-        
+
         // Transaction to ensure atomicity of promotion creation and related entities
         await using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
             await _unitOfWork.Promotions.AddAsync(promotion);
             await _unitOfWork.SaveAsync();
-            
-            // If the promotion is not global, associate it with specified dishes and restaurants
+
+            // If the promotion is not global, handle mappings based on PromotionScope
             if (!promotion.IsGlobal)
             {
-                if (dto.DishIds != null && dto.DishIds.Any())
+                // CASE 1: Dish-level promotion - Mapping specific dishes
+                if (promotion.Scope == PromotionScope.Dish)
                 {
-                    var promotionDishes = dto.DishIds.Distinct().Select(dishId => new PromotionDish
+                    if (dto.DishIds != null && dto.DishIds.Any())
                     {
-                        PromotionId = promotion.Id,
-                        DishId = dishId
-                    }).ToList();
+                        var promotionDishes = dto.DishIds.Distinct().Select(dishId => new PromotionDish
+                        {
+                            PromotionId = promotion.Id,
+                            DishId = dishId
+                        }).ToList();
 
-                    await _unitOfWork.PromotionDishes.AddRangeAsync(promotionDishes);
+                        await _unitOfWork.PromotionDishes.AddRangeAsync(promotionDishes);
+                    }
                 }
-
+                // Note: If Scope is Order, we ignore DishIds as it applies to the whole bill
+                // CASE 2: Apply to specific restaurants (Valid for both Dish and Order scopes)
                 if (dto.RestaurantIds != null && dto.RestaurantIds.Any())
                 {
                     var restaurantPromotions = dto.RestaurantIds.Distinct().Select(resId => new RestaurantPromotion

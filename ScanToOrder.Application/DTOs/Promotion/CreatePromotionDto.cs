@@ -19,6 +19,7 @@ public class CreatePromotionDto
     
     public bool IsGlobal { get; set; }
     public int? Priority { get; set; }
+    public PromotionScope Scope { get; set; }
 
     public List<int>? DishIds { get; set; } 
     public List<int>? RestaurantIds { get; set; }

@@ -23,9 +23,11 @@ namespace ScanToOrder.Domain.Entities.Promotions
 
         public TimeSpan? DailyStartTime { get; set; }
         public TimeSpan? DailyEndTime { get; set; }
-
         public DaysOfWeek DaysOfWeek { get; set; }
         public int Priority { get; set; } = 0;
+        public PromotionScope Scope { get; set; }
+        public virtual ICollection<RestaurantPromotion> RestaurantPromotions { get; set; } = new List<RestaurantPromotion>();
+        public virtual ICollection<PromotionDish> PromotionDishes { get; set; } = new List<PromotionDish>();
 
         public void SetDefaultPriority()
         {

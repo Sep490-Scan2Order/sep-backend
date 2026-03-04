@@ -40,6 +40,9 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await _context.BranchDishConfigs
                 .Include(bdc => bdc.Dish)
                 .ThenInclude(d => d.Category)
+                .Include(bdc => bdc.Dish)
+                    .ThenInclude(d => d.PromotionDishes) 
+                        .ThenInclude(pd => pd.Promotion)
                 .Where(bdc => bdc.RestaurantId == restaurantId 
                               && bdc.IsSelling 
                               && !bdc.IsDeleted 
