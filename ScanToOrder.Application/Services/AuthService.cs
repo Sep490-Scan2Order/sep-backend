@@ -1,5 +1,4 @@
 using AutoMapper;
-using Microsoft.Extensions.Caching.Memory;
 using ScanToOrder.Application.DTOs.Auth;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
@@ -14,7 +13,6 @@ namespace ScanToOrder.Application.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly IMemoryCache _cache;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
         private readonly ISmsSender _smsSender;
@@ -24,15 +22,13 @@ namespace ScanToOrder.Application.Services
         private readonly IMapper _mapper;
 
         public AuthService(
-            IMemoryCache cache,
             IUnitOfWork unitOfWork,
             IJwtService jwtService,
             ISmsSender smsSender,
             IOtpRedisService otpRedisService,
-            IConnectionMultiplexer connectionMultiplexer, 
+            IConnectionMultiplexer connectionMultiplexer,
             IMapper mapper)
         {
-            _cache = cache;
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
             _smsSender = smsSender;
@@ -46,7 +42,11 @@ namespace ScanToOrder.Application.Services
         {
             string otpCode = new Random().Next(100000, 999999).ToString();
 
-            _cache.Set("OTP_" + phone, otpCode, TimeSpan.FromMinutes(3));
+            await _otpRedisService.SaveOtpCustomerAsync(
+                phone,
+                otpCode,
+                OtpMessage.OtpKeyword.OTP_REGISTER_PHONE,
+                TimeSpan.FromMinutes(3));
 
             //await _smsSender.SendAsync(phone, otpCode);
 
@@ -211,7 +211,7 @@ namespace ScanToOrder.Application.Services
 
         public async Task<AuthResponse<CustomerDto>> RegisterAsync(RegisterRequest request)
         {
-            ValidateOtpOrThrow(request.Phone, request.Otp);
+            await ValidateOtpOrThrowAsync(request.Phone, request.Otp);
 
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
             if (existingUser != null)
@@ -253,15 +253,15 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        private void ValidateOtpOrThrow(string phone, string otp)
+        private async Task ValidateOtpOrThrowAsync(string phone, string otp)
         {
-            var cacheKey = "OTP_" + phone;
-            if (!_cache.TryGetValue(cacheKey, out string? storedOtp) || storedOtp != otp)
+            var savedOtp = await _otpRedisService.GetOtpTenantAsync(phone, OtpMessage.OtpKeyword.OTP_REGISTER_PHONE);
+            if (string.IsNullOrEmpty(savedOtp) || savedOtp != otp)
             {
                 throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
             }
 
-            _cache.Remove(cacheKey);
+            await _otpRedisService.DeleteOtpTenantAsync(phone, OtpMessage.OtpKeyword.OTP_REGISTER_PHONE);
         }
 
         public async Task<string> VerifyForgotPasswordOtpAsync(string email, string otpCode)
