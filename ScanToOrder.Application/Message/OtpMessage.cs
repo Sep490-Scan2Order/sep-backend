@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Message
+namespace ScanToOrder.Application.Message
 {
     public partial class OtpMessage
     {
@@ -11,6 +11,7 @@
         public class OtpKeyword
         {
             public const string OTP_REGISTER = "Register";
+            public const string OTP_REGISTER_PHONE = "RegisterPhone";
             public const string OTP_RESET_PASSWORD = "ResetPassword";
             public const string OTP_FORGOT_PASSWORD = "ForgotPassword";
         }
