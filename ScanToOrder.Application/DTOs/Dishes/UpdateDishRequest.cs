@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace ScanToOrder.Application.DTOs.Dishes
 {
     public class UpdateDishRequest
