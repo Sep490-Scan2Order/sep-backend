@@ -26,19 +26,12 @@ namespace ScanToOrder.Application.Validators
                     .NotEmpty();
             });
 
-            When(x => x.DishAvailability.HasValue, () =>
-            {
-                RuleFor(x => x.DishAvailability!.Value)
-                    .GreaterThanOrEqualTo(0);
-            });
-
             RuleFor(x => x)
                 .Must(x =>
                     x.DishName != null ||
                     x.Price.HasValue ||
                     x.Description != null ||
-                    x.ImageUrl != null ||
-                    x.DishAvailability.HasValue
+                    x.ImageUrl != null
                 )
                 .WithMessage("Phải cập nhật ít nhất một trường.");
         }

@@ -78,7 +78,6 @@ namespace ScanToOrder.Application.Services
             dishEntity.Price = dishDto.Price;
             dishEntity.Description = dishDto.Description;
             dishEntity.ImageUrl = uploadImageUrl;
-            dishEntity.DishAvailability = dishDto.DishAvailability;
             dishEntity.IsAvailable = true;
             dishEntity.CreatedAt = DateTime.UtcNow;
             dishEntity.IsDeleted = false;
@@ -188,12 +187,6 @@ namespace ScanToOrder.Application.Services
 
             existingDish.ImageUrl = uploadImageUrl;
 
-            if (dishDto.DishAvailability.HasValue)
-            {
-                existingDish.DishAvailability = dishDto.DishAvailability.Value;
-                existingDish.IsAvailable = dishDto.DishAvailability.Value > 0;
-            }
-
             existingDish.CategoryId = categoryId;
 
             _unitOfWork.Dishes.Update(existingDish);
@@ -220,13 +213,6 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
             }
-
-            if (dishAvailability < existingDish.DishAvailability)
-            {
-                throw new DomainException(DishMessage.DishError.INVALID_DISH_AVAILABILITY);
-            }
-
-            existingDish.DishAvailability = dishAvailability;
 
             _unitOfWork.Dishes.Update(existingDish);
             await _unitOfWork.SaveAsync();
@@ -304,7 +290,6 @@ namespace ScanToOrder.Application.Services
                     Price = price,
                     Description = description,
                     ImageUrl = string.Empty,
-                    DishAvailability = 1,
                     IsAvailable = true,
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false
