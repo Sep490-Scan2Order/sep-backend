@@ -226,7 +226,7 @@ namespace ScanToOrder.Application.Services
         public async Task<TenantDto> GetTenantByIdAsync(Guid tenantId)
         {
             var tenant = await _unitOfWork.Tenants
-                .GetByIdWithAccountAsync(tenantId);
+                .GetTenantWithSubscriptionByAccountIdAsync(tenantId);
 
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);

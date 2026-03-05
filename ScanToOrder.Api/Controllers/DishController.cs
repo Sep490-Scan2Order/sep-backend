@@ -27,6 +27,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("create-dish/{categoryId:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<ApiResponse<DishDto>>> CreateDish(int categoryId, [FromForm] CreateDishRequest request)
         {
             if (_authenticatedUserService.ProfileId != null)

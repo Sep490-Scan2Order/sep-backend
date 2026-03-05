@@ -11,7 +11,6 @@
         public string Description { get; set; } = null!;
 
         public string ImageUrl { get; set; } = null!;
-        public int DishAvailability { get; set; } = 1;
 
         public bool IsAvailable { get; set; }
         public DateTime CreatedAt { get; set; }
