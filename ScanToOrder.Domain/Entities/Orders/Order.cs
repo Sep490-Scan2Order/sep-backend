@@ -24,6 +24,7 @@ namespace ScanToOrder.Domain.Entities.Orders
         public decimal PromotionDiscount { get; set; }
         public decimal FinalAmount { get; set; }
         public OrderStatus Status { get; set; }
+        public bool IsScanned { get; set; } = false;
 
         public virtual AuthenticationUser? User { get; set; }
 

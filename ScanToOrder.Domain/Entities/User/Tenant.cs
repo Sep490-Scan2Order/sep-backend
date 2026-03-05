@@ -6,8 +6,8 @@ using ScanToOrder.Domain.Entities.SubscriptionPlan;
 
 namespace ScanToOrder.Domain.Entities.User;
 
-public partial class Tenant : BaseEntity<Guid>
-{
+    public partial class Tenant : BaseEntity<Guid>
+    {
     public Guid AccountId { get; set; }
 
     public string? TaxNumber { get; set; }
@@ -18,12 +18,11 @@ public partial class Tenant : BaseEntity<Guid>
     public string? CardNumber { get; set; }
     public bool IsVerifyBank { get; set; } = false;
     
-    public DateTime? DebtStartedAt { get; set; }
+        public DateTime? DebtStartedAt { get; set; }
     public DateTime? SubscriptionExpiryDate { get; set; }
     public DateTime? LastWarningSentAt { get; set; }
     public decimal TotalDebtAmount { get; set; }
-    
-    public DateTime? NextFeeDueAt { get; set; }
+
     public bool IsSuspended { get; set; }
     public DateTime? SuspendedAt { get; set; }
     
