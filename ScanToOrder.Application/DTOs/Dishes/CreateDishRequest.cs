@@ -10,6 +10,5 @@ namespace ScanToOrder.Application.DTOs.Dishes
         public string Description { get; set; } = null!;
 
         public IFormFile ImageUrl { get; set; } = null!;
-        public int DishAvailability { get; set; } = 1;
     }
 }
