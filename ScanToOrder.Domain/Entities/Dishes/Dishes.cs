@@ -1,6 +1,8 @@
 using ScanToOrder.Domain.Entities.Base;
 using System;
 using System.Collections.Generic;
+using ScanToOrder.Domain.Entities.Promotions;
+
 namespace ScanToOrder.Domain.Entities.Dishes
 {
     public partial class Dish : BaseEntity<int>
@@ -12,11 +14,11 @@ namespace ScanToOrder.Domain.Entities.Dishes
         public string Description { get; set; } = null!;
 
         public string ImageUrl { get; set; } = null!;
-        public int DishAvailability { get; set; } = 1;
 
         public bool IsAvailable { get; set; }
 
         public virtual Category Category { get; set; } = null!;
         public virtual ICollection<BranchDishConfig> BranchDishConfigs { get; set; } = new List<BranchDishConfig>();
+        public virtual ICollection<PromotionDish> PromotionDishes { get; set; } = new List<PromotionDish>();
     }
 }

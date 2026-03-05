@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304121057_AddWeeklyPlatformFeeFields")]
+    partial class AddWeeklyPlatformFeeFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -484,9 +487,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsPreOrder")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsScanned")
                         .HasColumnType("boolean");
 
                     b.Property<int?>("MemberVoucherId")
@@ -1108,6 +1108,9 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("NextFeeDueAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("SubscriptionExpiryDate")
                         .HasColumnType("timestamp with time zone");

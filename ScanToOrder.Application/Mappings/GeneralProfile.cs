@@ -3,13 +3,16 @@ using NetTopologySuite.Geometries;
 using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.Plan;
+using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.DTOs.Voucher;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.Vouchers;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Application.Mappings
 {
@@ -58,27 +61,45 @@ namespace ScanToOrder.Application.Mappings
             CreateMap<CreateAddOnRequest, AddOn>();
             CreateMap<AddOn, AddOnDto>();
 
+            // Mapping for BranchDishConfig with custom logic to include related Restaurant and Dish information
             CreateMap<CreateRestaurantRequest, Restaurant>()
-            .ForMember(dest => dest.Location, opt => opt.MapFrom(src =>
-                (src.Latitude.HasValue && src.Longitude.HasValue)
-                ? new Point(src.Longitude.Value, src.Latitude.Value) { SRID = 4326 }
-                : null))
-            .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
-            .ForMember(dest => dest.IsOpened, opt => opt.MapFrom(src => false))
-            .ForMember(dest => dest.IsReceivingOrders, opt => opt.MapFrom(src => false))
-            .ForMember(dest => dest.TotalOrder, opt => opt.MapFrom(src => 0))
-            .ForMember(dest => dest.QrMenu, opt => opt.MapFrom(src => $"https://scantoorder.com/menu/{Guid.NewGuid()}"));
-
+                .ForMember(dest => dest.Location, opt => opt.MapFrom(src =>
+                    (src.Latitude.HasValue && src.Longitude.HasValue)
+                        ? new Point(src.Longitude.Value, src.Latitude.Value) { SRID = 4326 }
+                        : null))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.IsOpened, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.IsReceivingOrders, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.TotalOrder, opt => opt.MapFrom(src => 0))
+                .ForMember(dest => dest.QrMenu,
+                    opt => opt.MapFrom(src => $"https://scantoorder.com/menu/{Guid.NewGuid()}"));
 
             CreateMap<BranchDishConfig, BranchDishConfigDto>()
-               .ForMember(dest => dest.RestaurantName,
-                   opt => opt.MapFrom(src => src.Restaurant.RestaurantName))
-               .ForMember(dest => dest.DishName,
-                   opt => opt.MapFrom(src => src.Dish.DishName))
-               .ForMember(dest => dest.DishImageUrl,
-                   opt => opt.MapFrom(src => src.Dish.ImageUrl));
+                .ForMember(dest => dest.RestaurantName,
+                    opt => opt.MapFrom(src => src.Restaurant.RestaurantName))
+                .ForMember(dest => dest.DishName,
+                    opt => opt.MapFrom(src => src.Dish.DishName))
+                .ForMember(dest => dest.DishImageUrl,
+                    opt => opt.MapFrom(src => src.Dish.ImageUrl));
 
             CreateMap<CreateBranchDishConfig, BranchDishConfig>();
+
+            // Promotion mapping with custom logic for default values and conditional mapping
+            CreateMap<CreatePromotionDto, Promotion>()
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.Priority, opt => opt.Ignore())
+                .ForSourceMember(src => src.DishIds, opt => opt.DoNotValidate())
+                .ForSourceMember(src => src.RestaurantIds, opt => opt.DoNotValidate());
+
+            CreateMap<Promotion, PromotionResponseDto>()
+                .ForMember(dest => dest.DishIds, opt => opt.MapFrom(src =>
+                    src.PromotionDishes.Select(pd => pd.DishId).ToList()))
+                .ForMember(dest => dest.RestaurantIds, opt => opt.MapFrom(src =>
+                    src.RestaurantPromotions.Select(rp => rp.RestaurantId).ToList()));
+
+            CreateMap<UpdatePromotionDto, Promotion>()
+                .IncludeBase<CreatePromotionDto, Promotion>();
         }
     }
 }

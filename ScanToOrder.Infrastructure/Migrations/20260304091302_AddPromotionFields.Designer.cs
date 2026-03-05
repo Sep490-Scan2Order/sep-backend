@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304091302_AddPromotionFields")]
+    partial class AddPromotionFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -484,9 +487,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsPreOrder")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsScanned")
                         .HasColumnType("boolean");
 
                     b.Property<int?>("MemberVoucherId")
@@ -1094,9 +1094,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsSuspended")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsVerifyBank")
                         .HasColumnType("boolean");
 
@@ -1110,9 +1107,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("SubscriptionExpiryDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("SuspendedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TaxNumber")
@@ -1545,7 +1539,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("ScanToOrder.Domain.Entities.Promotions.Promotion", "Promotion")
-                        .WithMany("PromotionDishes")
+                        .WithMany()
                         .HasForeignKey("PromotionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1743,8 +1737,6 @@ namespace ScanToOrder.Infrastructure.Migrations
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.Promotion", b =>
                 {
-                    b.Navigation("PromotionDishes");
-
                     b.Navigation("RestaurantPromotions");
                 });
 

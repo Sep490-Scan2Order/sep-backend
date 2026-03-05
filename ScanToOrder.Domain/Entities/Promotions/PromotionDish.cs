@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
 

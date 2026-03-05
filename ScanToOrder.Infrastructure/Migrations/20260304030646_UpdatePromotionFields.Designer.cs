@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304030646_UpdatePromotionFields")]
+    partial class UpdatePromotionFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,9 +237,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("DishAvailability")
-                        .HasColumnType("integer");
-
                     b.Property<int>("DishId")
                         .HasColumnType("integer");
 
@@ -319,6 +319,9 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("DishAvailability")
+                        .HasColumnType("integer");
 
                     b.Property<string>("DishName")
                         .IsRequired()
@@ -484,9 +487,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsPreOrder")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsScanned")
                         .HasColumnType("boolean");
 
                     b.Property<int?>("MemberVoucherId")
@@ -729,9 +729,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Scope")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartDate")
@@ -1094,9 +1091,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsSuspended")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsVerifyBank")
                         .HasColumnType("boolean");
 
@@ -1110,9 +1104,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("SubscriptionExpiryDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("SuspendedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TaxNumber")
@@ -1539,13 +1530,13 @@ namespace ScanToOrder.Infrastructure.Migrations
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.PromotionDish", b =>
                 {
                     b.HasOne("ScanToOrder.Domain.Entities.Dishes.Dish", "Dish")
-                        .WithMany("PromotionDishes")
+                        .WithMany()
                         .HasForeignKey("DishId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ScanToOrder.Domain.Entities.Promotions.Promotion", "Promotion")
-                        .WithMany("PromotionDishes")
+                        .WithMany()
                         .HasForeignKey("PromotionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1558,7 +1549,7 @@ namespace ScanToOrder.Infrastructure.Migrations
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.RestaurantPromotion", b =>
                 {
                     b.HasOne("ScanToOrder.Domain.Entities.Promotions.Promotion", "Promotion")
-                        .WithMany("RestaurantPromotions")
+                        .WithMany()
                         .HasForeignKey("PromotionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1722,8 +1713,6 @@ namespace ScanToOrder.Infrastructure.Migrations
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.Dish", b =>
                 {
                     b.Navigation("BranchDishConfigs");
-
-                    b.Navigation("PromotionDishes");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuTemplate", b =>
@@ -1739,13 +1728,6 @@ namespace ScanToOrder.Infrastructure.Migrations
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Points.MemberPoint", b =>
                 {
                     b.Navigation("PointHistories");
-                });
-
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.Promotion", b =>
-                {
-                    b.Navigation("PromotionDishes");
-
-                    b.Navigation("RestaurantPromotions");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurant.Restaurant", b =>

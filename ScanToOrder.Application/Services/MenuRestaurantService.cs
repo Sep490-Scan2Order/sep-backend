@@ -3,6 +3,7 @@ using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Menu;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services
@@ -17,10 +18,20 @@ namespace ScanToOrder.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<MenuRestaurantDto>> GetMenuByRestaurantIdAsync(int restaurntId)
+        public async Task<MenuRestaurantDto> GetMenuByRestaurantIdAsync(int restaurantId)
         {
-            var menuRestaurants = await _unitOfWork.MenuRestaurants.FindAsync(x => x.RestaurantId == restaurntId);
-            return _mapper.Map<IEnumerable<MenuRestaurantDto>>(menuRestaurants);
+            var menuRestaurant = await _unitOfWork.MenuRestaurants.GetByFieldsIncludeAsync(
+                x => x.RestaurantId == restaurantId && !x.IsDeleted,
+                x => x.Restaurant,
+                x => x.MenuTemplate    
+            );
+
+            if (menuRestaurant == null)
+            {
+                throw new DomainException(MenuTemplateMessage.MenuTemplateError.MENU_RESTAURANT_NOT_FOUND);
+            }
+
+            return _mapper.Map<MenuRestaurantDto>(menuRestaurant);
         }
         public async Task<MenuRestaurantDto> ApplyRestaurantWithTemplateAsync(CreateMenuRestaurantRequestDto createMenuRestaurantRequestDto)
         {

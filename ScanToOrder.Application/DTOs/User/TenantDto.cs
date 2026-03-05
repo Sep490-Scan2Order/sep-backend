@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.DTOs.User
+namespace ScanToOrder.Application.DTOs.User
 {
     public class TenantDto
     {
@@ -25,6 +25,9 @@
         public DateTime? SubscriptionExpiryDate { get; set; }
         public DateTime? LastWarningSentAt { get; set; }
         public decimal TotalDebtAmount { get; set; }
+        public DateTime? NextFeeDueAt { get; set; }
+        public bool IsSuspended { get; set; }
+        public DateTime? SuspendedAt { get; set; }
         public string PlanName { get; set; } = string.Empty;
 
         public int TotalRestaurants { get; set; }

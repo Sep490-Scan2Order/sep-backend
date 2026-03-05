@@ -1,6 +1,5 @@
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
-using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Wallet

@@ -9,7 +9,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<T?> GetByFieldsIncludeAsync(
             Expression<Func<T, bool>> predicate,
             params Expression<Func<T, object>>[] includes);
-        
+        Task AddRangeAsync(IEnumerable<T> entities);
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

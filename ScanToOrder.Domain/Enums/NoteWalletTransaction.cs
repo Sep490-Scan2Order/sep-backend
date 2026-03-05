@@ -30,9 +30,15 @@ namespace ScanToOrder.Domain.Enums
         Withdrawal = 7,
         
         // 8. Verify tài khoản (ví dụ: trừ tiền để verify MST)
-        AccountVerification = 8
+        AccountVerification = 8,
         
         // 9. Gia hạn gói cước (ví dụ: trừ tiền để gia hạn gói cước khi hết hạn)
-        ,PlanRenewal = 9
+        PlanRenewal = 9,
+
+        // 10. Thu phí nền tảng hàng tuần (5% doanh thu tuần)
+        WeeklyPlatformFee = 10,
+
+        // 11. Thanh toán nợ phí nền tảng (tự trừ khi nạp đủ tiền)
+        WeeklyPlatformFeeDebtPayment = 11
     }
 }

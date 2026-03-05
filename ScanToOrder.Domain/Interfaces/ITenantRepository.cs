@@ -6,5 +6,7 @@ namespace ScanToOrder.Domain.Interfaces
     {
         Task<List<Tenant>> GetTenantsWithSubscriptionsAsync();
         Task<Tenant?> GetTenantWithSubscriptionByAccountIdAsync(Guid accountId);
+
+        Task<Tenant?> GetByIdWithAccountAsync(Guid tenantId);
     }
 }

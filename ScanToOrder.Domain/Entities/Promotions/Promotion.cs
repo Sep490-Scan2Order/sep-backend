@@ -11,9 +11,9 @@ namespace ScanToOrder.Domain.Entities.Promotions
         public bool IsActive { get; set; } = true;
         public bool IsGlobal { get; set; }
 
-        public PromotionType Type { get; set; } 
+        public PromotionType Type { get; set; }
 
-        public DiscountType DiscountType { get; set; } 
+        public DiscountType DiscountType { get; set; }
         public decimal DiscountValue { get; set; }
         public decimal? MaxDiscountValue { get; set; }
         public decimal MinOrderValue { get; set; }
@@ -23,8 +23,22 @@ namespace ScanToOrder.Domain.Entities.Promotions
 
         public TimeSpan? DailyStartTime { get; set; }
         public TimeSpan? DailyEndTime { get; set; }
-
         public DaysOfWeek DaysOfWeek { get; set; }
+        public int Priority { get; set; } = 0;
+        public PromotionScope Scope { get; set; }
+        public virtual ICollection<RestaurantPromotion> RestaurantPromotions { get; set; } = new List<RestaurantPromotion>();
+        public virtual ICollection<PromotionDish> PromotionDishes { get; set; } = new List<PromotionDish>();
+
+        public void SetDefaultPriority()
+        {
+            Priority = Type switch
+            {
+                PromotionType.Clearance => PromotionPriorityDefaults.Clearance,
+                PromotionType.HappyHour => PromotionPriorityDefaults.HappyHour,
+                PromotionType.WeeklySpecial => PromotionPriorityDefaults.WeeklySpecial,
+                _ => PromotionPriorityDefaults.Standard
+            };
+        }
 
         /// <summary>
         /// Kiểm tra tính hợp lệ của dữ liệu khuyến mãi trước khi Lưu/Cập nhật.
@@ -38,23 +52,40 @@ namespace ScanToOrder.Domain.Entities.Promotions
         /// <exception cref="DomainException">Ném lỗi nếu dữ liệu không thỏa mãn logic nghiệp vụ.</exception>
         public void Validate()
         {
+            if (StartDate.HasValue && EndDate.HasValue && StartDate > EndDate)
+                throw new DomainException("Ngày bắt đầu không được lớn hơn ngày kết thúc.");
+
             switch (Type)
             {
+                case PromotionType.Standard:
+                case PromotionType.Clearance:
+                    if (!StartDate.HasValue || !EndDate.HasValue)
+                        throw new DomainException($"{Type}: Bắt buộc phải có ngày bắt đầu và ngày kết thúc.");
+
+                    DailyStartTime = null;
+                    DailyEndTime = null;
+                    DaysOfWeek = DaysOfWeek.None;
+                    break;
+
                 case PromotionType.HappyHour:
                     if (!DailyStartTime.HasValue || !DailyEndTime.HasValue)
-                        throw new DomainException("Khuyến mãi Giờ vàng bắt buộc phải có khung giờ (Từ mấy giờ -> Mấy giờ).");
+                        throw new DomainException("Happy Hour: Bắt buộc phải có khung giờ (Từ giờ -> Đến giờ).");
+
                     if (DailyStartTime >= DailyEndTime)
-                        throw new DomainException("Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+                        throw new DomainException("Happy Hour: Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+
+                    DaysOfWeek = DaysOfWeek.None;
                     break;
 
                 case PromotionType.WeeklySpecial:
-                    if (DaysOfWeek == DaysOfWeek.None)
-                        throw new DomainException("Khuyến mãi Tuần hoàn bắt buộc phải chọn ít nhất một ngày trong tuần.");
-                    break;
+                    if (!StartDate.HasValue || !EndDate.HasValue)
+                        throw new DomainException("Weekly Special: Bắt buộc phải có khoảng ngày hiệu lực.");
 
-                case PromotionType.Clearance:
-                    if (!EndDate.HasValue)
-                        throw new DomainException("Chương trình Xả hàng bắt buộc phải có ngày kết thúc.");
+                    if (DaysOfWeek == DaysOfWeek.None)
+                        throw new DomainException("Weekly Special: Phải chọn ít nhất một ngày trong tuần.");
+
+                    if (DailyStartTime.HasValue && DailyEndTime.HasValue && DailyStartTime >= DailyEndTime)
+                        throw new DomainException("Weekly Special: Giờ kết thúc phải lớn hơn giờ bắt đầu.");
                     break;
             }
         }
@@ -75,28 +106,39 @@ namespace ScanToOrder.Domain.Entities.Promotions
         public bool IsValidAt(DateTime now)
         {
             if (!IsActive || IsDeleted) return false;
-
             if (StartDate.HasValue && now < StartDate.Value) return false;
             if (EndDate.HasValue && now > EndDate.Value) return false;
 
+            var timeNow = now.TimeOfDay;
+
             switch (Type)
             {
+                case PromotionType.Standard:
+                case PromotionType.Clearance:
+                    return true;
+
                 case PromotionType.HappyHour:
                     if (DailyStartTime.HasValue && DailyEndTime.HasValue)
                     {
-                        var timeNow = now.TimeOfDay;
                         if (timeNow < DailyStartTime.Value || timeNow > DailyEndTime.Value)
                             return false;
                     }
-                    break;
+                    return true;
 
                 case PromotionType.WeeklySpecial:
                     var currentDayFlag = (DaysOfWeek)(1 << (int)now.DayOfWeek);
                     if ((DaysOfWeek & currentDayFlag) == 0) return false;
-                    break;
-            }
 
-            return true;
+                    if (DailyStartTime.HasValue && DailyEndTime.HasValue)
+                    {
+                        if (timeNow < DailyStartTime.Value || timeNow > DailyEndTime.Value)
+                            return false;
+                    }
+                    return true;
+
+                default:
+                    return false;
+            }
         }
     }
 }

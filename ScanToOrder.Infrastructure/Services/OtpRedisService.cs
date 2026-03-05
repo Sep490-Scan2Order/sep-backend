@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Infrastructure.Services;
+namespace ScanToOrder.Infrastructure.Services;
 
 using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.Interfaces;
@@ -26,6 +26,12 @@ public class OtpRedisService : IOtpRedisService
     {
         var key = GetKey(email, purpose);
         await _database.StringSetAsync(key, otpCode, TimeSpan.FromMinutes(30));
+    }
+
+    public async Task SaveOtpCustomerAsync(string phone, string otpCode, string purpose, TimeSpan expiry)
+    {
+        var key = GetKey(phone, purpose);
+        await _database.StringSetAsync(key, otpCode, expiry);
     }
 
     public async Task<string?> GetOtpTenantAsync(string email, string purpose)

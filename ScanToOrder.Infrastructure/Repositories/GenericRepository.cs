@@ -30,6 +30,11 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await query.ToListAsync();
         }
         
+        public async Task AddRangeAsync(IEnumerable<T> entities)
+        {
+            await _dbSet.AddRangeAsync(entities);
+        }
+        
         public async Task<T?> GetByIdAsync(object id)
         {
             return await _dbSet.FindAsync(id);
