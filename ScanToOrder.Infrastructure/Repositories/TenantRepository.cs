@@ -32,7 +32,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(t => t.Account)
                 .Include(t => t.Bank)
                 .Include(t => t.Subscriptions)
-                .ThenInclude(s => s.Plan)
+                    .ThenInclude(s => s.Plan)
                 .FirstOrDefaultAsync(t => t.AccountId == accountId);
         }
 
