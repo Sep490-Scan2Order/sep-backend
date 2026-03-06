@@ -28,6 +28,13 @@ namespace ScanToOrder.Api.Controllers
             return Success(categories, CategoryMessage.CategorySuccess.CATEGORY_RETRIEVED);
         }
 
+        [HttpGet("get-category-by-tenantId/{id:Guid}")]
+        public async Task<ActionResult<ApiResponse<List<CategoryDto>>>> GetAllCategoriesByTenantId(Guid id)
+        {
+            var categories = await _categoryService.GetAllCategoriesByTenant(id);
+            return Success(categories, CategoryMessage.CategorySuccess.CATEGORY_RETRIEVED);
+        }
+
         [HttpPost("create-category")]
         [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<CategoryDto>>> CreateCategory([FromBody] CreateCategoryRequest request)

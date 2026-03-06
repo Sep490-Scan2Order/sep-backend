@@ -35,10 +35,10 @@ namespace ScanToOrder.Application.Services
             var totalCategories = await _unitOfWork.Categories.GetTotalCategoriesByTenant(tenantId);
 
             // Đang bỏ giới hạn số lượng danh mục, nếu muốn giới hạn thì bỏ comment đoạn code dưới và thêm trường TotalCategories vào Tenant
-            if (totalCategories >= existTenant.TotalCategories)
-            {
-                throw new DomainException(CategoryMessage.CategoryError.CATEGORY_OUT_OF_LIMIT);
-            }
+            //if (totalCategories >= existTenant.TotalCategories)
+            //{
+            //    throw new DomainException(CategoryMessage.CategoryError.CATEGORY_OUT_OF_LIMIT);
+            //}
 
             var categoryEntity = _mapper.Map<Category>(categoryDto);
             categoryEntity.TenantId = tenantId;
