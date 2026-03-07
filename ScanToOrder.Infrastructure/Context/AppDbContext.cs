@@ -8,14 +8,14 @@ using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Orders;
-using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
-using ScanToOrder.Domain.Entities.Wallet;
+
 using ScanToOrder.Domain.Enums;
 using System.Reflection;
 using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Shift;
 
 namespace ScanToOrder.Infrastructure.Context;
 
@@ -27,33 +27,39 @@ public class AppDbContext : DbContext
 
     public DbSet<AuthenticationUser> AuthenticationUsers { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
-    public DbSet<MemberPoint> MemberPoints { get; set; } = null!;
     public DbSet<Restaurant> Restaurants { get; set; } = null!;
     public DbSet<Staff> Staffs { get; set; } = null!;
     public DbSet<Tenant> Tenants { get; set; } = null!;
+
     public DbSet<Plan> Plans { get; set; } = null!;
-    public DbSet<AddOn> AddOns { get; set; } = null!;
     public DbSet<Subscription> Subscriptions { get; set; } = null!;
-    public DbSet<AdminWallet> AdminWallet { get; set; } = null!;
-    public DbSet<TenantWallet> TenantWallets { get; set; } = null!;
-    public DbSet<WalletTransaction> WalletTransactions { get; set; } = null!;
+    public DbSet<SubscriptionLog> SubscriptionLogs { get; set; } = null!;
+    public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = null!;
+
     public DbSet<Dish> Dishes { get; set; } = null!;
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<Transaction> Transactions { get; set; } = null!;
     public DbSet<OrderDetail> OrderDetails { get; set; } = null!;
+
     public DbSet<Promotion> Promotions { get; set; } = null!;
-    public DbSet<CashDrawerReport> CashDrawerReports { get; set; } = null!;
-    public DbSet<MenuTemplate> MenuTemplates { get; set; } = null!;
-    public DbSet<MenuRestaurant> MenuRestaurants { get; set; } = null!;
     public DbSet<RestaurantPromotion> RestaurantPromotions { get; set; } = null!;
     public DbSet<PromotionDish> PromotionDishes { get; set; } = null!;
-    public DbSet<PointHistory> PointHistories { get; set; } = null!;
+
+    public DbSet<MenuTemplate> MenuTemplates { get; set; } = null!;
+    public DbSet<MenuRestaurant> MenuRestaurants { get; set; } = null!;
+
+    public DbSet<Shift> Shifts { get; set; } = null!;
+    public DbSet<ShiftReport> ShiftReports { get; set; } = null!;
+
     public DbSet<Configurations> Configurations { get; set; } = null!;
     public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;
+
     public DbSet<NotifyTenant> NotifyTenants { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
+
     public DbSet<Banks> Banks { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
+
     public DbSet<BranchDishConfig> BranchDishConfigs { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,23 +78,6 @@ public class AppDbContext : DbContext
             .Property(u => u.Role)
             .HasConversion<string>();
 
-        modelBuilder.Entity<MemberPoint>()
-        .HasOne(mp => mp.Customer)         
-        .WithMany(c => c.MemberPoints)     
-        .HasForeignKey(mp => mp.CustomerId) 
-        .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<PointHistory>()
-            .ToTable("PointHistory");
-
-        modelBuilder.Entity<PointHistory>()
-            .HasOne(ph => ph.MemberPoint)
-            .WithMany(mp => mp.PointHistories)
-            .HasForeignKey(ph => ph.MemberPointId);
-
-        modelBuilder.Entity<PointHistory>()
-            .Property(ph => ph.Type)
-            .HasConversion<string>();
 
         modelBuilder.Entity<Notification>()
             .Property(n => n.NotificationId)
@@ -153,5 +142,95 @@ public class AppDbContext : DbContext
                     .WithMany(d => d.BranchDishConfigs)
                     .HasForeignKey(b => b.DishId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+        /*
+        * Shift
+           */
+        modelBuilder.Entity<Shift>()
+                   .Property(s => s.Status)
+                .HasConversion<string>();
+        
+        modelBuilder.Entity<Shift>()
+            .HasOne(s => s.Restaurants)
+            .WithMany(r => r.Shifts)
+            .HasForeignKey(s => s.RestaurantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Shift>()
+         .HasOne(s => s.Staffs)
+         .WithMany(st => st.Shifts)
+         .HasForeignKey(s => s.StaffId);
+
+        /*
+         * ShiftReport
+         */
+        modelBuilder.Entity<ShiftReport>()
+            .HasOne(sr => sr.Shift)
+            .WithMany()
+            .HasForeignKey(sr => sr.ShiftId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        /*
+         * PaymentTransaction
+         */
+        modelBuilder.Entity<PaymentTransaction>()
+            .Property(p => p.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<PaymentTransaction>()
+      .HasOne(p => p.Tenants)
+      .WithMany(t => t.PaymentTransactions)
+      .HasForeignKey(p => p.TenantId);
+
+        /*
+         * Subscription
+         */
+        modelBuilder.Entity<Subscription>()
+            .Property(s => s.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Subscription>()
+            .HasOne(s => s.Restaurant)
+            .WithMany()
+            .HasForeignKey(s => s.RestaurantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        /*
+         * Plan
+         */
+        modelBuilder.Entity<Plan>()
+            .Property(p => p.Status)
+            .HasConversion<string>();
+
+        /*
+         * SubscriptionLog
+         */
+        modelBuilder.Entity<SubscriptionLog>()
+            .Property(s => s.ActionType)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<SubscriptionLog>()
+            .HasOne(s => s.Restaurants)
+            .WithMany()
+            .HasForeignKey(s => s.RestaurantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SubscriptionLog>()
+            .HasOne(s => s.PaymentTransactions)
+            .WithMany()
+            .HasForeignKey(s => s.PaymentTransactionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SubscriptionLog>()
+            .HasOne(s => s.Plans)
+            .WithMany(p => p.SubscriptionLogs)
+            .HasForeignKey(s => s.NewPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<SubscriptionLog>()
+            .HasOne<Plan>()
+            .WithMany()
+            .HasForeignKey(s => s.OldPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Enums
 {
-    public enum PointHistoryType
+    public enum SubscriptionLogStatus
     {
-        Earn,
-        Spend
+        BuyNew,
+        Upgrade,
+        Downgrade,
+        Renew,
     }
 }

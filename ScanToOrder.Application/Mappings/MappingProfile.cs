@@ -24,9 +24,6 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<RegisterTenantRequest, Tenant>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))
-                .ForMember(dest => dest.TotalRestaurants, opt => opt.MapFrom(src => 0))
-                .ForMember(dest => dest.TotalDishes, opt => opt.MapFrom(src => 0))
-                .ForMember(dest => dest.TotalCategories, opt => opt.MapFrom(src => 0))
                 .ForMember(dest => dest.AccountId, opt => opt.Ignore());
 
             CreateMap<Tenant, TenantDto>()
@@ -36,13 +33,7 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Account.Role.ToString()))
                 .ForMember(dest => dest.Verified, opt => opt.MapFrom(src => src.Account.Verified))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Account.IsActive))
-                .ForMember(dest => dest.PlanName, opt => opt.MapFrom(src =>
-                    src.Subscriptions
-                        .Where(s => s.IsActive)
-                        .OrderByDescending(s => s.StartDate)
-                        .Select(s => s.Plan.Name)
-                        .FirstOrDefault() ?? "Chưa mua gói"
-                ))
+                
                 .ForMember(dest => dest.BankName,
                     opt => opt.MapFrom(src => src.Bank != null ? src.Bank.Name : string.Empty))
                 .ForMember(dest => dest.BankLogo,

@@ -6,12 +6,9 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Enums
 {
-    public enum Role
+    public enum PlanStatus
     {
-        Admin,
-        Tenant,
-        Customer,
-        Staff, // dau bep ,...
-        Cashier // thu tieenf 
+        Active,
+        Expired,
     }
 }

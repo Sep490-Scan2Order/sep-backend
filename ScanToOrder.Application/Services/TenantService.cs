@@ -19,7 +19,6 @@ namespace ScanToOrder.Application.Services
         private readonly ITaxService _taxService;
         private readonly IBankLookupService _bankLookupService;
         private readonly IOtpRedisService _otpRedisService;
-        private readonly ITenantWalletService _tenantWalletService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly ITransactionRedisService _transactionRedisService;
 
@@ -28,7 +27,6 @@ namespace ScanToOrder.Application.Services
             IMapper mapper,
             ITaxService taxService,
             IOtpRedisService otpRedisService,
-            ITenantWalletService tenantWalletService,
             IAuthenticatedUserService authenticatedUserService,
             IBankLookupService bankLookupService,
             ITransactionRedisService transactionRedisService)
@@ -37,7 +35,6 @@ namespace ScanToOrder.Application.Services
             _mapper = mapper;
             _taxService = taxService;
             _otpRedisService = otpRedisService;
-            _tenantWalletService = tenantWalletService;
             _authenticatedUserService = authenticatedUserService;
             _bankLookupService = bankLookupService;
             _transactionRedisService = transactionRedisService;
@@ -70,7 +67,7 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.Tenants.AddAsync(tenantEntity);
             await _unitOfWork.SaveAsync();
 
-            await _tenantWalletService.CreateWalletTenantAsync(tenantEntity.Id);
+            //await _tenantWalletService.CreateWalletTenantAsync(tenantEntity.Id);
 
             await _otpRedisService.DeleteOtpTenantAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
 

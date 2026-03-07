@@ -33,9 +33,15 @@ public partial class Restaurant : BaseEntity<int>
 
     public int? TotalOrder { get; set; }
 
+    public bool IsAvailableShift { get; set; }
+
+    public int PresentCashierId { get; set; }
+
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 
     public virtual Tenant Tenant { get; set; } = null!;
+
+    public virtual ICollection<Shift.Shift> Shifts { get; set; } = new List<Shift.Shift>();
 
     public virtual ICollection<BranchDishConfig> BranchDishConfigs { get; set; } = new List<BranchDishConfig>();
 }

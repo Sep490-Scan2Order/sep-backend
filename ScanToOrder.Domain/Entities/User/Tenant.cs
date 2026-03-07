@@ -18,17 +18,15 @@ namespace ScanToOrder.Domain.Entities.User;
     public string? CardNumber { get; set; }
     public bool IsVerifyBank { get; set; } = false;
     
-        public DateTime? DebtStartedAt { get; set; }
+    public DateTime? DebtStartedAt { get; set; }
     public DateTime? SubscriptionExpiryDate { get; set; }
     public DateTime? LastWarningSentAt { get; set; }
     public decimal TotalDebtAmount { get; set; }
 
     public bool IsSuspended { get; set; }
     public DateTime? SuspendedAt { get; set; }
-    
-    public int TotalRestaurants { get; set; }
-    public int TotalDishes { get; set; }
-    public int TotalCategories { get; set; }
+
+    public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
 
     public virtual AuthenticationUser Account { get; set; } = null!;
     public virtual ICollection<Restaurant.Restaurant> Restaurants { get; set; } = new List<Restaurant.Restaurant>();

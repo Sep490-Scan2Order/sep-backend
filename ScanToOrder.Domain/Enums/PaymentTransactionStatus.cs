@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Enums
 {
-    public enum WalletType
+    public enum PaymentTransactionStatus
     {
-        Admin,
-        Tenant,
+        Success,
+        Failed,
     }
 }

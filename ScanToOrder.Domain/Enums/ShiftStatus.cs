@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ScanToOrder.Domain.Enums
 {
-    public enum TransactionType
+    public enum ShiftStatus
     {
-        Substract,
-        Add,
+        Open,
+        Closed,
     }
 }

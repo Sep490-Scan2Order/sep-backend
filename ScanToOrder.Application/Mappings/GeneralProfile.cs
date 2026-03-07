@@ -35,9 +35,6 @@ namespace ScanToOrder.Application.Mappings
             // Configuration mapping
             CreateMap<Configurations, ConfigurationResponse>();
 
-            // AddOn mapping
-            CreateMap<CreateAddOnRequest, AddOn>();
-            CreateMap<AddOn, AddOnDto>();
 
             // Mapping for BranchDishConfig with custom logic to include related Restaurant and Dish information
             CreateMap<CreateRestaurantRequest, Restaurant>()

@@ -23,6 +23,8 @@ namespace ScanToOrder.Domain.Entities.Orders
         public OrderStatus Status { get; set; }
         public bool IsScanned { get; set; } = false;
 
+        public string Type { get; set; } = null!;
+
         public virtual AuthenticationUser? User { get; set; }
 
         public virtual Promotion? Promotion { get; set; }

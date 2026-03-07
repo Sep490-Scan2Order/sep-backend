@@ -11,27 +11,27 @@ namespace ScanToOrder.Api.Controllers;
 
 public class WebhooksController : BaseController
 {
-    private readonly ITenantWalletService _tenantWalletService;
+    //private readonly ITenantWalletService _tenantWalletService;
     private readonly ITenantService _tenantService;
-    public WebhooksController(ITenantWalletService tenantWalletService, ITenantService tenantService)
+    public WebhooksController( ITenantService tenantService)
     {
-        _tenantWalletService = tenantWalletService;
+        //_tenantWalletService = tenantWalletService;
         _tenantService = tenantService;
     }
 
-    [HttpPost("payos")]
-    [AllowAnonymous]
-    public async Task<IActionResult> HandlePayOSWebhook([FromBody] Webhook webhookBody)
-    {
-        var result = await _tenantWalletService.HandleDepositWebhookAsync(webhookBody);
+    //[HttpPost("payos")]
+    //[AllowAnonymous]
+    //public async Task<IActionResult> HandlePayOSWebhook([FromBody] Webhook webhookBody)
+    //{
+    //    var result = await _tenantWalletService.HandleDepositWebhookAsync(webhookBody);
         
-        if (result)
-        {
-            return Ok(new { Message = "Success" });
-        }
+    //    if (result)
+    //    {
+    //        return Ok(new { Message = "Success" });
+    //    }
 
-        return BadRequest("Webhook processing failed");
-    }
+    //    return BadRequest("Webhook processing failed");
+    //}
     
     [HttpPost("sepay")]
     [AllowAnonymous]
