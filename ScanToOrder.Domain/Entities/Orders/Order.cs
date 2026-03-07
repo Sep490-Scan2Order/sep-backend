@@ -1,14 +1,12 @@
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Orders
 {
     public class Order : BaseEntity<Guid>
     {
-        public int? MemberVoucherId { get; set; }
         public Guid? UserId { get; set; }
         public int RestaurantId { get; set; }
         public int? PromotionId { get; set; }
@@ -20,15 +18,12 @@ namespace ScanToOrder.Domain.Entities.Orders
         public string? Note { get; set; } 
 
         public decimal TotalAmount { get; set; }
-        public decimal VoucherDiscount { get; set; }
         public decimal PromotionDiscount { get; set; }
         public decimal FinalAmount { get; set; }
         public OrderStatus Status { get; set; }
         public bool IsScanned { get; set; } = false;
 
         public virtual AuthenticationUser? User { get; set; }
-
-        public virtual MemberVoucher? MemberVoucher { get; set; }
 
         public virtual Promotion? Promotion { get; set; }
 

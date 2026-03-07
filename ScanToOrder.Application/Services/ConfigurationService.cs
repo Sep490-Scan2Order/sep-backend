@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Configuration;
@@ -29,7 +29,6 @@ namespace ScanToOrder.Application.Services
             }
             else
             {
-                existingConfig.VoucherRate = configurations.VoucherRate;
                 existingConfig.CommissionRate = configurations.CommissionRate;
                 existingConfig.ExpiredDuration = configurations.ExpiredDuration;
                 existingConfig.RedeemRate = configurations.RedeemRate;

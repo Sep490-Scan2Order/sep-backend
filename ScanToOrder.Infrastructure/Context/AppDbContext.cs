@@ -12,7 +12,6 @@ using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
-using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Entities.Wallet;
 using ScanToOrder.Domain.Enums;
 using System.Reflection;
@@ -43,8 +42,6 @@ public class AppDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; } = null!;
     public DbSet<OrderDetail> OrderDetails { get; set; } = null!;
     public DbSet<Promotion> Promotions { get; set; } = null!;
-    public DbSet<Voucher> Vouchers { get; set; } = null!;
-    public DbSet<MemberVoucher> MemberVouchers { get; set; } = null!;
     public DbSet<CashDrawerReport> CashDrawerReports { get; set; } = null!;
     public DbSet<MenuTemplate> MenuTemplates { get; set; } = null!;
     public DbSet<MenuRestaurant> MenuRestaurants { get; set; } = null!;
@@ -75,10 +72,6 @@ public class AppDbContext : DbContext
             .Property(u => u.Role)
             .HasConversion<string>();
 
-        modelBuilder.Entity<Voucher>()
-            .Property(v => v.Status)
-            .HasConversion<string>();
-
         modelBuilder.Entity<MemberPoint>()
         .HasOne(mp => mp.Customer)         
         .WithMany(c => c.MemberPoints)     
@@ -96,12 +89,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PointHistory>()
             .Property(ph => ph.Type)
             .HasConversion<string>();
-
-        modelBuilder.Entity<PointHistory>()
-            .HasOne(ph => ph.MemberVoucher)
-            .WithOne(mv => mv.PointHistory)
-            .HasForeignKey<PointHistory>(ph => ph.MemberVoucherId)
-            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Notification>()
             .Property(n => n.NotificationId)

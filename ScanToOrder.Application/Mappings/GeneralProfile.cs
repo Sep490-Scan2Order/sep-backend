@@ -5,14 +5,11 @@ using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.DTOs.Restaurant;
-using ScanToOrder.Application.DTOs.Voucher;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurant;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
-using ScanToOrder.Domain.Entities.Vouchers;
-using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Application.Mappings
 {
@@ -34,25 +31,6 @@ namespace ScanToOrder.Application.Mappings
 
             // Plan mapping
             CreateMap<Plan, PlanDto>().ReverseMap();
-
-            // Voucher mapping with custom logic for Name and Description
-            CreateMap<CreateVoucherDto, Voucher>()
-                .ForMember(dest => dest.Name,
-                    opt => opt.MapFrom(src => $"PHIẾU GIẢM GIÁ {src.Name} ĐỔI TỪ ĐIỂM TÍCH LŨY"))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description ?? string.Empty));
-
-            CreateMap<Voucher, VoucherResponseDto>();
-
-            CreateMap<MemberVoucher, RedeemVoucherResponseDto>()
-                .ForMember(dest => dest.MemberVoucherId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.VoucherId, opt => opt.MapFrom(src => src.VoucherId))
-                .ForMember(dest => dest.VoucherName,
-                    opt => opt.MapFrom(src => src.Voucher != null ? src.Voucher.Name : string.Empty))
-                .ForMember(dest => dest.DiscountValue,
-                    opt => opt.MapFrom(src => src.Voucher != null ? src.Voucher.DiscountValue : 0))
-                .ForMember(dest => dest.MinOrderAmount,
-                    opt => opt.MapFrom(src => src.Voucher != null ? src.Voucher.MinOrderAmount : 0))
-                .ForMember(dest => dest.ExpiredAt, opt => opt.MapFrom(src => src.ExpiredAt));
 
             // Configuration mapping
             CreateMap<Configurations, ConfigurationResponse>();

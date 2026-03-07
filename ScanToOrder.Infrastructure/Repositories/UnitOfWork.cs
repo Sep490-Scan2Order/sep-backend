@@ -20,8 +20,6 @@ namespace ScanToOrder.Infrastructure.Repositories
         public INotifyTenantRepository NotifyTenants { get; }
         public INotificationRepository Notifications { get; }
         public IPlanRepository Plans { get; }
-        public IVoucherRepository Vouchers { get; } 
-        public IMemberVoucherRepository MemberVouchers { get; }
         public IOrderRepository Orders { get; }
         public ITransactionRepository Transactions { get; }
         public IOrderDetailRepository OrderDetails { get; }
@@ -57,8 +55,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             Plans = new PlanRepository(_context);
             NotifyTenants = new NotifyTenantRepository(_context);
             Notifications = new NotificationRepository(_context);
-            Vouchers = new VoucherRepository(_context);
-            MemberVouchers = new MemberVoucherRepository(_context);
             Orders = new OrderRepository(_context);
             Transactions = new TransactionRepository(_context);
             OrderDetails = new OrderDetailRepository(_context);

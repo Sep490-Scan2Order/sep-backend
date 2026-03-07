@@ -4,7 +4,6 @@ using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.Points;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
-using ScanToOrder.Domain.Entities.Vouchers;
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
@@ -29,8 +28,6 @@ namespace ScanToOrder.Domain.Interfaces
         ISystemBlogRepository SystemBlogs { get; }
         INotifyTenantRepository NotifyTenants { get; }
         INotificationRepository Notifications { get; }
-        IVoucherRepository Vouchers { get; }          
-        IMemberVoucherRepository MemberVouchers { get; }
         IOrderRepository Orders { get; }
         ITransactionRepository Transactions { get; }
         IOrderDetailRepository OrderDetails { get; }

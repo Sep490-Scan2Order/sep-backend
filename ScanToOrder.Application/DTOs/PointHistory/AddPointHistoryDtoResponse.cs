@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.DTOs.PointHistory
+namespace ScanToOrder.Application.DTOs.PointHistory
 {
     public class AddPointHistoryDtoResponse
     {
@@ -8,7 +8,6 @@
         public DateTime CreateDate { get; set; } = DateTime.Now;
         public Guid? OrderId { get; set; }
 
-        public int? MemberVoucherId { get; set; }
         public int MemberPointId { get; set; }
     }
 }
