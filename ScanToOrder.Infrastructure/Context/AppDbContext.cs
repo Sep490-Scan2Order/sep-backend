@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Bank;
 using ScanToOrder.Domain.Entities.Blogs;
-using ScanToOrder.Domain.Entities.CashReport;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
@@ -14,7 +13,7 @@ using ScanToOrder.Domain.Entities.User;
 
 using ScanToOrder.Domain.Enums;
 using System.Reflection;
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.Shift;
 
 namespace ScanToOrder.Infrastructure.Context;

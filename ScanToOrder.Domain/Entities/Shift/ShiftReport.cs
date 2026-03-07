@@ -1,7 +1,6 @@
 using ScanToOrder.Domain.Entities.Base;
-using ScanToOrder.Domain.Entities.User;
 
-namespace ScanToOrder.Domain.Entities.CashReport;
+namespace ScanToOrder.Domain.Entities.Shift;
 
 public class ShiftReport : BaseEntity<int>
 {
@@ -13,5 +12,5 @@ public class ShiftReport : BaseEntity<int>
     public decimal Difference { get; set; }
     public string Note { get; set; } = string.Empty;
 
-    public virtual Shift.Shift Shift { get; set; } = null!;
+    public virtual Shift Shift { get; set; } = null!;
 }

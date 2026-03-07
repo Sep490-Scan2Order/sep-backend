@@ -6,7 +6,7 @@ using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
 

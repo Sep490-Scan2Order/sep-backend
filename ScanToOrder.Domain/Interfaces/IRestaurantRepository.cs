@@ -1,4 +1,4 @@
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using System.Linq.Expressions;
 
 namespace ScanToOrder.Domain.Interfaces

@@ -5,7 +5,7 @@ using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;

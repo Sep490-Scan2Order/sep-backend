@@ -1,7 +1,6 @@
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 
-
 namespace ScanToOrder.Infrastructure.Repositories
 {
     public class UnitOfWork : IUnitOfWork
@@ -31,33 +30,69 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IRestaurantPromotionRepository RestaurantPromotions { get; }
         public ISubscriptionRepository Subscriptions { get; }
         public IBankRepository Banks { get; }
+        public IShiftRepository Shifts { get; }
+        public IShiftReportRepository ShiftReports { get; }
+        public IPaymentTransactionRepository PaymentTransactions { get; }
+        public ISubscriptionLogRepository SubscriptionLogs { get; }
 
-        public UnitOfWork(AppDbContext context, IBankRepository banks)
+        public UnitOfWork(
+            AppDbContext context,
+            IAuthenticationUserRepository authenticationUsers,
+            ITenantRepository tenants,
+            IStaffRepository staffs,
+            IRestaurantRepository restaurants,
+            ICustomerRepository customers,
+            IConfigurationRepository configurations,
+            ISystemBlogRepository systemBlogs,
+            INotifyTenantRepository notifyTenants,
+            INotificationRepository notifications,
+            IPlanRepository plans,
+            IOrderRepository orders,
+            ITransactionRepository transactions,
+            IOrderDetailRepository orderDetails,
+            IDishesRepository dishes,
+            ICategoryRepository categories,
+            IBranchDishConfigRepository branchDishConfigs,
+            IMenuRestaurantRepository menuRestaurants,
+            IMenuTemplateRepository menuTemplates,
+            IPromotionRepository promotions,
+            IPromotionDishRepository promotionDishes,
+            IRestaurantPromotionRepository restaurantPromotions,
+            ISubscriptionRepository subscriptions,
+            IBankRepository banks,
+            IShiftRepository shifts,
+            IShiftReportRepository shiftReports,
+            IPaymentTransactionRepository paymentTransactions,
+            ISubscriptionLogRepository subscriptionLogs)
         {
             _context = context;
+            AuthenticationUsers = authenticationUsers;
+            Tenants = tenants;
+            Staffs = staffs;
+            Restaurants = restaurants;
+            Customers = customers;
+            Configurations = configurations;
+            SystemBlogs = systemBlogs;
+            NotifyTenants = notifyTenants;
+            Notifications = notifications;
+            Plans = plans;
+            Orders = orders;
+            Transactions = transactions;
+            OrderDetails = orderDetails;
+            Dishes = dishes;
+            Categories = categories;
+            BranchDishConfigs = branchDishConfigs;
+            MenuRestaurants = menuRestaurants;
+            MenuTemplates = menuTemplates;
+            Promotions = promotions;
+            PromotionDishes = promotionDishes;
+            RestaurantPromotions = restaurantPromotions;
+            Subscriptions = subscriptions;
             Banks = banks;
-            AuthenticationUsers = new AuthenticationUserRepository(_context);
-            Tenants = new TenantRepository(_context);
-            Staffs = new StaffRepository(_context);
-            Restaurants = new RestaurantRepository(_context);
-            Customers = new CustomerRepository(_context);
-            Configurations = new ConfigurationRepository(_context);
-            SystemBlogs = new SystemBlogRepository(_context);
-            Plans = new PlanRepository(_context);
-            NotifyTenants = new NotifyTenantRepository(_context);
-            Notifications = new NotificationRepository(_context);
-            Orders = new OrderRepository(_context);
-            Transactions = new TransactionRepository(_context);
-            OrderDetails = new OrderDetailRepository(_context);
-            Dishes = new DishesRepository(_context);
-            Categories = new CategoryRepository(_context);
-            BranchDishConfigs = new BranchDishConfigRepository(_context);
-            MenuRestaurants = new MenuRestaurantRepository(_context);
-            MenuTemplates = new MenuTemplateRepository(_context);
-            Promotions = new PromotionRepository(_context);
-            PromotionDishes = new PromotionDishRepository(_context);
-            RestaurantPromotions = new RestaurantPromotionRepository(_context);
-            Subscriptions = new SubscriptionRepository(_context);
+            Shifts = shifts;
+            ShiftReports = shiftReports;
+            PaymentTransactions = paymentTransactions;
+            SubscriptionLogs = subscriptionLogs;
         }
 
         public async Task<IDbTransaction> BeginTransactionAsync()
@@ -70,8 +105,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             await _context.SaveChangesAsync();
         }
-        
-        
+
         public void Dispose()
         {
             _context.Dispose();

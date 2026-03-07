@@ -7,15 +7,13 @@ namespace ScanToOrder.Infrastructure.Repositories
 {
     public class BranchDishConfigRepository : GenericRepository<BranchDishConfig>, IBranchDishConfigRepository
     {
-        private readonly AppDbContext _context;
         public BranchDishConfigRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<List<BranchDishConfig>> GetByRestaurantIdWithIncludeAsync(int restaurantId)
         {
-            return await _context.BranchDishConfigs
+            return await _dbSet
                 .Include(x => x.Restaurant)
                 .Include(x => x.Dish)
                 .Where(x => x.RestaurantId == restaurantId)
@@ -24,7 +22,7 @@ namespace ScanToOrder.Infrastructure.Repositories
 
         public async Task<BranchDishConfig?> GetByIdWithIncludeAsync(int id)
         {
-            return await _context.BranchDishConfigs
+            return await _dbSet
                 .Include(x => x.Restaurant)
                 .Include(x => x.Dish)
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -34,18 +32,18 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             await _dbSet.AddRangeAsync(configs);
         }
-        
+
         public async Task<List<BranchDishConfig>> GetSellingDishesAsync(int restaurantId)
         {
-            return await _context.BranchDishConfigs
+            return await _dbSet
                 .Include(bdc => bdc.Dish)
                     .ThenInclude(d => d.Category)
                 .Include(bdc => bdc.Dish)
-                    .ThenInclude(d => d.PromotionDishes) 
+                    .ThenInclude(d => d.PromotionDishes)
                         .ThenInclude(pd => pd.Promotion)
-                .Where(bdc => bdc.RestaurantId == restaurantId 
-                              && bdc.IsSelling 
-                              && !bdc.IsDeleted 
+                .Where(bdc => bdc.RestaurantId == restaurantId
+                              && bdc.IsSelling
+                              && !bdc.IsDeleted
                               && !bdc.Dish.IsDeleted)
                 .ToListAsync();
         }

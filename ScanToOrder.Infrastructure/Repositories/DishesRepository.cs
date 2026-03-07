@@ -8,10 +8,8 @@ namespace ScanToOrder.Infrastructure.Repositories
 {
     public class DishesRepository : GenericRepository<Dish>, IDishesRepository
     {
-        private readonly AppDbContext _context;
         public DishesRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<List<Dish>> GetAllDishesByTenant(Guid tenantId)
@@ -29,3 +27,4 @@ namespace ScanToOrder.Infrastructure.Repositories
         }
     }
 }
+

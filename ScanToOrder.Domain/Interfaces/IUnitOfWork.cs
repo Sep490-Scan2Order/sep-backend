@@ -7,7 +7,6 @@ using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.CashReport;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Domain.Interfaces
@@ -37,6 +36,10 @@ namespace ScanToOrder.Domain.Interfaces
         IRestaurantPromotionRepository RestaurantPromotions { get; }
         ISubscriptionRepository Subscriptions { get; }
         IBankRepository Banks { get; }
+        IShiftRepository Shifts { get; }
+        IShiftReportRepository ShiftReports { get; }
+        IPaymentTransactionRepository PaymentTransactions { get; }
+        ISubscriptionLogRepository SubscriptionLogs { get; }
         Task<IDbTransaction> BeginTransactionAsync();
         Task SaveAsync();
     }

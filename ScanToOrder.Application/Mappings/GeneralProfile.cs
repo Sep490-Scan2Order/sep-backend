@@ -8,7 +8,7 @@ using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Promotions;
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 
 namespace ScanToOrder.Application.Mappings

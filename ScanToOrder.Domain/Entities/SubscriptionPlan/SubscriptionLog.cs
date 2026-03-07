@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ScanToOrder.Domain.Entities.Restaurants;
 
 namespace ScanToOrder.Domain.Entities.SubscriptionPlan
 {
@@ -25,7 +26,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
 
         public DateTime NewExpired { get; set; }
 
-        public Restaurant.Restaurant Restaurants { get; set; } = null!;
+        public Restaurant Restaurants { get; set; } = null!;
 
         public PaymentTransaction PaymentTransactions { get; set; } = null!;
 

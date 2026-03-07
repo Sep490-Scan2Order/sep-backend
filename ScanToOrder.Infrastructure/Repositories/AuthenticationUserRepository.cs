@@ -7,16 +7,13 @@ namespace ScanToOrder.Infrastructure.Repositories
 {
     public class AuthenticationUserRepository : GenericRepository<AuthenticationUser>, IAuthenticationUserRepository
     {
-        private readonly AppDbContext _context;
-
         public AuthenticationUserRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<AuthenticationUser?> GetByPhoneAsync(string phone)
         {
-            return await _context.AuthenticationUsers
+            return await _dbSet
                 .Include(u => u.Tenant)
                 .Include(u => u.Staff)
                 .Include(u => u.Customer)
@@ -25,7 +22,7 @@ namespace ScanToOrder.Infrastructure.Repositories
 
         public async Task<AuthenticationUser?> GetByEmailAsync(string email)
         {
-            return await _context.AuthenticationUsers
+            return await _dbSet
                 .Include(u => u.Tenant)
                 .Include(u => u.Staff)
                 .Include(u => u.Customer)

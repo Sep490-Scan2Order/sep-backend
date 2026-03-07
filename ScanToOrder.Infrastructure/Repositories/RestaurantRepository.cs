@@ -1,20 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System.Linq.Expressions;
-using ScanToOrder.Domain.Entities.Dishes;
 
 namespace ScanToOrder.Infrastructure.Repositories
 {
     public class RestaurantRepository : GenericRepository<Restaurant>, IRestaurantRepository
     {
-        private readonly AppDbContext _context;
         public RestaurantRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<List<(Restaurant Restaurant, double DistanceKm)>> GetNearbyRestaurantsAsync(
@@ -27,7 +24,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             var userLocation = geometryFactory.CreatePoint(new Coordinate(longitude, latitude));
             
             var maxRadiusMeters = radiusKm * 1000;
-            var restaurants = await _context.Restaurants
+            var restaurants = await _dbSet
                 .Where(r => (bool)r.IsActive! == true && r.IsDeleted == false && r.Location != null)
                 .Where(r => r.Location != null && r.Location.IsWithinDistance(userLocation, maxRadiusMeters))
                 .OrderBy(r => r.Location!.Distance(userLocation))
@@ -51,7 +48,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             //     )
             //     LIMIT {limit}";
             //
-            // var restaurants = await _context.Restaurants
+            // var restaurants = await _dbSet
             //     .FromSqlInterpolated(sql)
             //     .ToListAsync();
 
@@ -81,7 +78,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             if (offset < 0) offset = 0;
             if (pageSize <= 0) pageSize = 20;
 
-            var totalCount = await _context.Restaurants
+            var totalCount = await _dbSet
                 .Where(r => r.Location != null && r.IsActive == true && r.IsDeleted == false)
                 .CountAsync();
 
@@ -95,7 +92,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                 OFFSET {offset}
                 LIMIT {pageSize}";
 
-            var restaurants = await _context.Restaurants
+            var restaurants = await _dbSet
                 .FromSqlInterpolated(dataSql)
                 .ToListAsync();
 
@@ -118,7 +115,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             if (offset < 0) offset = 0;
             if (pageSize <= 0) pageSize = 20;
 
-            var query = _context.Restaurants
+            var query = _dbSet
                 .Where(r => r.IsActive == true && r.IsDeleted == false);
 
             var totalCount = await query.CountAsync();
@@ -146,12 +143,12 @@ namespace ScanToOrder.Infrastructure.Repositories
         }
         public async Task<int> CountAsync(Expression<Func<Restaurant, bool>> predicate)
         {
-            return await _context.Restaurants.CountAsync(predicate);
+            return await _dbSet.CountAsync(predicate);
         }
 
         public async Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId)
         {
-            return await _context.Restaurants
+            return await _dbSet
                 .AsNoTracking()
                 .Where(r => r.TenantId == tenantId && !r.IsDeleted)
                 .ToListAsync();
@@ -159,3 +156,5 @@ namespace ScanToOrder.Infrastructure.Repositories
         
     }
 }
+
+

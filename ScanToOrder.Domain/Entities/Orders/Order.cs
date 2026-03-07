@@ -1,6 +1,7 @@
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Promotions;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Domain.Entities.Orders
@@ -29,6 +30,6 @@ namespace ScanToOrder.Domain.Entities.Orders
 
         public virtual Promotion? Promotion { get; set; }
 
-        public virtual Restaurant.Restaurant Restaurant { get; set; } = null!;
+        public virtual Restaurant Restaurant { get; set; } = null!;
     }
 }

@@ -6,10 +6,9 @@ namespace ScanToOrder.Infrastructure.Repositories
 {
     public class SubscriptionRepository : GenericRepository<Subscription>, ISubscriptionRepository
     {
-        private readonly AppDbContext _context;
         public SubscriptionRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
     }
 }
+

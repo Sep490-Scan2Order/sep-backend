@@ -4,11 +4,10 @@ using ScanToOrder.Infrastructure.Context;
 
 namespace ScanToOrder.Infrastructure.Repositories
 {
-    public class PlanRepository : GenericRepository<Plan>, IPlanRepository
+    public class PaymentTransactionRepository : GenericRepository<PaymentTransaction>, IPaymentTransactionRepository
     {
-        public PlanRepository(AppDbContext context) : base(context)
+        public PaymentTransactionRepository(AppDbContext context) : base(context)
         {
         }
     }
 }
-

@@ -1,6 +1,6 @@
 ﻿using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
-using ScanToOrder.Domain.Entities.Restaurant;
+using ScanToOrder.Domain.Entities.Restaurants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +19,7 @@ namespace ScanToOrder.Domain.Entities.Shift
         public int OpeningCashAmount { get; set; }
         public string Note { get; set; } = string.Empty;
         public ShiftStatus Status { get; set; }
-        public virtual Restaurant.Restaurant Restaurants { get; set; } = null!;
+        public virtual Restaurant Restaurants { get; set; } = null!;
         public virtual Staff Staffs { get; set; } = null!;
     }
 }

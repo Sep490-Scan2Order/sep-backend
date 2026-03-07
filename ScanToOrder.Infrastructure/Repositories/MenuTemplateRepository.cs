@@ -6,10 +6,9 @@ namespace ScanToOrder.Infrastructure.Repositories
 {
     public class MenuTemplateRepository : GenericRepository<MenuTemplate>, IMenuTemplateRepository
     {
-        private readonly AppDbContext _context;
         public MenuTemplateRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
     }
 }
+

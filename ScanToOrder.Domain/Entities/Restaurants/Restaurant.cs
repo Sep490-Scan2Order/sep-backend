@@ -3,9 +3,9 @@ using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.User;
 
-namespace ScanToOrder.Domain.Entities.Restaurant;
+namespace ScanToOrder.Domain.Entities.Restaurants;
 
-public partial class Restaurant : BaseEntity<int>
+public class Restaurant : BaseEntity<int>
 {
     public Guid TenantId { get; set; }
 
@@ -35,7 +35,7 @@ public partial class Restaurant : BaseEntity<int>
 
     public bool IsAvailableShift { get; set; }
 
-    public int PresentCashierId { get; set; }
+    public Guid PresentCashierId { get; set; }
 
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 
