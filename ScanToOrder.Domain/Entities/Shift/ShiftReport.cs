@@ -11,6 +11,5 @@ public class ShiftReport : BaseEntity<int>
     public decimal ActualCashAmount { get; set; }
     public decimal Difference { get; set; }
     public string Note { get; set; } = string.Empty;
-
     public virtual Shift Shift { get; set; } = null!;
 }

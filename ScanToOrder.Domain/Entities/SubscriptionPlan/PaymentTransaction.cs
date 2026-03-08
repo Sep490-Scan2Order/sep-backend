@@ -10,7 +10,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public DateTime PaymentDate { get; set; }
         public string TransactionCode { get; set; } = null!;
 
-        public int TotalAmount { get; set; }    
+        public decimal TotalAmount { get; set; }    
         public PaymentTransactionStatus Status { get; set; }
         public Tenant Tenants { get; set; } = null!;
     }

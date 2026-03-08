@@ -6,14 +6,14 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
     public class Plan : BaseEntity<int>
     {
         public string Name { get; set; } = null!;
-        public int MonthlyPrice { get; set; }
-        public int YearlyPrice { get; set; }
+        public decimal MonthlyPrice { get; set; }
+        public decimal YearlyPrice { get; set; }
 
         public int DurationInDays { get; set; }
 
-        public int DailyRateMonth { get; set; }
+        public decimal DailyRateMonth { get; set; }
 
-        public int DailyRateYear { get; set; }
+        public decimal DailyRateYear { get; set; }
 
         public PlanStatus Status { get; set; }
 
