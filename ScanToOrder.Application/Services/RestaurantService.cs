@@ -389,7 +389,7 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
 
-            return Message.RestaurantMessage.RestaurantSuccess.RESTAURANT_RECEIVING_STATUS_UPDATED;
+            return RestaurantMessage.RestaurantSuccess.RESTAURANT_RECEIVING_STATUS_UPDATED;
         }
     }
 }

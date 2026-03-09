@@ -48,7 +48,7 @@ namespace ScanToOrder.Application.Services
                 OtpMessage.OtpKeyword.OTP_REGISTER_PHONE,
                 TimeSpan.FromMinutes(3));
 
-            //await _smsSender.SendAsync(phone, otpCode);
+            // await _smsSender.SendAsync(phone, otpCode);
 
             return otpCode;
         }
@@ -79,8 +79,9 @@ namespace ScanToOrder.Application.Services
 
             return new AuthResponse<CustomerDto>
             {
-                AccessToken = _jwtService.GenerateAccessToken(user),
-                RefreshToken = _jwtService.GenerateRefreshToken(user)
+                AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
+                RefreshToken = _jwtService.GenerateRefreshToken(user),
+                UserInfo = _mapper.Map<CustomerDto>(user.Customer)
             };
         }
 

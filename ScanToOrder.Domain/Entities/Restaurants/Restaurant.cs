@@ -35,7 +35,7 @@ public class Restaurant : BaseEntity<int>
 
     public bool IsAvailableShift { get; set; }
 
-    public Guid PresentCashierId { get; set; }
+    public Guid? PresentCashierId { get; set; }
 
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 
