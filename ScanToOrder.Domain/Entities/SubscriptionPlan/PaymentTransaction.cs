@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
 
@@ -11,6 +12,9 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public string TransactionCode { get; set; } = null!;
 
         public decimal TotalAmount { get; set; }    
+        
+        [Column(TypeName = "jsonb")]
+        public OrderPayloadItemPlan Payload { get; set; } = null!;
         public PaymentTransactionStatus Status { get; set; }
         public Tenant Tenants { get; set; } = null!;
     }

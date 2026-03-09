@@ -8,7 +8,9 @@ namespace ScanToOrder.Domain.Enums
 {
     public enum PaymentTransactionStatus
     {
+        Pending,
         Success,
         Failed,
+        Canceled
     }
 }
