@@ -14,7 +14,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<CreateTemplateResponseDto>>> CreateTemplate([FromBody] CreateTemplateRequestDto request)
+        public async Task<ActionResult<ApiResponse<CreateTemplateResponseDto>>> CreateTemplate([FromForm] CreateTemplateRequestDto request)
         {   
             var result = await _menuTemplateService.CreateTemplateAsync(request);
             return Success(result);

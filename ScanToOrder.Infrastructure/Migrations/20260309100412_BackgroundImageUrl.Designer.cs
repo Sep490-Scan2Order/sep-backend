@@ -2,10 +2,10 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using ScanToOrder.Domain.Enums;
 using ScanToOrder.Infrastructure.Context;
 
 #nullable disable
@@ -13,9 +13,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309100412_BackgroundImageUrl")]
+    partial class BackgroundImageUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -785,7 +787,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("Restaurants");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shifts.Shift", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shift.Shift", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -834,7 +836,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.ToTable("Shifts");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shifts.ShiftReport", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shift.ShiftReport", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -947,10 +949,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<int>("DurationInDays")
                         .HasColumnType("integer");
 
-                    b.Property<PlanFeaturesConfig>("Features")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -1016,8 +1014,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("PlanId");
 
-                    b.HasIndex("RestaurantId")
-                        .IsUnique();
+                    b.HasIndex("RestaurantId");
 
                     b.HasIndex("TenantId");
 
@@ -1389,7 +1386,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shifts.Shift", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shift.Shift", b =>
                 {
                     b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurants")
                         .WithMany("Shifts")
@@ -1408,9 +1405,9 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Staffs");
                 });
 
-            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shifts.ShiftReport", b =>
+            modelBuilder.Entity("ScanToOrder.Domain.Entities.Shift.ShiftReport", b =>
                 {
-                    b.HasOne("ScanToOrder.Domain.Entities.Shifts.Shift", "Shift")
+                    b.HasOne("ScanToOrder.Domain.Entities.Shift.Shift", "Shift")
                         .WithMany()
                         .HasForeignKey("ShiftId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1439,8 +1436,8 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("ScanToOrder.Domain.Entities.Restaurants.Restaurant", "Restaurant")
-                        .WithOne("Subscription")
-                        .HasForeignKey("ScanToOrder.Domain.Entities.SubscriptionPlan.Subscription", "RestaurantId")
+                        .WithMany()
+                        .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1581,8 +1578,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("Shifts");
 
                     b.Navigation("Staff");
-
-                    b.Navigation("Subscription");
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.SubscriptionPlan.Plan", b =>

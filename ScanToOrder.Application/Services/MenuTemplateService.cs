@@ -11,17 +11,33 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public MenuTemplateService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IStorageService _storageService;
+        public MenuTemplateService(IUnitOfWork unitOfWork, IMapper mapper, IStorageService storageService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _storageService = storageService;
         }
 
         public async Task<CreateTemplateResponseDto> CreateTemplateAsync(CreateTemplateRequestDto request)
         {
             var templateEntity = _mapper.Map<MenuTemplate>(request);
+            if (request.BackgroundImageUrl != null && request.BackgroundImageUrl.Length > 0)
+            {
+                using var memoryStream = new MemoryStream();
+                await request.BackgroundImageUrl.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+
+                var fileName = $"{Guid.NewGuid()}_{request.BackgroundImageUrl.FileName}";
+
+                var imageUrl = await _storageService.UploadFromBytesAsync(fileBytes, fileName, "restaurant_template");
+
+                templateEntity.BackgroundImageUrl = imageUrl;
+            }
+
             await _unitOfWork.MenuTemplates.AddAsync(templateEntity);
             await _unitOfWork.SaveAsync();
+
             return _mapper.Map<CreateTemplateResponseDto>(templateEntity);
         }
 
