@@ -31,12 +31,10 @@ namespace ScanToOrder.Infrastructure.Migrations
                 oldClrType: typeof(Guid),
                 oldType: "uuid");
 
-            migrationBuilder.AddColumn<PlanFeaturesConfig>(
-                name: "Features",
-                table: "Plans",
-                type: "jsonb",
-                nullable: false,
-                defaultValueSql: "'{\"MaxStaff\":2,\"CanUseCombo\":false,\"CanUsePromotions\":false,\"CanCustomMenuTemplate\":false}'::jsonb");
+            // Add column safely — idempotent: won't fail if column already exists from a partial migration run
+            migrationBuilder.Sql("""
+                ALTER TABLE "Plans" ADD COLUMN IF NOT EXISTS "Features" jsonb NOT NULL DEFAULT '{"MaxStaff":2,"CanUseCombo":false,"CanUsePromotions":false,"CanCustomMenuTemplate":false}';
+                """);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subscriptions_RestaurantId",

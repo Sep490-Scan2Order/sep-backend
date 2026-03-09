@@ -12,6 +12,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public int DurationInDays { get; set; }
         public decimal DailyRateMonth { get; set; }
         public decimal DailyRateYear { get; set; }
+        public int Level { get; set; } = 0;
         public PlanStatus Status { get; set; }
         [Column(TypeName = "jsonb")]
         public PlanFeaturesConfig Features { get; set; } = new PlanFeaturesConfig();
