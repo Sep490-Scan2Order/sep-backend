@@ -14,8 +14,6 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<List<Tenant>> GetTenantsWithSubscriptionsAsync()
         {
             return await _dbSet
-                .Include(t => t.Subscriptions)
-                    .ThenInclude(s => s.Plan)
                 .ToListAsync();
         }
 
@@ -24,8 +22,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await _dbSet
                 .Include(t => t.Account)
                 .Include(t => t.Bank)
-                .Include(t => t.Subscriptions)
-                    .ThenInclude(s => s.Plan)
                 .FirstOrDefaultAsync(t => t.AccountId == accountId);
         }
 

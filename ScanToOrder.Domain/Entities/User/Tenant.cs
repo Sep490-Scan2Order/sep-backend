@@ -32,6 +32,5 @@ namespace ScanToOrder.Domain.Entities.User;
     public virtual AuthenticationUser Account { get; set; } = null!;
     public virtual ICollection<Restaurant> Restaurants { get; set; } = new List<Restaurant>();
     public virtual ICollection<Category> Category { get; set; } = new List<Category>();
-    public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
     public virtual Banks? Bank { get; set; }
 }

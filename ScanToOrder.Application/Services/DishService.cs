@@ -66,12 +66,6 @@ namespace ScanToOrder.Application.Services
                 }
             }
 
-            // Đang bỏ giới hạn số lượng món ăn, nếu muốn giới hạn thì bỏ comment đoạn code dưới và thêm trường TotalDishes vào Tenant
-            //if (totalDishes >= existTenant.TotalDishes) 
-            //{
-            //    throw new DomainException(DishMessage.DishError.DISH_OUT_OF_LIMIT);
-            //}
-
             var dishEntity = _mapper.Map<Dish>(dishDto);
             dishEntity.CategoryId = categoryId;
             dishEntity.DishName = dishDto.DishName;
