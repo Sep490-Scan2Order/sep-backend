@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ScanToOrder.Domain.Entities.Blogs
 {
-    [Table("SystemBlog")] 
+    [Table("SystemBlog")]
     public class SystemBlog : BaseEntity<int>
     {
         public int SystemBlogId { get; set; }
@@ -16,14 +16,16 @@ namespace ScanToOrder.Domain.Entities.Blogs
         public new DateOnly CreatedAt { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
         public new DateOnly UpdatedAt { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
         public int TotalViews { get; set; }
+        public string? ThumbnailUrl { get; set; }
 
         [Column(TypeName = "jsonb")]
         public string ImageUrl { get; set; } = "[]";
+        public bool IsActive { get; set; } = true;
+        public new bool IsDeleted { get; set; } = false;
 
         public BlogType BlogType { get; set; }
         [NotMapped]
         public int Id { get; set; }
-        [NotMapped]
-        public new bool IsDeleted { get; set; }
+
     }
 }

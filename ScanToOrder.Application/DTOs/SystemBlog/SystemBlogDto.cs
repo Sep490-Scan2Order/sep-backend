@@ -9,6 +9,9 @@ namespace ScanToOrder.Application.DTOs.SystemBlog
         public new DateOnly CreatedAt { get; set; }
         public new DateOnly UpdatedAt { get; set; }
         public int TotalViews { get; set; }
+        public string? ThumbnailUrl { get; set; }
         public BlogType BlogType { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

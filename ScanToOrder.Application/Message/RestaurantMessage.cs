@@ -11,6 +11,7 @@ namespace ScanToOrder.Application.Message
             public const string RESTAURANT_DELETE_FAILED = "Xóa nhà hàng thất bại.";
             public const string NOT_FOUND_RESTAURANT_FOR_USER = "Không tìm thấy thông tin định danh người dùng (ProfileId).";
             public const string INVALID_RESTAURANT_LOCATION = "Tọa độ nhà hàng không hợp lệ.";
+            public const string RESTAURANT_APPLIED_TEMPLATE = "Nhà hàng đã áp dụng mẫu menu, không thể xóa.";
         }
 
         public class RestaurantSuccess

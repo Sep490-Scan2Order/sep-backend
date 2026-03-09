@@ -145,6 +145,12 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1006,9 +1012,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1018,8 +1021,6 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId")
                         .IsUnique();
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("Subscriptions");
                 });
@@ -1444,10 +1445,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ScanToOrder.Domain.Entities.User.Tenant", null)
-                        .WithMany("Subscriptions")
-                        .HasForeignKey("TenantId");
-
                     b.Navigation("Plan");
 
                     b.Navigation("Restaurant");
@@ -1604,8 +1601,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Navigation("PaymentTransactions");
 
                     b.Navigation("Restaurants");
-
-                    b.Navigation("Subscriptions");
                 });
 #pragma warning restore 612, 618
         }

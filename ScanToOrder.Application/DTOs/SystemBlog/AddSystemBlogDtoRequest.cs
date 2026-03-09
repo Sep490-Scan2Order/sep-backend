@@ -10,6 +10,7 @@ namespace ScanToOrder.Application.DTOs.SystemBlog
         public string ColorTitle { get; set; } = string.Empty;
 
         public List<IFormFile>? Images { get; set; }
+        public IFormFile? Thumbnail { get; set; }
 
         public BlogType BlogType { get; set; }
     }

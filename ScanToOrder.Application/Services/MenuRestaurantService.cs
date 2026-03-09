@@ -33,27 +33,33 @@ namespace ScanToOrder.Application.Services
 
             return _mapper.Map<MenuRestaurantDto>(menuRestaurant);
         }
-        public async Task<MenuRestaurantDto> ApplyRestaurantWithTemplateAsync(CreateMenuRestaurantRequestDto createMenuRestaurantRequestDto)
+        public async Task<MenuRestaurantDto> ApplyRestaurantWithTemplateAsync(CreateMenuRestaurantRequestDto request)
         {
-            var menuTemplate = await _unitOfWork.MenuTemplates.GetByIdAsync(createMenuRestaurantRequestDto.TemplateId);
+            var menuTemplate = await _unitOfWork.MenuTemplates.GetByIdAsync(request.TemplateId);
             if (menuTemplate == null)
-            {
                 throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
+
+            MenuRestaurant menuRestaurant;
+
+            var existingMenuRestaurant = await _unitOfWork.MenuRestaurants
+                .FirstOrDefaultAsync(mr => mr.RestaurantId == request.RestaurantId);
+
+            if (existingMenuRestaurant != null)
+            {
+                _mapper.Map(request, existingMenuRestaurant);
+                _unitOfWork.MenuRestaurants.Update(existingMenuRestaurant);
+                menuRestaurant = existingMenuRestaurant;
             }
-            bool isExist = await CheckTemplateExistWithRestaurantsAsync(createMenuRestaurantRequestDto.TemplateId, createMenuRestaurantRequestDto.RestaurantId);
-            if (isExist) {
-                throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_EXIST_WITH_RESTAURANT);
+            else
+            {
+                menuRestaurant = _mapper.Map<MenuRestaurant>(request);
+                await _unitOfWork.MenuRestaurants.AddAsync(menuRestaurant);
             }
-            var menuRestaurant = _mapper.Map<MenuRestaurant>(createMenuRestaurantRequestDto);
-            await _unitOfWork.MenuRestaurants.AddAsync(menuRestaurant);
+
             await _unitOfWork.SaveAsync();
+
             return _mapper.Map<MenuRestaurantDto>(menuRestaurant);
         }
 
-        private async Task<bool> CheckTemplateExistWithRestaurantsAsync(int templateId, int restaurantId)
-        {
-            var menuRestaurant = await _unitOfWork.MenuRestaurants.FindAsync(x => x.RestaurantId == restaurantId && x.MenuTemplateId == templateId);
-            return menuRestaurant != null && menuRestaurant.Any();
-        }
     }
 }

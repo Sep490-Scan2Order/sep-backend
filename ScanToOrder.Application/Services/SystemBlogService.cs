@@ -2,6 +2,8 @@
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Blogs;
+using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using System.Text.Json;
 
@@ -38,6 +40,16 @@ namespace ScanToOrder.Application.Services
                 }
             }
 
+            var thumbnailUrl = string.Empty;
+            if (request.Thumbnail != null && request.Thumbnail.Length > 0)
+            {
+                using var ms = new MemoryStream();
+                await request.Thumbnail.CopyToAsync(ms);
+                var fileBytes = ms.ToArray();
+                string fileName = $"blog_thumbnail_{Guid.NewGuid():N}_{request.Thumbnail.FileName}";
+                thumbnailUrl = await _storageService.UploadFromBytesAsync(fileBytes, fileName, "thumbnail");
+            }
+
             var systemBlog = new SystemBlog
             {
                 Content = request.Content,
@@ -45,6 +57,9 @@ namespace ScanToOrder.Application.Services
                 ColorTitle = request.ColorTitle,
                 ImageUrl = JsonSerializer.Serialize(imageUrls),
                 BlogType = request.BlogType,
+                ThumbnailUrl = thumbnailUrl,
+                IsActive = true,
+                IsDeleted = false,
             };
 
             await _unitOfWork.SystemBlogs.AddAsync(systemBlog);
@@ -57,30 +72,41 @@ namespace ScanToOrder.Application.Services
                 Title = systemBlog.Title,
                 ColorTitle = systemBlog.ColorTitle,
                 ImageUrl = systemBlog.ImageUrl,
+                ThumbnailUrl = systemBlog.ThumbnailUrl,
                 BlogType = systemBlog.BlogType,
-                CreatedAt = systemBlog.CreatedAt
+                CreatedAt = systemBlog.CreatedAt,
+                IsActive = systemBlog.IsActive == true,
+                IsDeleted = systemBlog.IsDeleted,
             };
         }
 
-        public async Task<IEnumerable<SystemBlogDto>> GetSystemBlogAsync()
+        public async Task<(List<SystemBlogDto> Items, int TotalCount)> GetSystemBlogsAsync(
+            int pageIndex, int pageSize, BlogType? blogType)
         {
-            var blogs = await _unitOfWork.SystemBlogs.GetAllAsync();
-            return blogs.Select(blog => new SystemBlogDto
+            var (blogs, totalCount) = await _unitOfWork.SystemBlogs
+                .GetSystemBlogsSortByCreatedDateAsync(pageIndex, pageSize, blogType);
+
+            var blogDtos = blogs.Select(blog => new SystemBlogDto
             {
                 SystemBlogId = blog.SystemBlogId,
                 Title = blog.Title,
                 CreatedAt = blog.CreatedAt,
                 UpdatedAt = blog.UpdatedAt,
                 TotalViews = blog.TotalViews,
-                BlogType = blog.BlogType
-            });
+                BlogType = blog.BlogType,
+                IsActive = blog.IsActive,
+                IsDeleted = blog.IsDeleted,
+                ThumbnailUrl = blog.ThumbnailUrl ?? string.Empty,
+            }).ToList();
+
+            return (blogDtos, totalCount);
         }
 
         public async Task<BlogDetailDto> GetSystemBlogByIdAsync(int systemBlogId)
         {
             var blog = await _unitOfWork.SystemBlogs.GetByIdAsync(systemBlogId);
             if (blog == null)
-                throw new Exception(BlogMessage.BlogError.BLOG_NOT_FOUND);
+                throw new DomainException(BlogMessage.BlogError.BLOG_NOT_FOUND);
             return new BlogDetailDto
             {
                 Title = blog.Title,
@@ -90,7 +116,10 @@ namespace ScanToOrder.Application.Services
                 CreatedAt = blog.CreatedAt,
                 UpdatedAt = blog.UpdatedAt,
                 TotalViews = blog.TotalViews,
-                BlogType = blog.BlogType
+                BlogType = blog.BlogType,
+                ThumbnailUrl = blog.ThumbnailUrl ?? string.Empty,
+                IsDeleted = blog.IsDeleted == false,
+                IsActive = blog.IsActive == true,
             };
         }
     }

@@ -13,6 +13,9 @@ namespace ScanToOrder.Application.DTOs.SystemBlog
         public int TotalViews { get; set; }
 
         public string ImageUrl { get; set; } = "[]";
+        public string ThumbnailUrl { get; set; }
         public BlogType BlogType { get; set; }
+        public bool IsDeleted { get; set; }
+        public bool IsActive { get; set; }
     }
 }
