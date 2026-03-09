@@ -1,6 +1,8 @@
 ﻿using NetTopologySuite.Geometries;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Entities.Shifts;
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 
 namespace ScanToOrder.Domain.Entities.Restaurants;
@@ -40,8 +42,7 @@ public class Restaurant : BaseEntity<int>
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 
     public virtual Tenant Tenant { get; set; } = null!;
-
-    public virtual ICollection<Shift.Shift> Shifts { get; set; } = new List<Shift.Shift>();
-
+    public virtual ICollection<Shift> Shifts { get; set; } = new List<Shift>();
     public virtual ICollection<BranchDishConfig> BranchDishConfigs { get; set; } = new List<BranchDishConfig>();
+    public virtual Subscription? Subscription { get; set; }
 }

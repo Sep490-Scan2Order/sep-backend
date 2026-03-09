@@ -1,6 +1,6 @@
 using ScanToOrder.Domain.Entities.Base;
 
-namespace ScanToOrder.Domain.Entities.Shift;
+namespace ScanToOrder.Domain.Entities.Shifts;
 
 public class ShiftReport : BaseEntity<int>
 {

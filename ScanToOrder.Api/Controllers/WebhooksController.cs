@@ -11,7 +11,6 @@ namespace ScanToOrder.Api.Controllers;
 
 public class WebhooksController : BaseController
 {
-    //private readonly ITenantWalletService _tenantWalletService;
     private readonly ITenantService _tenantService;
     public WebhooksController( ITenantService tenantService)
     {

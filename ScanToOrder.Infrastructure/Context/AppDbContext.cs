@@ -11,10 +11,9 @@ using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;
 
-using ScanToOrder.Domain.Enums;
 using System.Reflection;
 using ScanToOrder.Domain.Entities.Restaurants;
-using ScanToOrder.Domain.Entities.Shift;
+using ScanToOrder.Domain.Entities.Shifts;
 
 namespace ScanToOrder.Infrastructure.Context;
 
@@ -195,8 +194,8 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Subscription>()
             .HasOne(s => s.Restaurant)
-            .WithMany()
-            .HasForeignKey(s => s.RestaurantId)
+            .WithOne(r => r.Subscription)
+            .HasForeignKey<Subscription>(s => s.RestaurantId)
             .OnDelete(DeleteBehavior.Cascade);
 
         /*

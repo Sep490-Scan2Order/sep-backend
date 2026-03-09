@@ -66,9 +66,7 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.AuthenticationUsers.AddAsync(userEntity);
             await _unitOfWork.Tenants.AddAsync(tenantEntity);
             await _unitOfWork.SaveAsync();
-
-            //await _tenantWalletService.CreateWalletTenantAsync(tenantEntity.Id);
-
+            
             await _otpRedisService.DeleteOtpTenantAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
             return TenantMessage.TenantSuccess.TENANT_REGISTERED;

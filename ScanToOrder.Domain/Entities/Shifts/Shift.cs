@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ScanToOrder.Domain.Enums;
 
-namespace ScanToOrder.Domain.Entities.Shift
+namespace ScanToOrder.Domain.Entities.Shifts
 {
     public class Shift : BaseEntity<int>
     {

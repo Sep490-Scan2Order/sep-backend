@@ -1,4 +1,4 @@
-using ScanToOrder.Domain.Entities.Shift;
+using ScanToOrder.Domain.Entities.Shifts;
 
 namespace ScanToOrder.Domain.Interfaces
 {
