@@ -22,5 +22,18 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [HttpGet ("get-all")]
+        public async Task<IActionResult> GetAllStaff(int restaurantId, int page = 1, int pageSize = 10)
+        {
+            var result = await _staffService.GetAllStaff(restaurantId, page, pageSize);
+            return Ok(result);
+        }
+
+        [HttpGet("available-cashiers")]
+        public async Task<IActionResult> GetAvailableCashiers()
+        {
+            var result = await _staffService.GetAvailableCashiers();
+            return Ok(result);
+        }
     }
 }

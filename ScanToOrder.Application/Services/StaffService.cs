@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -53,5 +54,29 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<StaffDto>(staffEntity);
         }
 
+        public async Task<PagedResult<StaffDto>> GetAllStaff(int restaurantId, int page, int pageSize)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+            var (data, totalCount) = await _unitOfWork.Staffs
+                .GetStaffByRestaurantAsync(restaurantId, page, pageSize);
+
+            var staffDtos = _mapper.Map<List<StaffDto>>(data);
+         
+
+            return new PagedResult<StaffDto>
+            {
+                Items = staffDtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<List<StaffDto>> GetAvailableCashiers()
+        {
+            var cashiers = await _unitOfWork.Staffs.GetAvailableCashiersAsync();
+
+            return _mapper.Map<List<StaffDto>>(cashiers);
+        }
     }
 }

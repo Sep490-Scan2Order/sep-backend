@@ -17,6 +17,7 @@ namespace ScanToOrder.Application.Message
             public const string STAFF_DELETE_FAILED = "Xóa nhân viên thất bại.";
             public const string INVALID_RESTAURANT = "Nhà hàng được chọn không tồn tại hoặc không hợp lệ.";
             public const string UNAUTHORIZED_ACCESS = "Bạn không có quyền thực hiện thao tác này cho nhân viên này.";
+            public const string STAFF_NOT_IN_RESTAURANT = "Nhân viên không thuộc nhà hàng này.";
         }
 
         public class StaffSuccess

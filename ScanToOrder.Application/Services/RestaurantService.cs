@@ -391,5 +391,37 @@ namespace ScanToOrder.Application.Services
 
             return RestaurantMessage.RestaurantSuccess.RESTAURANT_RECEIVING_STATUS_UPDATED;
         }
+
+        public async Task<AssignPresentCashierDto> AssignPresentCashier(int restaurantId, Guid cashierId)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+
+            if (restaurant == null)
+            {
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            }
+
+            var staff = await _unitOfWork.Staffs.GetByIdAsync(cashierId);
+
+            if (staff == null)
+            {
+                throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+            }
+
+            if (staff.RestaurantId != restaurantId)
+            {
+                throw new DomainException(StaffMessage.StaffError.STAFF_NOT_IN_RESTAURANT);
+            }
+            restaurant.PresentCashierId = staff.Id;
+
+            _unitOfWork.Restaurants.Update(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return new AssignPresentCashierDto
+            {
+                CashierId = staff.Id,
+                CashierName = staff.Name,
+            };
+        }
     }
 }

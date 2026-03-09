@@ -54,7 +54,10 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.RestaurantId));
 
-            CreateMap<Staff, StaffDto>();
+            CreateMap<Staff, StaffDto>()
+        .ForMember(dest => dest.RestaurantName,
+            opt => opt.MapFrom(src => src.Restaurant.RestaurantName))
+        .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Account.Role.ToString()));
             CreateMap<AuthenticationUser, AdminDto>();
 
             CreateMap<CreateCategoryRequest, Category>();

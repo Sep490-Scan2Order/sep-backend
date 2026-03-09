@@ -126,7 +126,8 @@ namespace ScanToOrder.Application.Services
         public async Task<AuthResponse<StaffDto>> StaffLoginAsync(StaffLoginRequest request)
         {
             var user = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
-            if (user == null || user.Role != Domain.Enums.Role.Staff)
+            if (user == null ||
+      (user.Role != Domain.Enums.Role.Staff && user.Role != Domain.Enums.Role.Cashier))
             {
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
             }
@@ -155,6 +156,7 @@ namespace ScanToOrder.Application.Services
 
             var staffDto = _mapper.Map<StaffDto>(staff);
             staffDto.RestaurantName = restaurant.RestaurantName;
+            staffDto.Role = user.Role.ToString();
             return new AuthResponse<StaffDto>
             {
                 AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),

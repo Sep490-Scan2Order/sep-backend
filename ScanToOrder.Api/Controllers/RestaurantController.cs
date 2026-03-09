@@ -141,5 +141,13 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(result);
         }
+
+        [HttpPut("{id}/assign-present-cashier")]
+        public async Task<ActionResult<ApiResponse<AssignPresentCashierDto>>> AssignPresentCashier(int id, [FromQuery] Guid cashierId)
+        {
+            var result = await _restaurantService.AssignPresentCashier(id, cashierId);
+
+            return Success(result);
+        }
     }
 }

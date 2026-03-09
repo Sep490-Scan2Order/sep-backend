@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Application.DTOs.User;
+﻿using ScanToOrder.Application.DTOs.Other;
+using ScanToOrder.Application.DTOs.User;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +11,7 @@ namespace ScanToOrder.Application.Interfaces
     public interface IStaffService
     {
         Task<StaffDto> CreateStaff(CreateStaffRequest staffDto);
+        Task<PagedResult<StaffDto>> GetAllStaff(int restaurantId, int page, int pageSize);
+        Task<List<StaffDto>> GetAvailableCashiers();
     }
 }
