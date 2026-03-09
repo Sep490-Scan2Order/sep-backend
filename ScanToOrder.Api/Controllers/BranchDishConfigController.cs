@@ -24,7 +24,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("restaurants/{restaurantId}/branch-dishes")]
-        [Authorize(Roles = "Tenant, Staff")]
+        [Authorize(Roles = "Tenant, Staff, Cashier")]
         public async Task<ActionResult<ApiResponse<List<BranchDishConfigDto>>>> GetBranchDishByRestaurant(int restaurantId)
         {
             var result = await _branchDishConfigService.GetBranchDishByRestaurant(restaurantId);
