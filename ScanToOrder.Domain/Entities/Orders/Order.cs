@@ -15,7 +15,6 @@ namespace ScanToOrder.Domain.Entities.Orders
         public int OrderCode { get; set; }
 
         public bool IsPreOrder { get; set; }
-        public string? TableNumber { get; set; } 
         public string? Note { get; set; } 
 
         public decimal TotalAmount { get; set; }

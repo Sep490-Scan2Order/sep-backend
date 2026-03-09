@@ -15,7 +15,7 @@ namespace ScanToOrder.Domain.Entities.Shift
         public int RestaurantId { get; set; }
         public Guid StaffId { get; set; }
         public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public decimal OpeningCashAmount { get; set; }
         public string Note { get; set; } = string.Empty;
         public ShiftStatus Status { get; set; }
