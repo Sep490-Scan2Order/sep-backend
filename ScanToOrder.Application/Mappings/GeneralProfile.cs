@@ -5,10 +5,12 @@ using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.DTOs.Restaurant;
+using ScanToOrder.Application.DTOs.Shift;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
+using ScanToOrder.Domain.Entities.Shifts;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 
 namespace ScanToOrder.Application.Mappings
@@ -75,6 +77,8 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<UpdatePromotionDto, Promotion>()
                 .IncludeBase<CreatePromotionDto, Promotion>();
+
+            CreateMap<Shift, ShiftDto>();
         }
     }
 }

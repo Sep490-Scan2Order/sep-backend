@@ -426,5 +426,24 @@ namespace ScanToOrder.Application.Services
                 CashierName = staff.Name,
             };
         }
+
+        public async Task<string> ConfigMinCashAmountAsync(int restaurantId, decimal minCashAmount)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+
+            if (restaurant == null)
+            {
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            }
+
+            restaurant.MinCashAmount = minCashAmount;
+
+            _unitOfWork.Restaurants.Update(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return Message.RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED ;
+        }
+
+
     }
 }

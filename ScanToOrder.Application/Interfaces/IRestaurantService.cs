@@ -16,5 +16,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId);
         Task<string> UpdateReceivingOrdersAsync(int restaurantId, bool isReceivingOrders);
         Task<AssignPresentCashierDto> AssignPresentCashier(int restaurantId, Guid cashierId);
+        Task<string> ConfigMinCashAmountAsync(int restaurantId, decimal minCashAmount);
     }
 }

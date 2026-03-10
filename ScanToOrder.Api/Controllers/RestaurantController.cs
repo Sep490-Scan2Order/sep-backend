@@ -149,5 +149,13 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(result);
         }
+
+        [HttpPut("config-min-cash-amount")]
+        public async Task<ActionResult<ApiResponse<string>>> ConfigMinCashAmount([FromQuery] int restaurantId, [FromQuery] decimal minCashAmount)
+        {
+            var result = await _restaurantService.ConfigMinCashAmountAsync(restaurantId, minCashAmount);
+
+            return Success(result);
+        }
     }
 }
