@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -15,13 +16,16 @@ public class OrderService : IOrderService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICartRedisService _cartRedisService;
+    private readonly IMapper _mapper;
 
     public OrderService(
         IUnitOfWork unitOfWork,
-        ICartRedisService cartRedisService)
+        ICartRedisService cartRedisService,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
+        _mapper = mapper;
     }
 
     public async Task<CartDto> AddToCartAsync(AddToCartRequest request)
@@ -117,23 +121,8 @@ public class OrderService : IOrderService
         var json = JsonSerializer.Serialize(cart);
         await _cartRedisService.SaveRawCartAsync(cartId, json, TimeSpan.FromMinutes(60));
 
-        // 8. Build DTO trả về cho FE
-        var dto = new CartDto
-        {
-            CartId = cart.CartId,
-            RestaurantId = cart.RestaurantId,
-            TotalAmount = cart.TotalAmount,
-            Items = cart.Items.Select(i => new CartItemModel
-            {
-                DishId = i.DishId,
-                DishName = i.DishName,
-                Quantity = i.Quantity,
-                Price = i.Price,
-                SubTotal = i.SubTotal
-            }).ToList()
-        };
-
-        return dto;
+        // 8. Build DTO trả về cho FE 
+        return _mapper.Map<CartDto>(cart);
     }
 
     public async Task<CartDto> GetCartAsync(string cartId)
@@ -152,20 +141,7 @@ public class OrderService : IOrderService
         var cart = JsonSerializer.Deserialize<CartModel>(json)
                    ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
 
-        return new CartDto
-        {
-            CartId = cart.CartId,
-            RestaurantId = cart.RestaurantId,
-            TotalAmount = cart.TotalAmount,
-            Items = cart.Items.Select(i => new CartItemModel
-            {
-                DishId = i.DishId,
-                DishName = i.DishName,
-                Quantity = i.Quantity,
-                Price = i.Price,
-                SubTotal = i.SubTotal
-            }).ToList()
-        };
+        return _mapper.Map<CartDto>(cart);
     }
 }
 

@@ -1,8 +1,9 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.DTOs.User;
+using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
@@ -91,6 +92,9 @@ namespace ScanToOrder.Application.Mappings
     .ForMember(dest => dest.Id, opt => opt.Ignore())
     .ForMember(dest => dest.AccountId, opt => opt.Ignore())
     .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+            CreateMap<CartModel, CartDto>();
+            CreateMap<CartItemModel, CartItemModel>();
         }
     }
 }
