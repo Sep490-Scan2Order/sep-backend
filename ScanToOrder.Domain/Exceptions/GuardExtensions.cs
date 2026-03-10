@@ -10,5 +10,12 @@ namespace ScanToOrder.Domain.Exceptions
             if (value is null) throw new DomainException(message);
             return value;
         }
+        
+        [return: NotNull]
+        public static T OrThrowNotFound<T>(this T? value, string entityName, object key) where T : class
+        {
+            if (value is null) throw new NotFoundException(entityName, key);
+            return value;
+        }
     }
 }

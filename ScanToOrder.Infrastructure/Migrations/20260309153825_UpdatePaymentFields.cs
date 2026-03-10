@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using ScanToOrder.Domain.Enums;
-
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 #nullable disable
 
 namespace ScanToOrder.Infrastructure.Migrations

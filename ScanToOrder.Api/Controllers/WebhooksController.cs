@@ -12,26 +12,39 @@ namespace ScanToOrder.Api.Controllers;
 public class WebhooksController : BaseController
 {
     private readonly ITenantService _tenantService;
-    public WebhooksController( ITenantService tenantService)
+    private readonly IPaymentService _paymentService;
+    private readonly ISubscriptionService _subscriptionService;
+
+    public WebhooksController(ITenantService tenantService, ISubscriptionService subscriptionService, IPaymentService paymentService)
     {
-        //_tenantWalletService = tenantWalletService;
         _tenantService = tenantService;
+        _subscriptionService = subscriptionService;
+        _paymentService = paymentService;
     }
 
-    //[HttpPost("payos")]
-    //[AllowAnonymous]
-    //public async Task<IActionResult> HandlePayOSWebhook([FromBody] Webhook webhookBody)
-    //{
-    //    var result = await _tenantWalletService.HandleDepositWebhookAsync(webhookBody);
-        
-    //    if (result)
-    //    {
-    //        return Ok(new { Message = "Success" });
-    //    }
+    [HttpPost("payos")]
+    [AllowAnonymous]
+    public async Task<IActionResult> HandlePayOSWebhook([FromBody] Webhook webhookBody)
+    {
+        if (webhookBody.Data.OrderCode == 123)
+        {
+            return Ok(new { success = true });
+        }
+        try
+        {
+            var data = await _paymentService.VerifyWebhookAsync(webhookBody);
+            if (data.IsPaymentSuccess)
+            {
+                await _subscriptionService.ProcessPaymentSuccessAsync(data.OrderCode);
+            }
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
 
-    //    return BadRequest("Webhook processing failed");
-    //}
-    
     [HttpPost("sepay")]
     [AllowAnonymous]
     public async Task<IActionResult> HandleSepayWebhook([FromBody] SePayWebhookDto webhookBody)
@@ -44,6 +57,7 @@ public class WebhooksController : BaseController
                 await _tenantService.VerifyBankAccountAsync(webhookBody.Code);
             }
         }
+
         return Ok();
     }
 }

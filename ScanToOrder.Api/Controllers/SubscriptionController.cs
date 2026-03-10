@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Exceptions;
 
@@ -19,52 +21,24 @@ namespace ScanToOrder.Api.Controllers
             _authenticatedUserService = authenticatedUserService;
         }
 
-        // [Authorize (Roles = "Tenant")]
-        // [HttpPost]
-        // public async Task<ActionResult<ApiResponse<string>>> Subscription([FromQuery] int planId)
-        // {
-        //     if (_authenticatedUserService.ProfileId != null)
-        //     {
-        //         var result = await _subscriptionService.SubscribePlanAsync(_authenticatedUserService.ProfileId.Value ,planId);
-        //         return Success(string.Empty, result);
-        //     }
-        //     throw new DomainException("ProfileId is null");
-        // }
-        //
-        // [Authorize (Roles = "Tenant")]
-        // [HttpPost("upgrade-plan/{newPlanId:int}")]
-        // public async Task<ActionResult<ApiResponse<string>>> UpgradeSubscription([FromRoute] int newPlanId)
-        // {
-        //     if (_authenticatedUserService.ProfileId != null)
-        //     {
-        //         await _subscriptionService.UpgradePlanAsync(_authenticatedUserService.ProfileId.Value ,newPlanId);
-        //         return Success(string.Empty);
-        //     }
-        //     throw new DomainException("ProfileId is null");
-        // }
-        //
-        // [Authorize (Roles = "Tenant")]
-        // [HttpPost("upgrade-addon/{newAddonId:int}")]
-        // public async Task<ActionResult<ApiResponse<string>>> UpgradeAddon([FromRoute] int newAddonId)
-        // {
-        //     if (_authenticatedUserService.ProfileId != null)
-        //     {
-        //         await _subscriptionService.UpgradeAddonAsync(_authenticatedUserService.ProfileId.Value ,newAddonId);
-        //         return Success(string.Empty);
-        //     }
-        //     throw new DomainException("ProfileId is null");
-        // }
-        //
-        // [Authorize (Roles = "Tenant")]
-        // [HttpPost("renew-subscription")]
-        // public async Task<ActionResult<ApiResponse<string>>> RenewSubscription()
-        // {
-        //     if (_authenticatedUserService.ProfileId != null)
-        //     {
-        //         await _subscriptionService.RenewPreviousSubscription(_authenticatedUserService.ProfileId.Value);
-        //         return Success(string.Empty);
-        //     }
-        //     throw new DomainException("ProfileId is null");
-        // }
+        [HttpPost("preview")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<CheckoutPreviewResponse>>> GetCheckoutPreview([FromBody] PlanCheckoutRequest request)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var previewResponse = await _subscriptionService.CalculatePreviewAsync(request, tenantId);
+            return Success(previewResponse);
+        }
+        
+        [HttpPost("create-payment")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<string>>> CreatePaymentReqeust([FromBody] PlanCheckoutRequest request)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var paymentResult = await _subscriptionService.CreatePaymentAsync(request, tenantId);
+            return Success(paymentResult);
+        }
     }
 }

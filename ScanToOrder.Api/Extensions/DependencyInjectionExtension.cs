@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Mappings;
 using ScanToOrder.Infrastructure.Configuration;
@@ -11,17 +12,35 @@ namespace ScanToOrder.Api.Extensions
     {
         public static IServiceCollection AddDIConfig(this IServiceCollection services, IConfiguration configuration)
         {
+            // services.AddDbContext<AppDbContext>(options =>
+            // {
+            //     options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
+            //         o =>
+            //         {
+            //             o.UseNetTopologySuite();
+            //             o.UseVector();
+            //             o.CommandTimeout(120);
+            //         });
+            // });
+            
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+            
+            dataSourceBuilder.UseNetTopologySuite();
+            dataSourceBuilder.EnableDynamicJson();
+            dataSourceBuilder.UseVector();
+            
+            var dataSource = dataSourceBuilder.Build();
+
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
-                    o =>
-                    {
-                        o.UseNetTopologySuite();
-                        o.UseVector();
-                        o.CommandTimeout(120);
-                    });
+                options.UseNpgsql(dataSource, o =>
+                {
+                    o.UseNetTopologySuite();
+                    o.CommandTimeout(120);
+                });
             });
-
+            
             services.Scan(scan => scan
                 .FromAssemblies(
                     typeof(ScanToOrder.Application.Mappings.GeneralProfile).Assembly,
@@ -35,6 +54,7 @@ namespace ScanToOrder.Api.Extensions
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
             );
+            
             services.Configure<EsmsSettings>(configuration.GetSection("EsmsSettings"));
             services.AddHttpClient<ISmsSender, EsmsSender>();
             

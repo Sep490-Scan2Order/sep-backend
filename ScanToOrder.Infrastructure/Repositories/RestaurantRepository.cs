@@ -153,7 +153,23 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Where(r => r.TenantId == tenantId && !r.IsDeleted)
                 .ToListAsync();
         }
+
+        public async Task<Restaurant?> GetByIdIncludeSubscriptionAsync(int id)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Include(r => r.Subscription)
+                    .ThenInclude(s => s!.Plan)
+                .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
+        }
         
+        public async Task<Dictionary<int, Restaurant>> GetByIdsWithTenantId (List<int> ids, Guid tenantId)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.Id) && r.TenantId == tenantId && !r.IsDeleted)
+                .ToDictionaryAsync(r => r.Id);
+        }
     }
 }
 

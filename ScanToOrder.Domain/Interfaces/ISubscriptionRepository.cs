@@ -4,5 +4,6 @@ namespace ScanToOrder.Domain.Interfaces
 {
     public interface ISubscriptionRepository : IGenericRepository<Subscription>
     {
+        Task<Dictionary<int, Subscription>> GetByRestaurantIds (List<int> restaurantIds);
     }
 }

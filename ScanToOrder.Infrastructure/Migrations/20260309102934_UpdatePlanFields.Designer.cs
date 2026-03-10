@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Infrastructure.Context;
 
 #nullable disable

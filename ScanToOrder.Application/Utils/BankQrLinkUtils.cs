@@ -70,4 +70,12 @@ public static class BankQrLinkUtils
 
         return null;
     }
+    
+    public static long GeneratePayOsOrderCode()
+    {
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        int randomSuffix = _random.Next(0, 1000);
+        string combined = $"{timestamp}{randomSuffix:D3}";
+        return long.Parse(combined);
+    }
 }

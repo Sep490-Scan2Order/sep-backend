@@ -9,7 +9,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
     {
         public int RestaurantId { get; set; }   
         public int PaymentTransactionId { get; set; }
-        public int OldPlanId { get; set; }
+        public int? OldPlanId { get; set; }
         public int NewPlanId { get; set; }
         public SubscriptionLogStatus ActionType { get; set; }
         public decimal AmountAllocated { get; set; }
@@ -18,7 +18,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
 
         public int DaysAdded { get; set; }
 
-        public DateTime OldExpired { get; set; }
+        public DateTime? OldExpired { get; set; }
 
         public DateTime NewExpired { get; set; }
 

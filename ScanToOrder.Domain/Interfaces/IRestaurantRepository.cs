@@ -21,5 +21,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<int> CountAsync(Expression<Func<Restaurant, bool>> predicate);
 
         Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId);
+        Task<Restaurant?> GetByIdIncludeSubscriptionAsync(int id);
+        Task<Dictionary<int, Restaurant>> GetByIdsWithTenantId (List<int> ids, Guid tenantId);
     }
 }

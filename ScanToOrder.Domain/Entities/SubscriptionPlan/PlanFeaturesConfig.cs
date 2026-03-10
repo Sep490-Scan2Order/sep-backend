@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Domain.Enums;
+﻿namespace ScanToOrder.Domain.Entities.SubscriptionPlan;
 
 public class PlanFeaturesConfig
 {

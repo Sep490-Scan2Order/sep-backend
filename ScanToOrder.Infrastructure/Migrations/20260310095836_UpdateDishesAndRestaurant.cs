@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,25 +12,12 @@ namespace ScanToOrder.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "ThumbnailUrl",
-                table: "SystemBlog",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<decimal>(
-                name: "MinCashAmount",
-                table: "Restaurants",
-                type: "numeric",
-                nullable: false,
-                defaultValue: 0m);
-
-            migrationBuilder.AddColumn<int>(
-                name: "Type",
-                table: "Dishes",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
+            // Idempotent AddColumns — safe to re-run if migration partially executed before
+            migrationBuilder.Sql("""
+                ALTER TABLE "SystemBlog" ADD COLUMN IF NOT EXISTS "ThumbnailUrl" text;
+                ALTER TABLE "Restaurants" ADD COLUMN IF NOT EXISTS "MinCashAmount" numeric NOT NULL DEFAULT 0;
+                ALTER TABLE "Dishes" ADD COLUMN IF NOT EXISTS "Type" integer NOT NULL DEFAULT 0;
+                """);
 
             migrationBuilder.CreateTable(
                 name: "ComboDetails",

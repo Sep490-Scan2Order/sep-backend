@@ -62,6 +62,7 @@ public class AppDbContext : DbContext
     public DbSet<ComboDetail> ComboDetails { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("postgis");
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 

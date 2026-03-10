@@ -10,11 +10,10 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public Guid TenantId { get; set; }   
         public DateTime PaymentDate { get; set; }
         public string TransactionCode { get; set; } = null!;
-
         public decimal TotalAmount { get; set; }    
         
         [Column(TypeName = "jsonb")]
-        public OrderPayloadItemPlan Payload { get; set; } = null!;
+        public List<OrderPayloadItemPlan> Payload { get; set; } = null!;
         public PaymentTransactionStatus Status { get; set; }
         public Tenant Tenants { get; set; } = null!;
     }
