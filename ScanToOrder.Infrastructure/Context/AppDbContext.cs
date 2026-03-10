@@ -59,6 +59,7 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories { get; set; } = null!;
 
     public DbSet<BranchDishConfig> BranchDishConfigs { get; set; } = null!;
+    public DbSet<ComboDetail> ComboDetails { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -234,6 +235,18 @@ public class AppDbContext : DbContext
             .HasOne<Plan>()
             .WithMany()
             .HasForeignKey(s => s.OldPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ComboDetail>()
+    .HasOne(cd => cd.Dish)
+    .WithMany(d => d.ComboDetails)
+    .HasForeignKey(cd => cd.DishId)
+    .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ComboDetail>()
+            .HasOne(cd => cd.ItemDish)
+            .WithMany()
+            .HasForeignKey(cd => cd.ItemDishId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

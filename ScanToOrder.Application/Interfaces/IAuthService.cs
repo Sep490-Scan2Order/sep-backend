@@ -17,5 +17,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<string> CompleteResetPasswordAsync(string email, string resetToken, string newPassword);
         Task<string> VerifyForgotPasswordOtpAsync(string email, string otpCode);
         Task<AuthResponse<AdminDto>> AdministratorLoginAsync(AdminLoginRequest request);
+        Task<string> ResetPasswordStaff(CompleteResetPasswordRequest request);
     }
 }

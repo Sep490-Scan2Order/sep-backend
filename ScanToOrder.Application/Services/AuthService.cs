@@ -316,5 +316,26 @@ namespace ScanToOrder.Application.Services
 
             return TenantMessage.TenantSuccess.TENANT_RESET_PASSWORD;
         }
+
+        public async Task<string>ResetPasswordStaff(CompleteResetPasswordRequest request)
+        {
+
+           
+
+            var staff = await _unitOfWork.Staffs.GetByFieldsIncludeAsync(
+                s => s.Account.Email == request.Email,
+                s => s.Account
+            );
+
+            if (staff == null) throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+            staff.Account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            _unitOfWork.Staffs.Update(staff);
+            await _unitOfWork.SaveAsync();
+
+            return StaffMessage.StaffSuccess.STAFF_RESET_PASSWORD;
+
+
+        }
     }
 }

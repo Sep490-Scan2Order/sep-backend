@@ -97,4 +97,11 @@ public class AuthController : BaseController
         return Success<object?>(await _taxService.GetTaxCodeDetailsAsync(taxCode));
     }
     //
+
+    [HttpPost("reset-password-staff")]
+    public async Task<ActionResult<ApiResponse<string>>> ResetPasswordStaff([FromBody] CompleteResetPasswordRequest request)
+    {
+        var result = await _authService.ResetPasswordStaff(request);
+        return Success(result);
+    }
 }

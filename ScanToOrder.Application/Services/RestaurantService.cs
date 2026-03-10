@@ -412,7 +412,10 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(StaffMessage.StaffError.STAFF_NOT_IN_RESTAURANT);
             }
+
             restaurant.PresentCashierId = staff.Id;
+            restaurant.IsAvailableShift = true;
+
 
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();

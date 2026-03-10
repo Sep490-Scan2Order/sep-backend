@@ -35,6 +35,8 @@ public class Restaurant : BaseEntity<int>
 
     public int? TotalOrder { get; set; }
 
+    public decimal MinCashAmount { get; set; }
+
     public bool IsAvailableShift { get; set; }
 
     public Guid? PresentCashierId { get; set; }

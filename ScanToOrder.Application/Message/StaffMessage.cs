@@ -25,6 +25,7 @@ namespace ScanToOrder.Application.Message
             public const string STAFF_CREATED = "Tạo tài khoản nhân viên thành công.";
             public const string STAFF_UPDATED = "Cập nhật thông tin nhân viên thành công.";
             public const string STAFF_DELETED = "Xóa nhân viên thành công.";
+            public const string STAFF_RESET_PASSWORD = "Đặt lại mật khẩu nhân viên thành công.";
         }
     }
 }
