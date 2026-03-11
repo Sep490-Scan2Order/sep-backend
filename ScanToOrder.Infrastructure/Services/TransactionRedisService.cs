@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.Interfaces;
 using StackExchange.Redis;
 
@@ -17,6 +17,9 @@ public class TransactionRedisService : ITransactionRedisService
 
     private string GetKey(string transactionCode)
         => $"{_instanceName}transaction:{transactionCode}";
+
+    private string GetOrderPaymentKey(string paymentCode)
+        => $"{_instanceName}orderpayment:{paymentCode}";
 
     public async Task SaveTransactionCodeAsync(string transactionCode, Guid tenantId)
     {
@@ -40,5 +43,17 @@ public class TransactionRedisService : ITransactionRedisService
     {
         var key = GetKey(transactionCode);
         return await _database.KeyExistsAsync(key);
+    }
+
+    public async Task SaveOrderPaymentCodeAsync(string paymentCode, string cartId, TimeSpan? expiry = null)
+    {
+        var key = GetOrderPaymentKey(paymentCode);
+        await _database.StringSetAsync(key, cartId, expiry ?? TimeSpan.FromMinutes(15));
+    }
+
+    public async Task<string?> GetCartIdByOrderPaymentCodeAsync(string paymentCode)
+    {
+        var key = GetOrderPaymentKey(paymentCode);
+        return await _database.StringGetAsync(key);
     }
 }

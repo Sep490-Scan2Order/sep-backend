@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Interfaces;
+namespace ScanToOrder.Application.Interfaces;
 
 public interface ITransactionRedisService
 {
@@ -6,4 +6,7 @@ public interface ITransactionRedisService
     Task<string?> GetTenantIdByTransactionCodeAsync(string transactionCode);
     Task DeleteTransactionCodeAsync(string transactionCode);
     Task<bool> ExistsTransactionCodeAsync(string transactionCode);
+
+    Task SaveOrderPaymentCodeAsync(string paymentCode, string cartId, TimeSpan? expiry = null);
+    Task<string?> GetCartIdByOrderPaymentCodeAsync(string paymentCode);
 }

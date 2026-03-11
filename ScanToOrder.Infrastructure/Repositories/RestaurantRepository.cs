@@ -166,6 +166,15 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Where(r => ids.Contains(r.Id) && r.TenantId == tenantId && !r.IsDeleted)
                 .ToDictionaryAsync(r => r.Id);
         }
+
+        public async Task<Restaurant?> GetByIdWithTenantBankAsync(int restaurantId)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Include(r => r.Tenant)
+                    .ThenInclude(t => t.Bank)
+                .FirstOrDefaultAsync(r => r.Id == restaurantId && !r.IsDeleted);
+        }
     }
 }
 
