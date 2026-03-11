@@ -20,10 +20,11 @@ namespace ScanToOrder.Application.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
-        public async Task<List<PlanDto>> GetAllPlansAsync()
+
+        public async Task<List<PlanResponse>> GetAllPlansAsync()
         {
-            var plans =  await _unitOfWork.Plans.GetAllAsync();
-                var planDTOs = _mapper.Map<List<PlanDto>>(plans);
+            var plans = await _unitOfWork.Plans.GetAllAsync();
+            var planDTOs = _mapper.Map<List<PlanResponse>>(plans);
             return planDTOs;
         }
     }
