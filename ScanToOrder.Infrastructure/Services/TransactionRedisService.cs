@@ -56,4 +56,10 @@ public class TransactionRedisService : ITransactionRedisService
         var key = GetOrderPaymentKey(paymentCode);
         return await _database.StringGetAsync(key);
     }
+
+    public async Task DeleteOrderPaymentCodeAsync(string paymentCode)
+    {
+        var key = GetOrderPaymentKey(paymentCode);
+        await _database.KeyDeleteAsync(key);
+    }
 }

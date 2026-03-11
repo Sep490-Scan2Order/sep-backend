@@ -100,6 +100,11 @@ public class OrderService : IOrderService
             };
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Note))
+        {
+            cart.Note = request.Note;
+        }
+
         // 5. Thêm hoặc cập nhật item trong cart
         var existingItem = cart.Items.FirstOrDefault(i => i.DishId == request.DishId);
         if (existingItem == null)
@@ -202,7 +207,6 @@ public class OrderService : IOrderService
         if (transferAmount <= 0)
             throw new DomainException("Số tiền thanh toán không hợp lệ.");
 
-        // Idempotent theo transactionCode trong bảng Transaction (Orders.Transaction)
         var existed = await _unitOfWork.Transactions.ExistsAsync(t => t.TransactionCode == paymentCode);
         if (existed)
         {
@@ -244,6 +248,7 @@ public class OrderService : IOrderService
                 RestaurantId = cart.RestaurantId,
                 OrderCode = orderCode,
                 IsPreOrder = false,
+                Note = cart.Note,
                 TotalAmount = cart.TotalAmount,
                 PromotionDiscount = 0,
                 FinalAmount = cart.TotalAmount,
@@ -281,7 +286,7 @@ public class OrderService : IOrderService
             await tx.CommitAsync();
 
             await _cartRedisService.DeleteCartAsync(cartId);
-            await _transactionRedisService.DeleteTransactionCodeAsync(paymentCode);
+            await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
         }
         catch
         {

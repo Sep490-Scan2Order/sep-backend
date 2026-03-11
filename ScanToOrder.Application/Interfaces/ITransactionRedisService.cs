@@ -9,4 +9,5 @@ public interface ITransactionRedisService
 
     Task SaveOrderPaymentCodeAsync(string paymentCode, string cartId, TimeSpan? expiry = null);
     Task<string?> GetCartIdByOrderPaymentCodeAsync(string paymentCode);
+    Task DeleteOrderPaymentCodeAsync(string paymentCode);
 }
