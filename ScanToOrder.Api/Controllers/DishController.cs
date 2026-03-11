@@ -26,6 +26,14 @@ namespace ScanToOrder.Api.Controllers
             return Success(dishes, DishMessage.DishSuccess.DISH_RETRIEVED);
         }
 
+        [HttpGet("get-dish-by-tenantId/{id:Guid}")]
+        public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetDishByTenantId(Guid id)
+        {
+            var dish = await dishService.GetAllDishesByTenant(id);
+            return Success(dish, DishMessage.DishSuccess.DISH_RETRIEVED);
+        }
+
+
         [HttpPost("create-dish/{categoryId:int}")]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<ApiResponse<DishDto>>> CreateDish(int categoryId, [FromForm] CreateDishRequest request)
