@@ -17,6 +17,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await _dbSet
                 .AsNoTracking()
                 .Where(r => restaurantIds.Contains(r.RestaurantId) && !r.IsDeleted && r.Status == SubscriptionStatus.Active)
+                .Include(s => s.Plan)
                 .ToDictionaryAsync(r => r.RestaurantId);
         } 
     }

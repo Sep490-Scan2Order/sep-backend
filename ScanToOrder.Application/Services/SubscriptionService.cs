@@ -235,7 +235,7 @@ public class SubscriptionService : ISubscriptionService
             // Process each item in the payload to update subscriptions and create logs
             foreach (var item in payload)
             {
-                // ⚡ RETRIEVE DATA FROM RAM (Dictionary) INSTEAD OF CALLING THE DATABASE
+                // RETRIEVE DATA FROM RAM (Dictionary) INSTEAD OF CALLING THE DATABASE
                 currentSubsDict.TryGetValue(item.RestaurantId, out var currentSub);
 
                 // Skip or throw error if the target plan doesn't exist

@@ -9,6 +9,6 @@ namespace ScanToOrder.Application.Interfaces
 {
     public interface IPlanService
     {
-        Task<List<PlanDto>> GetAllPlansAsync();
+        Task<List<PlanResponse>> GetAllPlansAsync();
     }
 }
