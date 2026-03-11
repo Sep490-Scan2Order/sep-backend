@@ -3,6 +3,6 @@
     public class CreateNotifyTenantDtoRequest
     {
         public int NotificationId { get; set; }
-        public Guid TenantId { get; set; }
+        public List<Guid> TenantIds { get; set; }
     }
 }

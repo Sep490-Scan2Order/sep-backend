@@ -1,5 +1,6 @@
 ﻿using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -18,6 +19,8 @@ namespace ScanToOrder.Domain.Entities.Notifications
         public virtual Notification Notification { get; set; } = null!;
 
         public Guid TenantId { get; set; }
+        public NotifyTenantStatus Status { get; set; }
+        public DateTime? ReadAt { get; set; }
 
         [ForeignKey("TenantId")]
         public virtual Tenant Tenant { get; set; } = null!;

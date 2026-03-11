@@ -19,5 +19,6 @@ namespace ScanToOrder.Domain.Interfaces
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
         void RemoveRange(IEnumerable<T> entities);
         void UpdateRange(IEnumerable<T> entities);
+        Task<int> CountAsync(Expression<Func<T, bool>> predicate);
     }
 }

@@ -6,6 +6,6 @@ namespace ScanToOrder.Application.Interfaces
     public interface INotificationService
     {
         Task<CreateNotificationDtoResponse> CreateNotificationAsync(CreateNotificationDtoRequest request);
-        Task<IEnumerable<Notification>> GetNotificationsAsync();
+        Task<(List<NotificationDtoResponse> Items, int TotalCount)> GetNotificationsAsync(int pageIndex, int pageSize);
     }
 }
