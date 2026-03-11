@@ -50,9 +50,35 @@ namespace ScanToOrder.Api.Controllers
         public async Task<ActionResult<ApiResponse<CategoryDto>>> UpdateCategory(int id, [FromBody] UpdateCategoryRequest request)
         {
             if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
-            var tenantId = _authenticatedUserService.ProfileId.Value;
-            var category = await _categoryService.UpdateCategory(tenantId, id, request);
+            var category = await _categoryService.UpdateCategory(id, request);
             return Success(category, CategoryMessage.CategorySuccess.CATEGORY_UPDATED);
+        }
+
+        [HttpDelete("delete-category/{id:int}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteCategory(int id)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var result = await _categoryService.DeleteCategory(id);
+            return Success(result, CategoryMessage.CategorySuccess.CATEGORY_DELETED);
+        }
+
+        [HttpPut("de-active-category/{id:int}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<bool>>> DeActiveCategory(int id)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var result = await _categoryService.DeActiveCategory(id);
+            return Success(result, CategoryMessage.CategorySuccess.CATEGORY_DEACTIVATED);
+        }
+
+        [HttpPut("active-category/{id:int}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<bool>>> ActiveCategory(int id)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var result = await _categoryService.ActiveCategory(id);
+            return Success(result, CategoryMessage.CategorySuccess.CATEGORY_ACTIVATED);
         }
     }
 }

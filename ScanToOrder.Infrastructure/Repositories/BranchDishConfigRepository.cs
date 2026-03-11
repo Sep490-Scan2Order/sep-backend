@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
@@ -46,6 +46,15 @@ namespace ScanToOrder.Infrastructure.Repositories
                               && !bdc.IsDeleted
                               && !bdc.Dish.IsDeleted)
                 .ToListAsync();
+        }
+
+        public async Task<List<BranchDishConfig>> GetConfigsByDishIdsAsync(List<int> dishIds)
+        {
+            // Dùng Contains để tìm tất cả Config có DishId nằm trong danh sách truyền vào
+            return await _dbSet
+                            .Where(b => dishIds
+                            .Contains(b.DishId))
+                            .ToListAsync();
         }
     }
 }

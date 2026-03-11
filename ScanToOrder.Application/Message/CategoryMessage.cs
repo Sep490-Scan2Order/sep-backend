@@ -20,6 +20,9 @@ namespace ScanToOrder.Application.Message
             public const string CATEGORY_CREATED = "Tạo danh mục thành công.";
             public const string CATEGORY_UPDATED = "Cập nhật danh mục thành công.";
             public const string CATEGORY_RETRIEVED = "Lấy danh mục thành công.";
+            public const string CATEGORY_DELETED = "Xóa danh mục thành công.";
+            public const string CATEGORY_ACTIVATED = "Kích hoạt danh mục thành công.";
+            public const string CATEGORY_DEACTIVATED = "Hủy kích hoạt danh mục thành công.";
         }
     }
 }
