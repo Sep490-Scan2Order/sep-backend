@@ -18,11 +18,11 @@ namespace ScanToOrder.Api.Controllers
             _authenticatedUserService = authenticatedUserService;
         }
 
-        [HttpGet("get-dishes-by-tenant")]
+        [HttpGet("get-dishes-by-tenant-include-delete")]
         public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetAllDishesByTenant()
         {
             var tenantId = _authenticatedUserService.ProfileId.Value;
-            var dishes = await dishService.GetAllDishesByTenant(tenantId);
+            var dishes = await dishService.GetAllDishesByTenant(tenantId, true);
             return Success(dishes, DishMessage.DishSuccess.DISH_RETRIEVED);
         }
 
@@ -81,5 +81,41 @@ namespace ScanToOrder.Api.Controllers
             return Success(count, $"Import thành công {count} món ăn");
         }
 
+        [HttpDelete("delete-dish/{categoryId:int}/{dishId:int}")]
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteDish(int categoryId, int dishId)
+        {
+            if (_authenticatedUserService.ProfileId != null)
+            {
+                var tenantId = _authenticatedUserService.ProfileId.Value;
+                var result = await dishService.DeleteDish(tenantId, categoryId, dishId);
+                return Success(result, DishMessage.DishSuccess.DISH_DELETED);
+            }
+            throw new DomainException("ProfileId is null");
+
+        }
+
+        [HttpPut("de-active-dish/{categoryId:int}/{dishId:int}")]
+        public async Task<ActionResult<ApiResponse<bool>>> DeActiveDish(int categoryId, int dishId)
+        {
+            if (_authenticatedUserService.ProfileId != null)
+            {
+                var tenantId = _authenticatedUserService.ProfileId.Value;
+                var result = await dishService.DeActiveDish(tenantId, categoryId, dishId);
+                return Success(result, DishMessage.DishSuccess.DISH_DEACTIVE);
+            }
+            throw new DomainException("ProfileId is null");
+        }
+
+        [HttpPut("active-dish/{categoryId:int}/{dishId:int}")]
+        public async Task<ActionResult<ApiResponse<bool>>> ActiveDish(int categoryId, int dishId)
+        {
+            if (_authenticatedUserService.ProfileId != null)
+            {
+                var tenantId = _authenticatedUserService.ProfileId.Value;
+                var result = await dishService.ActiveDish(tenantId, categoryId, dishId);
+                return Success(result, DishMessage.DishSuccess.DISH_ACTIVATED);
+            }
+            throw new DomainException("ProfileId is null");
+        }
     }
 }

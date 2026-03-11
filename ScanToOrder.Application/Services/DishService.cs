@@ -103,7 +103,7 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<DishDto>(dishEntity);
         }
 
-        public async Task<List<DishDto>> GetAllDishesByTenant(Guid tenantId)
+        public async Task<List<DishDto>> GetAllDishesByTenant(Guid tenantId, bool includeDeleted = false)
         {
             var existTenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (existTenant == null)
@@ -111,7 +111,7 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             }
 
-            var dishes = await _unitOfWork.Dishes.GetAllDishesByTenant(tenantId);
+            var dishes = await _unitOfWork.Dishes.GetAllDishesByTenant(tenantId, includeDeleted);
             return _mapper.Map<List<DishDto>>(dishes);
         }
 
@@ -291,6 +291,113 @@ namespace ScanToOrder.Application.Services
             }
 
             return createdCount;
+        }
+
+        public async Task<bool> DeleteDish(Guid tenantId, int categoryId, int dishId)
+        {
+            // 1. Kiểm tra Dish có tồn tại và thuộc đúng Tenant & Category không
+            var existingDish = await _unitOfWork.Dishes.GetByFieldsIncludeAsync(
+                x => x.Id == dishId && x.CategoryId == categoryId,
+                x => x.Category
+            );
+
+            if (existingDish == null || existingDish.Category.TenantId != tenantId)
+            {
+                throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
+            }
+
+            if (existingDish.IsDeleted)
+            {
+                return true; // Nếu đã xóa rồi thì bỏ qua
+            }
+
+            // 2. Cập nhật trạng thái Soft Delete cho Dish
+            existingDish.IsDeleted = true;
+            existingDish.IsAvailable = false;
+            _unitOfWork.Dishes.Update(existingDish);
+
+            // 3. Tìm và xóa hẳn (Hard Delete) các BranchDishConfig liên kết với Dish này
+            var branchConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(b => b.DishId == dishId);
+            if (branchConfigs.Any())
+            {
+                _unitOfWork.BranchDishConfigs.RemoveRange(branchConfigs);
+            }
+
+            // 4. Lưu thay đổi
+            await _unitOfWork.SaveAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeActiveDish(Guid tenantId, int categoryId, int dishId)
+        {
+            // 1. Kiểm tra món ăn (Dish) có tồn tại và đúng Tenant, Category hay không
+            var existingDish = await _unitOfWork.Dishes.GetByFieldsIncludeAsync(
+                x => x.Id == dishId && x.CategoryId == categoryId,
+                x => x.Category
+            );
+
+            if (existingDish == null || existingDish.Category.TenantId != tenantId)
+            {
+                throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
+            }
+
+            // 2. Cập nhật trạng thái của Dish thành ngưng hoạt động
+            existingDish.IsAvailable = false;
+            _unitOfWork.Dishes.Update(existingDish);
+
+            // 3. Tìm các cấu hình của món ăn này ở các chi nhánh (BranchDishConfig)
+            var branchConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(b => b.DishId == dishId);
+
+            // 4. Cập nhật IsSelling = false cho tất cả chi nhánh
+            if (branchConfigs.Any())
+            {
+                foreach (var config in branchConfigs)
+                {
+                    config.IsSelling = false;
+                }
+
+                // Nếu bạn đã thêm hàm UpdateRange vào GenericRepository như bài trước, 
+                // bạn có thể dùng dòng dưới đây thay cho vòng lặp foreach để tối ưu hiệu suất:
+                _unitOfWork.BranchDishConfigs.UpdateRange(branchConfigs);
+            }
+
+            // 5. Lưu lại thay đổi vào database
+            await _unitOfWork.SaveAsync();
+
+            return true;
+        }
+        public async Task<bool> ActiveDish(Guid tenantId, int categoryId, int dishId)
+        {
+            var existingDish = await _unitOfWork.Dishes.GetByFieldsIncludeAsync(
+                x => x.Id == dishId && x.CategoryId == categoryId,
+                x => x.Category
+            );
+
+            if (existingDish == null || existingDish.Category.TenantId != tenantId)
+            {
+                throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
+            }
+
+            // 1. Mở lại trạng thái món ăn
+            existingDish.IsAvailable = true;
+            _unitOfWork.Dishes.Update(existingDish);
+
+            // 2. Tìm và mở bán lại món này ở các chi nhánh
+            var branchConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(b => b.DishId == dishId);
+            if (branchConfigs.Any())
+            {
+                foreach (var config in branchConfigs)
+                {
+                    config.IsSelling = true;
+                }
+
+                // Cập nhật hàng loạt nếu có hàm UpdateRange
+                 _unitOfWork.BranchDishConfigs.UpdateRange(branchConfigs);
+            }
+
+            await _unitOfWork.SaveAsync();
+            return true;
         }
     }
 }

@@ -18,5 +18,12 @@ namespace ScanToOrder.Api.Controllers
             var result = await _emailService.SendEmailAsync(request.To, request.Subject, request.HtmlContent);
             return Success(result);
         }
+
+        [HttpPost("guest-send/id-domain")]
+        public async Task<ActionResult<ApiResponse<bool>>> SendEmailViaIdDomain([FromBody] GuestSendEmailRequest request)
+        {
+            var result = await _emailService.GuestSendEmailAsync(request.From, request.Subject, request.HtmlContent);
+            return Success(result);
+        }
     }
 }

@@ -23,6 +23,9 @@ namespace ScanToOrder.Application.Message
             public const string DISH_UPDATED = "Cập nhật món ăn thành công.";
             public const string DISH_RETRIEVED = "Lấy món ăn thành công.";
             public const string DISH_AVAILABILITY_UPDATED = "Cập nhật số lượng món ăn thành công.";
+            public const string DISH_DELETED = "Xóa món ăn thành công.";
+            public const string DISH_DEACTIVE = "Hủy món ăn thành công";
+            public const string DISH_ACTIVATED = "Kích hoạt món ăn thành công.";
         }
 
 

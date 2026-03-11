@@ -73,6 +73,42 @@ namespace ScanToOrder.Infrastructure.Services
             throw new DomainException($"Email service error: {response.StatusCode}");
         }
 
+        private async Task<bool> GuestRequestInternalAsync(EmailSettings settings, string guestEmail, string subject, string htmlContent)
+        {
+            var requestData = new
+            {
+                from = $"{guestEmail} <{settings.FromEmail}>",
+                to = settings.ToEmail,
+                subject,
+                html = htmlContent,
+                reply_to = guestEmail
+            };
+
+            var json = JsonSerializer.Serialize(requestData);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {settings.ApiKey}");
+
+            var response = await _httpClient.PostAsync(settings.ApiUrl, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation($"{EmailMessage.EmailSuccess.EMAIL_SENT} từ {guestEmail} qua {settings.ToEmail}");
+                return true;
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError($"Failed to receive email via {settings.ToEmail}. Error: {errorContent}");
+            throw new DomainException($"Email service error: {response.StatusCode}");
+        }
+
+        public async Task<bool> GuestSendEmailAsync(string from, string subject, string htmlContent)
+        {
+            var settings = _emailOptions.Get(EmailMessage.EmailDomain.ID_DOMAIN);
+            return await GuestRequestInternalAsync(settings, from, subject, htmlContent);
+        }
+
         public async Task<bool> SendEmailAsync(string to, string subject, string htmlContent)
         {
             var settings = _emailOptions.Get(EmailMessage.EmailDomain.ID_DOMAIN);
@@ -91,7 +127,7 @@ namespace ScanToOrder.Infrastructure.Services
             {
                 from = settings.FromEmail,
                 to = new[] { to },
-                subject,
+                subject,    
                 template = new
                 {
                     id = templateId,

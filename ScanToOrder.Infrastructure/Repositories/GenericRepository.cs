@@ -99,5 +99,15 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _dbSet.Where(predicate).ToListAsync();
         }
+
+        public void RemoveRange(IEnumerable<T> entities)
+        {
+            _dbSet.RemoveRange(entities);
+        }
+
+        public void UpdateRange(IEnumerable<T> entities)
+        {
+            _dbSet.UpdateRange(entities);
+        }
     }
 }

@@ -17,5 +17,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, string includeProperties = "");
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+        void RemoveRange(IEnumerable<T> entities);
+        void UpdateRange(IEnumerable<T> entities);
     }
 }

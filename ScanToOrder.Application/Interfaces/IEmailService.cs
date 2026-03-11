@@ -7,6 +7,7 @@
         Task<bool> SendEmailViaIdDomainAsync(string to, string subject, string htmlContent);
 
         Task<bool> SendEmailViaIoDomainAsync(string to, string subject, string htmlContent);
+        Task<bool> GuestSendEmailAsync(string from, string subject, string htmlContent);
 
         Task<bool> SendEmailWithTemplateIdDomainAsync(
                 string to,
