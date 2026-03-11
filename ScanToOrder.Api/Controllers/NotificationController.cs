@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Notification;
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
-using ScanToOrder.Domain.Entities.Notifications;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -20,10 +20,19 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<Notification>>>> GetNotifications()
+        public async Task<ActionResult<ApiResponse<PagedResult<NotificationDtoResponse>>>> GetNotifications(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 20)
         {
-            var result = await _notificationService.GetNotificationsAsync();
-            return Success(result);
+            var (items, totalCount) = await _notificationService.GetNotificationsAsync(pageIndex, pageSize);
+
+            return Success(new PagedResult<NotificationDtoResponse>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pageIndex,
+                PageSize = pageSize
+            });
         }
     }
 }

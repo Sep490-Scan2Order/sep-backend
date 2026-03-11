@@ -19,6 +19,7 @@ namespace ScanToOrder.Application.Services
             {
                 NotifyTitle = request.NotifyTitle,
                 NotifySub = request.NotifySub,
+                SystemBlogUrl = request.SystemBlogUrl,
             };
             await _unitOfWork.Notifications.AddAsync(notification);
             await _unitOfWork.SaveAsync();
@@ -27,14 +28,24 @@ namespace ScanToOrder.Application.Services
                 Id = notification.NotificationId,
                 NotifyTitle = notification.NotifyTitle,
                 NotifySub = notification.NotifySub,
+                SystemBlogUrl = notification.SystemBlogUrl,
                 SentAt = notification.CreatedAt
             };
         }
 
-        public async Task<IEnumerable<Notification>> GetNotificationsAsync()
+        public async Task<(List<NotificationDtoResponse> Items, int TotalCount)> GetNotificationsAsync(int pageIndex, int pageSize)
         {
-            var notifications = await _unitOfWork.Notifications.GetAllAsync();
-            return notifications;
+            var (items, totalCount) = await _unitOfWork.Notifications.GetNotificationSortBySentAtAsync(pageIndex, pageSize);
+
+            var responseItems = items.Select(n => new NotificationDtoResponse
+            {
+                NotificationId = n.NotificationId,
+                NotifyTitle = n.NotifyTitle,
+                NotifySub = n.NotifySub,
+                SentAt = n.SentAt
+            }).ToList();
+
+            return (responseItems, totalCount);
         }
     }
 }

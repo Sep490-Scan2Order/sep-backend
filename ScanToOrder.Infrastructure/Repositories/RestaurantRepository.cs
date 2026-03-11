@@ -141,10 +141,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return R * c;
         }
-        public async Task<int> CountAsync(Expression<Func<Restaurant, bool>> predicate)
-        {
-            return await _dbSet.CountAsync(predicate);
-        }
 
         public async Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId)
         {
