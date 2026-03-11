@@ -14,12 +14,18 @@ public class WebhooksController : BaseController
     private readonly ITenantService _tenantService;
     private readonly IPaymentService _paymentService;
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IOrderService _orderService;
 
-    public WebhooksController(ITenantService tenantService, ISubscriptionService subscriptionService, IPaymentService paymentService)
+    public WebhooksController(
+        ITenantService tenantService,
+        ISubscriptionService subscriptionService,
+        IPaymentService paymentService,
+        IOrderService orderService)
     {
         _tenantService = tenantService;
         _subscriptionService = subscriptionService;
         _paymentService = paymentService;
+        _orderService = orderService;
     }
 
     [HttpPost("payos")]
@@ -49,15 +55,56 @@ public class WebhooksController : BaseController
     [AllowAnonymous]
     public async Task<IActionResult> HandleSepayWebhook([FromBody] SePayWebhookDto webhookBody)
     {
-        if (webhookBody.Code != null)
+        try
         {
-            var result = BankQrLinkUtils.DetectPaymentIntent(webhookBody.Code);
-            if (result == PaymentIntent.TenantVerification)
+            var paymentCode = webhookBody.Code
+                              ?? ExtractPaymentCodeFromText(webhookBody.Content, webhookBody.Description);
+
+            if (!string.IsNullOrWhiteSpace(paymentCode))
             {
-                await _tenantService.VerifyBankAccountAsync(webhookBody.Code);
+                var result = BankQrLinkUtils.DetectPaymentIntent(paymentCode);
+                if (result == PaymentIntent.TenantVerification)
+                {
+                    await _tenantService.VerifyBankAccountAsync(paymentCode);
+                }
+                else if (result == PaymentIntent.OrderPayment)
+                {
+                    await _orderService.ProcessOrderPaymentAsync(paymentCode, webhookBody.TransferAmount);
+                }
+            }
+
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    private static string? ExtractPaymentCodeFromText(params string?[] sources)
+    {
+        foreach (var src in sources)
+        {
+            if (string.IsNullOrWhiteSpace(src)) continue;
+
+            var idx = src.IndexOf("SToO", StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) continue;
+
+            var span = src.AsSpan(idx);
+            int end = 0;
+            while (end < span.Length && !char.IsWhiteSpace(span[end]))
+            {
+                end++;
+            }
+
+            var candidate = span[..end].ToString();
+            if (candidate.EndsWith("ORD", StringComparison.OrdinalIgnoreCase) ||
+                candidate.EndsWith("VER", StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
             }
         }
 
-        return Ok();
+        return null;
     }
 }

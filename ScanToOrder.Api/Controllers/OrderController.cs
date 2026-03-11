@@ -30,5 +30,13 @@ public class OrderController : BaseController
         var result = await _orderService.GetCartAsync(cartId);
         return Success(result);
     }
+
+    [HttpGet("payment/qr")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromQuery] string cartId)
+    {
+        var result = await _orderService.GetPaymentQrAsync(cartId);
+        return Success(result);
+    }
 }
 
