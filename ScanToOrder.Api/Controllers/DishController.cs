@@ -26,13 +26,6 @@ namespace ScanToOrder.Api.Controllers
             return Success(dishes, DishMessage.DishSuccess.DISH_RETRIEVED);
         }
 
-        [HttpGet("get-dish-by-tenantId/{id:Guid}")]
-        public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetDishByTenantId(Guid id)
-        {
-            var dish = await dishService.GetAllDishesByTenant(id);
-            return Success(dish, DishMessage.DishSuccess.DISH_RETRIEVED);
-        }
-
         [HttpPost("create-dish/{categoryId:int}")]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<ApiResponse<DishDto>>> CreateDish(int categoryId, [FromForm] CreateDishRequest request)
@@ -56,18 +49,6 @@ namespace ScanToOrder.Api.Controllers
                 var tenantId = _authenticatedUserService.ProfileId.Value;
                 var dish = await dishService.UpdateDish(tenantId, categoryId, dishId, request);
                 return Success(dish, DishMessage.DishSuccess.DISH_UPDATED);
-            }
-            throw new DomainException("ProfileId is null");
-        }
-
-        [HttpPut("update-dish-availability/{dishId:int}")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateDishAvailability(int dishId, [FromQuery] int availabilityStatus)
-        {
-            if (_authenticatedUserService.ProfileId != null)
-            {
-                var tenantId = _authenticatedUserService.ProfileId.Value;
-                var result = await dishService.UpdateDishAvailability(tenantId, dishId, availabilityStatus);
-                return Success(result, DishMessage.DishSuccess.DISH_AVAILABILITY_UPDATED);
             }
             throw new DomainException("ProfileId is null");
         }

@@ -189,31 +189,6 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<DishDto>(existingDish);
         }
 
-        public async Task<bool> UpdateDishAvailability(Guid tenantId, int dishId, int dishAvailability)
-        {
-            var existTenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
-            if (existTenant == null)
-            {
-                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
-            }
-
-
-            var existingDish = await _unitOfWork.Dishes.GetByFieldsIncludeAsync(
-                x => x.Id == dishId,
-                x => x.Category
-            );
-
-            if (existingDish == null || existingDish.Category.TenantId != tenantId)
-            {
-                throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
-            }
-
-            _unitOfWork.Dishes.Update(existingDish);
-            await _unitOfWork.SaveAsync();
-
-            return true;
-        }
-
         public async Task<int> ImportDishesFromExcelAsync(Guid tenantId, IFormFile file)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
