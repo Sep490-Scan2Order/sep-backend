@@ -202,8 +202,8 @@ public class OrderService : IOrderService
         if (transferAmount <= 0)
             throw new DomainException("Số tiền thanh toán không hợp lệ.");
 
-       
-        var existed = await _unitOfWork.Orders.ExistsAsync(o => o.Note == paymentCode);
+        // Idempotent theo transactionCode trong bảng Transaction (Orders.Transaction)
+        var existed = await _unitOfWork.Transactions.ExistsAsync(t => t.TransactionCode == paymentCode);
         if (existed)
         {
             return;
@@ -244,7 +244,6 @@ public class OrderService : IOrderService
                 RestaurantId = cart.RestaurantId,
                 OrderCode = orderCode,
                 IsPreOrder = false,
-                Note = paymentCode,
                 TotalAmount = cart.TotalAmount,
                 PromotionDiscount = 0,
                 FinalAmount = cart.TotalAmount,
@@ -267,8 +266,22 @@ public class OrderService : IOrderService
 
             await _unitOfWork.OrderDetails.AddRangeAsync(details);
 
+            var transaction = new Transaction
+            {
+                OrderId = orderId,
+                Status = OrderTransactionStatus.Success,
+                TotalAmount = expectedAmount,
+                TransactionCode = paymentCode,
+                PaymentMethod = PaymentMethod.BankTransfer
+            };
+
+            await _unitOfWork.Transactions.AddAsync(transaction);
+
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+
+            await _cartRedisService.DeleteCartAsync(cartId);
+            await _transactionRedisService.DeleteTransactionCodeAsync(paymentCode);
         }
         catch
         {
