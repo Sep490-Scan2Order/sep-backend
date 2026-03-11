@@ -1,5 +1,6 @@
 using ScanToOrder.Api.Extensions;
 using ScanToOrder.Api.Middleware;
+using ScanToOrder.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,8 @@ builder.Services.AddExternalUtilsConfig(builder.Configuration);
 builder.Services.AddRedisCloudServices(builder.Configuration);
 builder.Services.AddEmailServices(builder.Configuration);
 builder.Services.AddPayOSConfig(builder.Configuration); 
-    
+builder.Services.AddSignalR();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -43,6 +45,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<Scan2OrderRealtimeHub>("/scan2order-hub");
 
 app.MapControllers();
 

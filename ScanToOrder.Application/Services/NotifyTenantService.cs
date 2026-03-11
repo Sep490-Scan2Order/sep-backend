@@ -12,9 +12,11 @@ namespace ScanToOrder.Application.Services
     public class NotifyTenantService : INotifyTenantService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public NotifyTenantService(IUnitOfWork unitOfWork)
+        private readonly IRealtimeService _realtimeService;
+        public NotifyTenantService(IUnitOfWork unitOfWork, IRealtimeService realtimeService)
         {
             _unitOfWork = unitOfWork;
+            _realtimeService = realtimeService;
         }
         public async Task<List<CreateNotifyTenantDtoResponse>> CreateNotifyTenantAsync(CreateNotifyTenantDtoRequest request)
         {
@@ -25,6 +27,20 @@ namespace ScanToOrder.Application.Services
             }).ToList();
             await _unitOfWork.NotifyTenants.AddRangeAsync(notifyTenants);
             await _unitOfWork.SaveAsync();
+
+            foreach (var tenantId in request.TenantIds)
+            {
+                await _realtimeService.SendNotificationToTenant(tenantId.ToString(), new
+                {
+                    Message = RealtimeMessage.RealtimeSuccess.YOU_HAVE_NEW_NOTIFICATION,
+                    request.NotificationId
+                });
+
+                var unreadCount = await CountTotalNotifyByTenantId(tenantId, NotifyTenantStatus.Unread);
+                await _realtimeService.NotifyCountChanged(tenantId.ToString(), unreadCount);
+
+                await _realtimeService.NotifyListChanged(tenantId.ToString());
+            }
 
             return notifyTenants.Select(nt => new CreateNotifyTenantDtoResponse
             {
@@ -43,14 +59,10 @@ namespace ScanToOrder.Application.Services
 
         public async Task<int> CountTotalNotifyByTenantId(Guid tenantId, NotifyTenantStatus? status = null)
         {
-            if (status.HasValue)
-            {
-                return await _unitOfWork.NotifyTenants.CountAsync(nt => nt.TenantId == tenantId && nt.Status == status.Value);
-            }
-            else
-            {
-                return await _unitOfWork.NotifyTenants.CountAsync(nt => nt.TenantId == tenantId);
-            }
+            int count = status.HasValue
+                ? await _unitOfWork.NotifyTenants.CountAsync(nt => nt.TenantId == tenantId && nt.Status == status.Value)
+                : await _unitOfWork.NotifyTenants.CountAsync(nt => nt.TenantId == tenantId);
+            return count;
         }
 
         public async Task<string> UpdateStatusToReadAsync(Guid tenantId, UpdateNotifyTenantStatusRequestDto request)
@@ -75,25 +87,13 @@ namespace ScanToOrder.Application.Services
 
             await _unitOfWork.SaveAsync();
 
+            var unreadCount = await CountTotalNotifyByTenantId(tenantId, NotifyTenantStatus.Unread);
+            await _realtimeService.NotifyCountChanged(tenantId.ToString(), unreadCount);
+
+            await _realtimeService.NotifyListChanged(tenantId.ToString());
+
             return NotifyTenantMessage.NotifyTenantSuccess.ALL_NOTIFY_TENANT_READED;
         }
-
-        public async Task<List<NotifyDetailDtoResponse>> GetNotifiTenantDetailsAsync(Guid tenantId)
-        {
-            var notifyTenants = await _unitOfWork.NotifyTenants.GetDetailsByTenantIdAsync(tenantId);
-
-            return notifyTenants.Select(nt => new NotifyDetailDtoResponse
-            {
-                NotificationId = nt.NotificationId,
-                NotifyTitle = nt.Notification.NotifyTitle,
-                NotifySub = nt.Notification.NotifySub,
-                SystemBlogUrl = nt.Notification.SystemBlogUrl,
-                Status = nt.Status,
-                SentAt = nt.Notification.SentAt,
-                ReadAt = nt.ReadAt
-            }).ToList();
-        }
-
         public async Task<(List<NotifyDetailDtoResponse> Items, int TotalCount)> GetNotifyDetailsByTenantIdSortBySentAtAsync(int pageIndex, int pageSize, Guid tenantId)
         {
             var (items, totalCount) = await _unitOfWork.NotifyTenants.GetNotifyDetailsByTenantIdSortBySentAtAsync(pageIndex, pageSize, tenantId);
