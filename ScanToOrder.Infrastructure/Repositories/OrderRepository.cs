@@ -25,17 +25,27 @@ namespace ScanToOrder.Infrastructure.Repositories
 
             return maxToday + 1;
         }
-        public async Task<List<Order>> GetOrdersForKdsAsync(int restaurantId, List<OrderStatus> statuses)
+        public async Task<List<Order>> GetOrdersForKdsAsync(int restaurantId)
         {
             return await _context.Orders
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
                 .Where(o => o.RestaurantId == restaurantId
-                            && statuses.Contains(o.Status)
                             && !o.IsDeleted)
                 .OrderByDescending(o => o.CreatedAt) 
                 .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<Order?> GetOrderWithDetailsForKdsAsync(Guid orderId)
+        {
+            return await _dbSet
+                .Include(o => o.OrderDetails)        
+                    .ThenInclude(od => od.Dish)      
+                .Include(o => o.Restaurant)   
+                .Where(o => o.Id == orderId && !o.IsDeleted)
+                .AsNoTracking()                      
+                .FirstOrDefaultAsync();
         }
     }
 }

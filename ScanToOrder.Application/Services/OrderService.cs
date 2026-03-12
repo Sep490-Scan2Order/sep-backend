@@ -21,17 +21,20 @@ public class OrderService : IOrderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICartRedisService _cartRedisService;
     private readonly ITransactionRedisService _transactionRedisService;
+    private readonly IRealtimeService _realtimeService;
     private readonly IMapper _mapper;
 
     public OrderService(
         IUnitOfWork unitOfWork,
         ICartRedisService cartRedisService,
         ITransactionRedisService transactionRedisService,
+        IRealtimeService realtimeService,
         IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
         _transactionRedisService = transactionRedisService;
+        _realtimeService = realtimeService;
         _mapper = mapper;
     }
 
@@ -256,7 +259,7 @@ public class OrderService : IOrderService
                 Status = OrderStatus.Preparing,
                 IsScanned = false,
                 Type = "SePay",
-                NumberPhone = cart.NumberPhone ,
+                NumberPhone = cart.NumberPhone,
             };
 
             await _unitOfWork.Orders.AddAsync(order);
@@ -298,41 +301,97 @@ public class OrderService : IOrderService
 
     public async Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId)
     {
-        // 1. Xác định các trạng thái KDS cần hiển thị (thường là Đang nấu và Đã xong chờ giao)
-        var activeStatuses = new List<OrderStatus>
-    {
-        OrderStatus.Preparing,
-        OrderStatus.Ready
-    };
+        
 
-        // 2. Gọi Repo lấy danh sách
-        var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId, activeStatuses);
+        var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId);
 
         if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();
 
-        // 3. Map sang List DTO
         return orders.Select(order => new KdsOrderResponse
         {
             Id = order.Id.ToString(),
             OrderCode = order.OrderCode,
             CreatedAt = order.CreatedAt,
             Amount = order.FinalAmount,
-            Phone = order.NumberPhone ?? "N/A", 
+            Phone = order.NumberPhone,
             Status = (int)order.Status,
 
             Items = order.OrderDetails.Select(od => new KdsItemResponse
             {
                 Id = od.Id.ToString(),
-                Name = od.Dish?.DishName ?? "Món không xác định",
+                Name = od.Dish.DishName,
                 Price = od.Price,
                 Quantity = od.Quantity,
-                Image = od.Dish?.ImageUrl ?? "https://default-image.png"
+                Image = od.Dish.ImageUrl 
             }).ToList()
         }).ToList();
     }
+    public async Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
+    {
+        var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+        if (order == null) return false;
 
+        order.Status = newStatus;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveAsync();
+
+        if (_realtimeService != null)
+        {
+            await _realtimeService.NotifyOrderStatusChanged(
+                order.RestaurantId.ToString(),
+                order.Id.ToString(),
+                (int)newStatus
+            );
+        }
+        return true;
+    }
+
+    public async Task<KdsOrderResponse?> GetSingleOrderForKds(Guid orderId)
+    {
+        var order = await _unitOfWork.Orders.GetOrderWithDetailsForKdsAsync(orderId);
+
+        if (order == null) return null;
+        
+        return new KdsOrderResponse
+        {
+            Id = order.Id.ToString(),
+            OrderCode = order.OrderCode,
+            CreatedAt = order.CreatedAt,
+            Amount = order.FinalAmount,
+            Phone = order.NumberPhone,
+            Status = (int)order.Status,
+            RestaurantId = order.RestaurantId, 
+
+            Items = order.OrderDetails.Select(od => new KdsItemResponse
+            {
+                Id = od.Id.ToString(),
+                Name = od.Dish.DishName,
+                Price = od.Price,
+                Quantity = od.Quantity,
+                Image = od.Dish.ImageUrl
+            }).ToList()
+        };
+    }
+
+    public async Task ProcessAndNotifyKds(Guid orderId)
+    {
+        // 1. Lấy dữ liệu chuẩn KDS
+        var kdsOrder = await GetSingleOrderForKds(orderId);
+
+        if (kdsOrder != null)
+        {
+            // 2. Bắn SignalR đến Group của nhà hàng
+            // Staff thuộc nhà hàng này sẽ nhận được ngay lập tức
+            await _realtimeService.SendOrderToKitchen(kdsOrder.RestaurantId.ToString(), kdsOrder);
+
+            // (Tùy chọn) Thông báo cập nhật số lượng đơn hàng đang chờ
+            await _realtimeService.NotifyCountChanged(kdsOrder.RestaurantId.ToString(), 1);
+        }
+    }
     private static (DateTime StartUtc, DateTime EndUtc, int DateInt) GetVietnamDayRangeUtc()
-    {        
+    {
         try
         {
             var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");

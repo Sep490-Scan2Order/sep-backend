@@ -11,6 +11,8 @@ namespace ScanToOrder.Application.DTOs.Orders
         public string Id { get; set; }
         public string Phone { get; set; } // Lấy từ User hoặc Note
         public int OrderCode { get; set; }
+
+        public int RestaurantId { get; set; }
         public DateTime CreatedAt { get; set; }
         public decimal Amount { get; set; }
 

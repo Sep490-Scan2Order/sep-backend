@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Api.Controllers;
 
@@ -43,6 +44,13 @@ public class OrderController : BaseController
     public async Task<ActionResult<ApiResponse<List<KdsOrderResponse>>>> GetKdsActiveOrders([FromRoute] int restaurantId)
     {
         var result = await _orderService.GetKdsActiveOrders(restaurantId);
+        return Success(result);
+    }
+
+    [HttpPut("update-status/{orderId}")]
+    public async Task<ActionResult<ApiResponse<bool>>> UpdateOrderStatus([FromRoute] Guid orderId, [FromQuery] OrderStatus newStatus)
+    {
+        var result = await _orderService.UpdateOrderStatus(orderId, newStatus);
         return Success(result);
     }
 }

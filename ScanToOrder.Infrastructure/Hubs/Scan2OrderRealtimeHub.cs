@@ -15,7 +15,7 @@ namespace ScanToOrder.Infrastructure.Hubs
         }
 
         public async Task JoinRestaurantGroup(string restaurantId)
-        {
+        { 
             await Groups.AddToGroupAsync(Context.ConnectionId, restaurantId);
         }
     }
