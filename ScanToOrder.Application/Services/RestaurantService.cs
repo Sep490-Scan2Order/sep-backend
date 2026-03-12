@@ -233,7 +233,8 @@ namespace ScanToOrder.Application.Services
             var dtos = restaurants.Select(r => _mapper.Map<RestaurantDto>(r));
             return dtos;
         }
-
+        
+        // This method is the core of the menu retrieval logic, combining restaurant data with active promotions to calculate real-time pricing and labels for the UI.
         public async Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId)
         {
             // 0. Use consistent time with UTC+7 offset for local business logic
@@ -257,7 +258,7 @@ namespace ScanToOrder.Application.Services
             );
 
             // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
-            var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesAsync(restaurantId);
+            var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAsync(restaurantId);
 
             // 4. Build Menu structure
             var menu = branchDishes
@@ -313,6 +314,7 @@ namespace ScanToOrder.Application.Services
                             PromotionLabel = promoLabel,
                             PromoType = winningPromo?.Type,
                             // Calculate real-time expiration for UI countdown
+                            DishAvailabilityStock = bdc.DishAvailability,
                             ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
                             IsSoldOut = bdc.IsSoldOut
                         };

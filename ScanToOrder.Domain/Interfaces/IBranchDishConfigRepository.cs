@@ -6,10 +6,9 @@ namespace ScanToOrder.Domain.Interfaces
     {
         Task<List<BranchDishConfig>> GetByRestaurantIdWithIncludeAsync(int restaurantId);
         Task<BranchDishConfig?> GetByIdWithIncludeAsync(int id);
-        Task<List<BranchDishConfig>> GetSellingDishesAsync(int restaurantId);
         Task AddRangeAsync(List<BranchDishConfig> configs);
-
-        Task<List<BranchDishConfig>> GetConfigsByDishIdsAsync(List<int> dishIds);
+        Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAsync(int restaurantId);
         Task<bool> ReserveDishAvailabilityAsync(int restaurantId, int dishId, int quantity);
+        Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAndDishIdsAsync(int restaurantId, List<int> dishIds);
     }
 }

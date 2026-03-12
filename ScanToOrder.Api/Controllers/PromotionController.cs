@@ -20,6 +20,7 @@ public class PromotionController : BaseController
         _authenticatedUserService = authenticatedUserService;
     }
     
+    // CRUD for Promotions
     [HttpPost]
     public async Task<ActionResult<ApiResponse<string>>> CreatePromotion([FromBody] CreatePromotionDto request)
     {
@@ -33,6 +34,13 @@ public class PromotionController : BaseController
     public async Task<ActionResult<ApiResponse<PromotionResponseDto>>> GetPromotionById([FromRoute] int id)
     {
         var result = await _promotionService.GetPromotionByIdAsync(id);
+        return Success(result);
+    }
+    
+    [HttpGet("{id:Guid}/tenant")]
+    public async Task<ActionResult<ApiResponse<PromotionResponseDto>>> GetPromotionByTenantId([FromRoute] Guid id)
+    {
+        var result = await _promotionService.GetPromotionByTenantAsync(id);
         return Success(result);
     }
     

@@ -15,5 +15,6 @@ public class MenuDishItemDto
     public string? PromotionLabel { get; set; }
     public DateTime? ExpiredAt { get; set; } 
     public PromotionType? PromoType { get; set; } 
+    public int DishAvailabilityStock { get; set; }
     public bool HasPromotion => DiscountedPrice < Price;
 }

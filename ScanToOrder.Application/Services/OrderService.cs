@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 using AutoMapper;
 using DocumentFormat.OpenXml.InkML;
 using ScanToOrder.Application.DTOs.Orders;
+using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Orders;
+using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
@@ -152,6 +154,60 @@ public class OrderService : IOrderService
 
         var cart = JsonSerializer.Deserialize<CartModel>(json)
                    ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
+        
+        if (cart.Items != null && cart.Items.Any())
+        {
+            var dishIds = cart.Items.Select(i => i.DishId).ToList();
+            var dishesWithPromo = await GetDishesByIdsWithPromotionAsync(cart.RestaurantId, dishIds);
+
+            bool isUpdated = false;
+            var itemsToRemove = new List<CartItemModel>();
+
+            foreach (var item in cart.Items)
+            {
+                var dishInfo = dishesWithPromo.FirstOrDefault(d => d.DishId == item.DishId);
+                
+                if (dishInfo == null || dishInfo.IsSoldOut) 
+                {
+                    itemsToRemove.Add(item);
+                    isUpdated = true;
+                    continue;
+                }
+
+                if (item.Price != dishInfo.DiscountedPrice)
+                {
+                    item.Price = dishInfo.DiscountedPrice;
+                    item.SubTotal = item.Price * item.Quantity;
+                    isUpdated = true;
+                }
+
+                if (item.Quantity > dishInfo.DishAvailabilityStock)
+                {
+                    item.Quantity = Math.Max(0, dishInfo.DishAvailabilityStock);
+                    if (item.Quantity == 0)
+                    {
+                        itemsToRemove.Add(item);
+                    }
+                    else 
+                    {
+                        item.SubTotal = item.Price * item.Quantity;
+                    }
+                    isUpdated = true;
+                }
+            }
+
+            if (itemsToRemove.Any())
+            {
+                foreach(var item in itemsToRemove) cart.Items.Remove(item);
+            }
+
+            if (isUpdated)
+            {
+                cart.TotalAmount = cart.Items.Sum(i => i.SubTotal);
+                var updatedJson = JsonSerializer.Serialize(cart);
+                await _cartRedisService.SaveRawCartAsync(cartId, updatedJson, TimeSpan.FromMinutes(60));
+            }
+        }
 
         return _mapper.Map<CartDto>(cart);
     }
@@ -367,6 +423,124 @@ public class OrderService : IOrderService
                 Image = od.Dish?.ImageUrl ?? "https://default-image.png"
             }).ToList()
         }).ToList();
+    }
+
+    // Get list of dishes with promotion info for given dishIds in a restaurant, used for FE to display correct price and promotion label when user add to cart
+    public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
+    {
+        if (dishIds == null || !dishIds.Any())
+            throw new DomainException("Danh sách DishId không được để trống.");
+
+        var now = DateTime.UtcNow.AddHours(7);
+
+        var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId)
+                         ?? throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+        var tenantId = restaurant.TenantId;
+
+        var basePromotions = await _unitOfWork.Promotions.GetAllAsync(p =>
+            p.TenantId == tenantId &&
+            p.IsActive &&
+            !p.IsDeleted &&
+            p.Scope == PromotionScope.Dish &&
+            (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
+                            && !p.PromotionDishes.Any()))
+        );
+
+        var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(restaurantId, dishIds);
+
+        var result = branchDishes.Select(bdc =>
+        {
+            var specificDishPromos = bdc.Dish.PromotionDishes?
+                                         .Select(pd => pd.Promotion)
+                                         .Where(p => p.Scope == PromotionScope.Dish &&
+                                                     p.IsActive &&
+                                                     !p.IsDeleted)
+                                     ?? [];
+
+            var allEligiblePromotions = basePromotions.Concat(specificDishPromos);
+
+            var winningPromo = allEligiblePromotions
+                .Where(p => p.IsValidAt(now))
+                .OrderByDescending(p => p.Priority)
+                    .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
+                .FirstOrDefault();
+
+            int discountedPrice = (int)bdc.Price;
+            string? promoLabel = null;
+
+            if (winningPromo != null)
+            {
+                var discountAmount = CalculateDiscountValue(bdc.Price, winningPromo);
+                discountedPrice = (int)Math.Max(bdc.Price - discountAmount, 0);
+
+                promoLabel = winningPromo.DiscountType == DiscountType.Percentage
+                    ? $"-{winningPromo.DiscountValue}%"
+                    : $"-{(winningPromo.DiscountValue / 1000):G}k";
+            }
+
+            return new MenuDishItemDto
+            {
+                DishId = bdc.DishId,
+                DishName = bdc.Dish.DishName,
+                Description = bdc.Dish.Description,
+                ImageUrl = bdc.Dish.ImageUrl,
+                Price = (int)bdc.Price,
+                DiscountedPrice = discountedPrice,
+                PromotionName = winningPromo?.Name,
+                PromotionLabel = promoLabel,
+                PromoType = winningPromo?.Type,
+                DishAvailabilityStock = bdc.DishAvailability,
+                ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
+                IsSoldOut = bdc.IsSoldOut
+            };
+        }).ToList();
+
+        return result;
+    }
+
+    // Calculate discount value based on promotion type and rules
+    private static decimal CalculateDiscountValue(decimal price, Promotion p)
+    {
+        if (p.DiscountType == DiscountType.FixedAmount)
+            return p.DiscountValue;
+
+        var discount = price * (p.DiscountValue / 100);
+
+        return p.MaxDiscountValue.HasValue
+            ? Math.Min(discount, p.MaxDiscountValue.Value)
+            : discount;
+    }
+    // Calculate the actual expiration time of a promotion considering its type and daily time rules
+    private static DateTime? CalculateTrueExpiredAt(Promotion p, DateTime now)
+    {
+        var today = now.Date;
+        DateTime? trueExpiredAt = p.EndDate;
+
+        switch (p.Type)
+        {
+            case PromotionType.HappyHour:
+            case PromotionType.WeeklySpecial:
+                if (p.DailyEndTime.HasValue)
+                {
+                    trueExpiredAt = today.Add(p.DailyEndTime.Value);
+                }
+                else if (p.Type == PromotionType.WeeklySpecial)
+                {
+                    trueExpiredAt = today.AddDays(1).AddTicks(-1);
+                }
+                break;
+
+            case PromotionType.Clearance:
+            case PromotionType.Standard:
+                trueExpiredAt = p.EndDate;
+                break;
+        }
+
+        if (p.EndDate.HasValue && trueExpiredAt > p.EndDate.Value)
+            trueExpiredAt = p.EndDate.Value;
+
+        return trueExpiredAt;
     }
 
     private static (DateTime StartUtc, DateTime EndUtc, int DateInt) GetVietnamDayRangeUtc()

@@ -15,7 +15,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
 
-        [HttpGet]
+        [HttpGet]   
         public async Task<ActionResult<ApiResponse<List<PlanResponse>>>> GetAllPlan()
         {
             var result = await _planService.GetAllPlansAsync();

@@ -27,15 +27,16 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(x => x.Dish)
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
-
+        
         public async Task AddRangeAsync(List<BranchDishConfig> configs)
         {
             await _dbSet.AddRangeAsync(configs);
         }
 
-        public async Task<List<BranchDishConfig>> GetSellingDishesAsync(int restaurantId)
+        public async Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAsync(int restaurantId)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(bdc => bdc.Dish)
                     .ThenInclude(d => d.Category)
                 .Include(bdc => bdc.Dish)
@@ -45,16 +46,67 @@ namespace ScanToOrder.Infrastructure.Repositories
                               && bdc.IsSelling
                               && !bdc.IsDeleted
                               && !bdc.Dish.IsDeleted)
+                .Select(bdc => new BranchDishConfig
+                {
+                    Id = bdc.Id,
+                    RestaurantId = bdc.RestaurantId,
+                    DishId = bdc.DishId,
+                    IsSelling = bdc.IsSelling,
+                    Price = bdc.Price,
+                    DishAvailability = bdc.DishAvailability,
+                    IsSoldOut = bdc.IsSoldOut,
+                    Dish = new Dish
+                    {
+                        Id = bdc.Dish.Id,
+                        DishName = bdc.Dish.DishName,
+                        Description = bdc.Dish.Description,
+                        ImageUrl = bdc.Dish.ImageUrl,
+                        Category = bdc.Dish.Category,
+                        PromotionDishes = bdc.Dish.PromotionDishes
+                            .Where(pd => pd.Promotion.IsActive && !pd.Promotion.IsDeleted)
+                            .ToList()
+                    }
+                })
                 .ToListAsync();
         }
-
-        public async Task<List<BranchDishConfig>> GetConfigsByDishIdsAsync(List<int> dishIds)
+        
+        public async Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAndDishIdsAsync(int restaurantId,
+            List<int> dishIds)
         {
-            // Dùng Contains để tìm tất cả Config có DishId nằm trong danh sách truyền vào
             return await _dbSet
-                            .Where(b => dishIds
-                            .Contains(b.DishId))
-                            .ToListAsync();
+                .AsNoTracking()
+                .Include(bdc => bdc.Dish)
+                    .ThenInclude(d => d.Category)
+                .Include(bdc => bdc.Dish)
+                    .ThenInclude(d => d.PromotionDishes)
+                        .ThenInclude(pd => pd.Promotion)
+                .Where(bdc => bdc.RestaurantId == restaurantId
+                              && bdc.IsSelling
+                              && !bdc.IsDeleted
+                              && !bdc.Dish.IsDeleted
+                              && dishIds.Contains(bdc.DishId))
+                .Select(bdc => new BranchDishConfig
+                {
+                    Id = bdc.Id,
+                    RestaurantId = bdc.RestaurantId,
+                    DishId = bdc.DishId,
+                    IsSelling = bdc.IsSelling,
+                    Price = bdc.Price,
+                    DishAvailability = bdc.DishAvailability,
+                    IsSoldOut = bdc.IsSoldOut,
+                    Dish = new Dish
+                    {
+                        Id = bdc.Dish.Id,
+                        DishName = bdc.Dish.DishName,
+                        Description = bdc.Dish.Description,
+                        ImageUrl = bdc.Dish.ImageUrl,
+                        Category = bdc.Dish.Category,
+                        PromotionDishes = bdc.Dish.PromotionDishes
+                            .Where(pd => pd.Promotion.IsActive && !pd.Promotion.IsDeleted)
+                            .ToList()
+                    }
+                })
+                .ToListAsync();
         }
 
         public async Task<bool> ReserveDishAvailabilityAsync(int restaurantId, int dishId, int quantity)

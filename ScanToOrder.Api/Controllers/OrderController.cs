@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Orders;
+using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 
@@ -43,6 +44,15 @@ public class OrderController : BaseController
     public async Task<ActionResult<ApiResponse<List<KdsOrderResponse>>>> GetKdsActiveOrders([FromRoute] int restaurantId)
     {
         var result = await _orderService.GetKdsActiveOrders(restaurantId);
+        return Success(result);
+    }
+
+    [HttpPost("dishes-with-promotion")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<List<MenuDishItemDto>>>> GetDishesByIdsWithPromotion(
+        [FromBody] GetDishesByIdsRequest request)
+    {
+        var result = await _orderService.GetDishesByIdsWithPromotionAsync(request.RestaurantId, request.DishIds);
         return Success(result);
     }
 }

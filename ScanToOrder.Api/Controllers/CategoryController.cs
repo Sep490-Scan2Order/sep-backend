@@ -62,7 +62,8 @@ namespace ScanToOrder.Api.Controllers
             var result = await _categoryService.DeleteCategory(id);
             return Success(result, CategoryMessage.CategorySuccess.CATEGORY_DELETED);
         }
-
+        
+        // Activate/Deactive category instead of delete to keep the data integrity of the dishes that belong to the category
         [HttpPut("de-active-category/{id:int}")]
         [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<bool>>> DeActiveCategory(int id)
