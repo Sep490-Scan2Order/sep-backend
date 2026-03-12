@@ -139,9 +139,10 @@ namespace ScanToOrder.Application.Services
         public async Task<bool> VerifyBankAccountAsync(string paymentCode, string gateway, string accountNumber)
         {
             var tenantId = await _transactionRedisService.GetTenantIdByTransactionCodeAsync(paymentCode);
+            var bank = await _unitOfWork.Banks.FirstOrDefaultAsync(b => b.ShortName == gateway);
             var result = await _bankLookupService.LookupAccountAsync(new BankLookRequest()
             {
-                Bank = gateway,
+                Bank = bank.Code,
                 Account = accountNumber
             });
             if (!result.Success)
@@ -235,7 +236,7 @@ namespace ScanToOrder.Application.Services
         public async Task<TenantDto> GetTenantByIdAsync(Guid tenantId)
         {
             var tenant = await _unitOfWork.Tenants
-                .GetTenantWithSubscriptionByAccountIdAsync(tenantId);
+                .GetByFieldsIncludeAsync(t => t.Id == tenantId, t => t.Account, t => t.Bank!);
 
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
