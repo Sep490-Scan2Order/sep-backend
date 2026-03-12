@@ -20,11 +20,12 @@ builder.Services.AddPayOSConfig(builder.Configuration);
 builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
+
 {
     options.AddPolicy("AllowFrontend", policy =>
+
     {
-        var origins = builder.Configuration["CorsSettings:AllowedOrigins"]!.Split(",");
-        policy.WithOrigins(origins)
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
