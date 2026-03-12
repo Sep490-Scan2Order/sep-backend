@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Orders;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
+using System.Linq;
 
 namespace ScanToOrder.Infrastructure.Repositories
 {
@@ -22,6 +24,18 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .MaxAsync() ?? 0;
 
             return maxToday + 1;
+        }
+        public async Task<List<Order>> GetOrdersForKdsAsync(int restaurantId, List<OrderStatus> statuses)
+        {
+            return await _context.Orders
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Dish)
+                .Where(o => o.RestaurantId == restaurantId
+                            && statuses.Contains(o.Status)
+                            && !o.IsDeleted)
+                .OrderByDescending(o => o.CreatedAt) 
+                .AsNoTracking()
+                .ToListAsync();
         }
     }
 }

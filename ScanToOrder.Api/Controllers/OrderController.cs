@@ -38,5 +38,12 @@ public class OrderController : BaseController
         var result = await _orderService.GetPaymentQrAsync(cartId);
         return Success(result);
     }
+
+    [HttpGet("kds/active-orders/{restaurantId}")]
+    public async Task<ActionResult<ApiResponse<List<KdsOrderResponse>>>> GetKdsActiveOrders([FromRoute] int restaurantId)
+    {
+        var result = await _orderService.GetKdsActiveOrders(restaurantId);
+        return Success(result);
+    }
 }
 

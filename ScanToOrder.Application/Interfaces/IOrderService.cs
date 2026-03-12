@@ -9,5 +9,6 @@ public interface IOrderService
     Task<CartDto> GetCartAsync(string cartId);
     Task<PaymentQrDto> GetPaymentQrAsync(string cartId);
     Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount);
+    Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId);
 }
 

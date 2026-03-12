@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AutoMapper;
+using DocumentFormat.OpenXml.InkML;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -255,7 +256,7 @@ public class OrderService : IOrderService
                 Status = OrderStatus.Preparing,
                 IsScanned = false,
                 Type = "SePay",
-                UserId = null
+                NumberPhone = cart.NumberPhone ,
             };
 
             await _unitOfWork.Orders.AddAsync(order);
@@ -293,6 +294,41 @@ public class OrderService : IOrderService
             await tx.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId)
+    {
+        // 1. Xác định các trạng thái KDS cần hiển thị (thường là Đang nấu và Đã xong chờ giao)
+        var activeStatuses = new List<OrderStatus>
+    {
+        OrderStatus.Preparing,
+        OrderStatus.Ready
+    };
+
+        // 2. Gọi Repo lấy danh sách
+        var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId, activeStatuses);
+
+        if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();
+
+        // 3. Map sang List DTO
+        return orders.Select(order => new KdsOrderResponse
+        {
+            Id = order.Id.ToString(),
+            OrderCode = order.OrderCode,
+            CreatedAt = order.CreatedAt,
+            Amount = order.FinalAmount,
+            Phone = order.NumberPhone ?? "N/A", 
+            Status = (int)order.Status,
+
+            Items = order.OrderDetails.Select(od => new KdsItemResponse
+            {
+                Id = od.Id.ToString(),
+                Name = od.Dish?.DishName ?? "Món không xác định",
+                Price = od.Price,
+                Quantity = od.Quantity,
+                Image = od.Dish?.ImageUrl ?? "https://default-image.png"
+            }).ToList()
+        }).ToList();
     }
 
     private static (DateTime StartUtc, DateTime EndUtc, int DateInt) GetVietnamDayRangeUtc()

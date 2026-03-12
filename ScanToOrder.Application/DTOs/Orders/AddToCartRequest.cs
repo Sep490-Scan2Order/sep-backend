@@ -10,6 +10,8 @@ public class AddToCartRequest
 
     public int Quantity { get; set; } = 1;
 
+    public string NumberPhone { get; set; } = null!;    
+
     public string? Note { get; set; }
 
     public string? CartId { get; set; }

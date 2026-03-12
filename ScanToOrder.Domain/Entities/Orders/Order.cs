@@ -8,10 +8,9 @@ namespace ScanToOrder.Domain.Entities.Orders
 {
     public class Order : BaseEntity<Guid>
     {
-        public Guid? UserId { get; set; }
         public int RestaurantId { get; set; }
         public int? PromotionId { get; set; }
-
+        public string NumberPhone { get; set; } = null!;
         public int OrderCode { get; set; }
 
         public bool IsPreOrder { get; set; }
@@ -25,10 +24,9 @@ namespace ScanToOrder.Domain.Entities.Orders
 
         public string Type { get; set; } = null!;
 
-        public virtual AuthenticationUser? User { get; set; }
-
         public virtual Promotion? Promotion { get; set; }
 
         public virtual Restaurant Restaurant { get; set; } = null!;
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
     }
 }
