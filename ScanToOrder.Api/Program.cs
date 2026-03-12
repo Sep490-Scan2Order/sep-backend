@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using ScanToOrder.Api.Extensions;
 using ScanToOrder.Api.Middleware;
 using ScanToOrder.Infrastructure.Hubs;
@@ -23,7 +24,6 @@ builder.Services.AddCors(options =>
 
 {
     options.AddPolicy("AllowFrontend", policy =>
-
     {
         policy.SetIsOriginAllowed(origin => true)
               .AllowAnyHeader()
@@ -33,6 +33,11 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 app.UseMiddleware<HandleExceptionMiddleware>();
 app.UseCors("AllowFrontend");
 // Configure the HTTP request pipeline.
@@ -43,8 +48,6 @@ app.UseCors("AllowFrontend");
 // }
 app.UseSwagger();
 app.UseSwaggerUI();
-
-app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

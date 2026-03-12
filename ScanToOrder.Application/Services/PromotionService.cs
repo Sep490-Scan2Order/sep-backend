@@ -207,6 +207,8 @@ public class PromotionService : IPromotionService
         await _unitOfWork.SaveAsync();
     }
 
+    
+    // Helper methods to manage many-to-many relationships for PromotionDishes and RestaurantPromotions
     private void UpdatePromotionDishes(Promotion promotion, List<int> newDishIds)
     {
         // Remove dishes no longer in the list

@@ -21,11 +21,14 @@ namespace ScanToOrder.Application.Services
 
         public async Task<CategoryDto> CreateCategory(Guid tenantId, CreateCategoryRequest categoryDto)
         {
-            var existingCategory = await _unitOfWork.Categories.GetByFieldsIncludeAsync(x => x.CategoryName.Equals(categoryDto.CategoryName));
+            var existingCategory =
+                await _unitOfWork.Categories.GetByFieldsIncludeAsync(x =>
+                    x.CategoryName.Equals(categoryDto.CategoryName));
             if (existingCategory != null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_ALREADY_EXISTS);
             }
+
             var existTenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (existTenant == null)
             {
@@ -65,6 +68,7 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
+
             existingCategory.CategoryName = categoryDto.CategoryName;
 
             _unitOfWork.Categories.Update(existingCategory);
@@ -150,13 +154,15 @@ namespace ScanToOrder.Application.Services
 
             // 2. Tìm các món ăn (Dishes) thuộc Category này
             // LƯU Ý: Chỉ lấy những món chưa bị xóa và đang có trạng thái IsAvailable = true
-            var dishes = await _unitOfWork.Dishes.FindAsync(d => d.CategoryId == categoryId && !d.IsDeleted && d.IsAvailable);
-            var dishIds = dishes.Select(d => d.Id).ToList(); 
+            var dishes =
+                await _unitOfWork.Dishes.FindAsync(d => d.CategoryId == categoryId && !d.IsDeleted && d.IsAvailable);
+            var dishIds = dishes.Select(d => d.Id).ToList();
 
             // 3. Nếu có món ăn thỏa mãn, tìm và cập nhật IsSelling = true cho BranchDishConfig
             if (dishIds.Any())
             {
-                var branchConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(b => dishIds.Contains(b.DishId)); // Hoặc b.DishId
+                var branchConfigs =
+                    await _unitOfWork.BranchDishConfigs.FindAsync(b => dishIds.Contains(b.DishId)); // Hoặc b.DishId
                 if (branchConfigs.Any())
                 {
                     foreach (var config in branchConfigs)
@@ -164,7 +170,7 @@ namespace ScanToOrder.Application.Services
                         config.IsSelling = true;
                     }
 
-                     _unitOfWork.BranchDishConfigs.UpdateRange(branchConfigs);
+                    _unitOfWork.BranchDishConfigs.UpdateRange(branchConfigs);
                 }
             }
 

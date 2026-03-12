@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Orders;
+using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Enums;
@@ -34,9 +35,9 @@ public class OrderController : BaseController
 
     [HttpGet("payment/qr")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromQuery] string cartId)
+    public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromQuery] string cartId, string phone)
     {
-        var result = await _orderService.GetPaymentQrAsync(cartId);
+        var result = await _orderService.GetPaymentQrAsync(cartId, phone);
         return Success(result);
     }
 
@@ -47,10 +48,21 @@ public class OrderController : BaseController
         return Success(result);
     }
 
+
     [HttpPut("update-status/{orderId}")]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateOrderStatus([FromRoute] Guid orderId, [FromQuery] OrderStatus newStatus)
     {
         var result = await _orderService.UpdateOrderStatus(orderId, newStatus);
+        return Success(result);
+    }
+
+    [HttpPost("dishes-with-promotion")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<List<MenuDishItemDto>>>> GetDishesByIdsWithPromotion(
+        [FromBody] GetDishesByIdsRequest request)
+    {
+        var result = await _orderService.GetDishesByIdsWithPromotionAsync(request.RestaurantId, request.DishIds);
+
         return Success(result);
     }
 }

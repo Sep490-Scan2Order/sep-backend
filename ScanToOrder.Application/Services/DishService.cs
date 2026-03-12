@@ -33,6 +33,8 @@ namespace ScanToOrder.Application.Services
             _updateDishValidator = updateDishValidator;
         }
 
+
+        // Crud Dish: Create, GetAllByTenant, Update, Delete (Soft Delete), DeActive, Active
         public async Task<DishDto> CreateDish(Guid tenantId, int categoryId, CreateDishRequest dishDto)
         {
             var existTenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
@@ -40,12 +42,13 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             }
-            var existCategory = await _unitOfWork.Categories.GetByFieldsIncludeAsync(x => x.Id == categoryId && x.TenantId == tenantId);
+
+            var existCategory =
+                await _unitOfWork.Categories.GetByFieldsIncludeAsync(x => x.Id == categoryId && x.TenantId == tenantId);
             if (existCategory == null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
-            var totalDishes = await _unitOfWork.Dishes.GetTotalDishesByTenant(tenantId);
 
             string uploadImageUrl = string.Empty;
             if (dishDto.ImageUrl != null && dishDto.ImageUrl.Length > 0)
@@ -128,7 +131,9 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             }
-            var existCategory = await _unitOfWork.Categories.GetByFieldsIncludeAsync(x => x.Id == categoryId && x.TenantId == tenantId);
+
+            var existCategory =
+                await _unitOfWork.Categories.GetByFieldsIncludeAsync(x => x.Id == categoryId && x.TenantId == tenantId);
             if (existCategory == null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
@@ -367,6 +372,7 @@ namespace ScanToOrder.Application.Services
 
             return true;
         }
+
         public async Task<bool> ActiveDish(Guid tenantId, int categoryId, int dishId)
         {
             var existingDish = await _unitOfWork.Dishes.GetByFieldsIncludeAsync(
@@ -393,7 +399,7 @@ namespace ScanToOrder.Application.Services
                 }
 
                 // Cập nhật hàng loạt nếu có hàm UpdateRange
-                 _unitOfWork.BranchDishConfigs.UpdateRange(branchConfigs);
+                _unitOfWork.BranchDishConfigs.UpdateRange(branchConfigs);
             }
 
             await _unitOfWork.SaveAsync();
