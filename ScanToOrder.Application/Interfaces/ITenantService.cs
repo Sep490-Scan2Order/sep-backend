@@ -10,7 +10,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<bool> UpdateTenantStatusAsync(Guid tenantId, bool isActive);
         Task<bool> ValidationTaxCodeAsync(string taxCode);
         Task<string> UpdateBankInfoAsync(Guid bankId, string accountNumber);
-        Task<bool> VerifyBankAccountAsync(string paymentCode);
+        Task<bool> VerifyBankAccountAsync(string paymentCode, string gateway, string accountNumber);
         Task<TenantDto> GetTenantByIdAsync(Guid tenantId);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text;
 using ScanToOrder.Domain.Enums;
 
@@ -77,5 +78,25 @@ public static class BankQrLinkUtils
         int randomSuffix = _random.Next(0, 1000);
         string combined = $"{timestamp}{randomSuffix:D3}";
         return long.Parse(combined);
+    }
+    
+    public static string RemoveVietnameseTones(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+        string normalizedString = text.Normalize(NormalizationForm.FormD);
+        StringBuilder stringBuilder = new StringBuilder();
+
+        foreach (var c in normalizedString)
+        {
+            UnicodeCategory unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        string result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        return result.Replace('đ', 'd').Replace('Đ', 'D');
     }
 }

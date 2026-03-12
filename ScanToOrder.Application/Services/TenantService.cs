@@ -74,14 +74,15 @@ namespace ScanToOrder.Application.Services
 
         public async Task<bool> ValidationTaxCodeAsync(string taxCode)
         {
-            var tenant = await _unitOfWork.Tenants.GetByIdAsync(_authenticatedUserService.ProfileId!.Value);
+            var tenantId = _authenticatedUserService.ProfileId!.Value;
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
 
             if (tenant == null)
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
             if (tenant.IsVerifyTax)
                 throw new DomainException("Không thể cập nhật mã số thuế khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.");
 
-            var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode));
+            var taxCodeExists = await _unitOfWork.Tenants.ExistsAsync(t => t.TaxNumber != null && t.TaxNumber.Equals(taxCode) && t.Id != tenantId); 
             if (taxCodeExists && !taxCode.Equals(tenant.TaxNumber))
                 throw new DomainException(TenantMessage.TenantError.TAX_CODE_ALREADY_EXISTS);
 
@@ -121,6 +122,7 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException("Thông tin tài khoản ngân hàng không hợp lệ");
             }
+            
             tenant.BankId = bankId;
             tenant.CardNumber = accountNumber;
             tenant.IsVerifyBank = false;
@@ -134,9 +136,18 @@ namespace ScanToOrder.Application.Services
             return urlToDisplay;
         }
 
-        public async Task<bool> VerifyBankAccountAsync(string paymentCode)
+        public async Task<bool> VerifyBankAccountAsync(string paymentCode, string gateway, string accountNumber)
         {
             var tenantId = await _transactionRedisService.GetTenantIdByTransactionCodeAsync(paymentCode);
+            var result = await _bankLookupService.LookupAccountAsync(new BankLookRequest()
+            {
+                Bank = gateway,
+                Account = accountNumber
+            });
+            if (!result.Success)
+            {
+                throw new DomainException("Thông tin tài khoản ngân hàng không hợp lệ");
+            }
             if (tenantId != null)
             {
                 var tenant = await _unitOfWork.Tenants.GetByIdAsync(Guid.Parse(tenantId));
@@ -145,7 +156,10 @@ namespace ScanToOrder.Application.Services
 
                 if (string.IsNullOrEmpty(tenant.CardNumber) || tenant.BankId == null)
                     throw new DomainException("Thông tin ngân hàng chưa được cập nhật");
-
+                if (BankQrLinkUtils.RemoveVietnameseTones(result.Data.OwnerName).ToLower().Equals(tenant.Name.ToLower()))
+                {
+                    tenant.IsVerifyTax = true;
+                }
                 tenant.IsVerifyBank = true;
                 _unitOfWork.Tenants.Update(tenant);
                 await _transactionRedisService.DeleteTransactionCodeAsync(paymentCode);

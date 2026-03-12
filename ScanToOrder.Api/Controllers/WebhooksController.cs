@@ -65,7 +65,7 @@ public class WebhooksController : BaseController
                 var result = BankQrLinkUtils.DetectPaymentIntent(paymentCode);
                 if (result == PaymentIntent.TenantVerification)
                 {
-                    await _tenantService.VerifyBankAccountAsync(paymentCode);
+                    await _tenantService.VerifyBankAccountAsync(paymentCode, webhookBody.Gateway, webhookBody.AccountNumber);
                 }
                 else if (result == PaymentIntent.OrderPayment)
                 {
