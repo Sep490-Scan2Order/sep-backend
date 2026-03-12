@@ -9,5 +9,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<List<Order>> GetOrdersForKdsAsync(int restaurantId);
 
         Task<Order?> GetOrderWithDetailsForKdsAsync(Guid orderId);
+
+        Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId);
     }
 }

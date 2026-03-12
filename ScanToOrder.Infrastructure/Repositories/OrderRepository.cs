@@ -47,6 +47,21 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .AsNoTracking()                      
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId)
+        {
+            return await _context.Orders
+                .Where(o => o.RestaurantId == restaurantId
+                            && !o.IsDeleted
+                            && o.Status == OrderStatus.Unpaid
+                            && _context.Transactions.Any(t =>
+                                t.OrderId == o.Id
+                                && t.PaymentMethod == PaymentMethod.Cash
+                                && t.Status == OrderTransactionStatus.Pending))
+                .OrderByDescending(o => o.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }
 

@@ -25,19 +25,22 @@ public class OrderService : IOrderService
     private readonly ITransactionRedisService _transactionRedisService;
     private readonly IRealtimeService _realtimeService;
     private readonly IMapper _mapper;
+    private readonly IAuthenticatedUserService _authenticatedUserService;
 
     public OrderService(
         IUnitOfWork unitOfWork,
         ICartRedisService cartRedisService,
         ITransactionRedisService transactionRedisService,
         IRealtimeService realtimeService,
-        IMapper mapper)
+        IMapper mapper,
+        IAuthenticatedUserService authenticatedUserService)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
         _transactionRedisService = transactionRedisService;
         _realtimeService = realtimeService;
         _mapper = mapper;
+        _authenticatedUserService = authenticatedUserService;
     }
 
     public async Task<CartDto> AddToCartAsync(AddToCartRequest request)
@@ -488,6 +491,33 @@ public class OrderService : IOrderService
             await tx.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<List<CashPendingOrderResponse>> GetCashOrdersPendingConfirmAsync()
+    {
+        if (_authenticatedUserService.ProfileId == null)
+            throw new DomainException("Không xác định được nhân viên đăng nhập.");
+
+        var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
+        if (staff == null)
+            throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+        var restaurantId = staff.RestaurantId;
+
+        var orders = await _unitOfWork.Orders.GetCashOrdersPendingConfirmAsync(restaurantId);
+        if (orders == null || !orders.Any()) return new List<CashPendingOrderResponse>();
+
+        return orders.Select(order => new CashPendingOrderResponse
+        {
+            Id = order.Id.ToString(),
+            OrderCode = order.OrderCode,
+            RestaurantId = order.RestaurantId,
+            CreatedAt = order.CreatedAt,
+            Amount = order.FinalAmount,
+            Phone = order.NumberPhone,
+            Note = order.Note,
+            Status = (int)order.Status
+        }).ToList();
     }
 
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)

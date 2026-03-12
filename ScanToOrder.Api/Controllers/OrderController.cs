@@ -50,10 +50,19 @@ public class OrderController : BaseController
     }
 
     [HttpPost("cash/{orderId:guid}/confirm")]
+    [Authorize(Roles = "Staff, Cashier")]
     public async Task<ActionResult<ApiResponse<string>>> ConfirmCashPayment([FromRoute] Guid orderId)
     {
         await _orderService.ConfirmCashPaymentAsync(orderId);
         return Success("Xác nhận thanh toán tiền mặt thành công.");
+    }
+
+    [HttpGet("cash/pending-confirm")]
+    [Authorize(Roles = "Staff, Cashier")]
+    public async Task<ActionResult<ApiResponse<List<CashPendingOrderResponse>>>> GetCashOrdersPendingConfirm()
+    {
+        var result = await _orderService.GetCashOrdersPendingConfirmAsync();
+        return Success(result);
     }
 
     [HttpGet("kds/active-orders/{restaurantId}")]

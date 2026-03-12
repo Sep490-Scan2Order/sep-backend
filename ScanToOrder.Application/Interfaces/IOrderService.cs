@@ -12,6 +12,7 @@ public interface IOrderService
     Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone);
     Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request);
     Task ConfirmCashPaymentAsync(Guid orderId);
+    Task<List<CashPendingOrderResponse>> GetCashOrdersPendingConfirmAsync();
     Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount);
     Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds);
     Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId);
