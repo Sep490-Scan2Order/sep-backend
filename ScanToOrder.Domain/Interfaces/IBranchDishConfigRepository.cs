@@ -10,5 +10,6 @@ namespace ScanToOrder.Domain.Interfaces
         Task AddRangeAsync(List<BranchDishConfig> configs);
 
         Task<List<BranchDishConfig>> GetConfigsByDishIdsAsync(List<int> dishIds);
+        Task<bool> ReserveDishAvailabilityAsync(int restaurantId, int dishId, int quantity);
     }
 }

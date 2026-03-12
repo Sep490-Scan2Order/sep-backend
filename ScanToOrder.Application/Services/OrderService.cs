@@ -156,7 +156,7 @@ public class OrderService : IOrderService
         return _mapper.Map<CartDto>(cart);
     }
 
-    public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId)
+    public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone)
     {
         if (string.IsNullOrWhiteSpace(cartId))
             throw new DomainException("CartId không được để trống.");
@@ -182,14 +182,100 @@ public class OrderService : IOrderService
         if (!tenant.IsVerifyBank)
             throw new DomainException("Tài khoản ngân hàng của nhà hàng chưa được xác thực.");
 
+        if (string.IsNullOrWhiteSpace(phone))
+            throw new DomainException("Số điện thoại không được để trống.");
+
         var amount = Math.Round(cart.TotalAmount);
+
+        await using var tx = await _unitOfWork.BeginTransactionAsync();
+        Guid orderId;
+        try
+        {
+            foreach (var item in cart.Items)
+            {
+                var reserved = await _unitOfWork.BranchDishConfigs
+                    .ReserveDishAvailabilityAsync(cart.RestaurantId, item.DishId, item.Quantity);
+
+                if (!reserved)
+                {
+                    throw new DomainException($"Món {item.DishName} đã hết số lượng.");
+                }
+            }
+
+            var (startUtc, endUtc, dateInt) = GetVietnamDayRangeUtc();
+            int orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
+                cart.RestaurantId, startUtc, endUtc, dateInt);
+
+            orderId = Guid.NewGuid();
+            var order = new Order
+            {
+                Id = orderId,
+                RestaurantId = cart.RestaurantId,
+                OrderCode = orderCode,
+                IsPreOrder = false,
+                Note = cart.Note,
+                TotalAmount = cart.TotalAmount,
+                PromotionDiscount = 0,
+                FinalAmount = cart.TotalAmount,
+                Status = OrderStatus.Unpaid,
+                IsScanned = false,
+                Type = "SePay",
+                NumberPhone = phone
+            };
+
+            await _unitOfWork.Orders.AddAsync(order);
+
+            var details = cart.Items.Select(i => new OrderDetail
+            {
+                OrderId = orderId,
+                DishId = i.DishId,
+                Quantity = i.Quantity,
+                Price = i.Price,
+                SubTotal = i.SubTotal
+            }).ToList();
+
+            await _unitOfWork.OrderDetails.AddRangeAsync(details);
+
+            var pendingTransaction = new Transaction
+            {
+                OrderId = orderId,
+                Status = OrderTransactionStatus.Pending,
+                TotalAmount = amount,
+                TransactionCode = null,
+                PaymentMethod = PaymentMethod.BankTransfer
+            };
+
+            await _unitOfWork.Transactions.AddAsync(pendingTransaction);
+
+            await _unitOfWork.SaveAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+
+        await _cartRedisService.DeleteCartAsync(cartId);
+
         var (qrUrl, paymentCode) = BankQrLinkUtils.GenerateSePayQrUrl(
             tenant.CardNumber,
             tenant.Bank.ShortName,
             amount,
             PaymentIntent.OrderPayment);
 
-        await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, cartId);
+        await _unitOfWork.Transactions.AddAsync(new Transaction
+        {
+            OrderId = orderId,
+            Status = OrderTransactionStatus.Pending,
+            TotalAmount = amount,
+            TransactionCode = paymentCode,
+            PaymentMethod = PaymentMethod.BankTransfer
+        });
+
+        await _unitOfWork.SaveAsync();
+
+        await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
 
         return new PaymentQrDto
         {
@@ -208,85 +294,48 @@ public class OrderService : IOrderService
         if (transferAmount <= 0)
             throw new DomainException("Số tiền thanh toán không hợp lệ.");
 
-        var existed = await _unitOfWork.Transactions.ExistsAsync(t => t.TransactionCode == paymentCode);
-        if (existed)
+        var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(
+            t => t.TransactionCode == paymentCode);
+        if (transaction == null)
+            throw new DomainException("Giao dịch không tồn tại.");
+
+        if (transaction.Status == OrderTransactionStatus.Success)
+        {
+            return; 
+        }
+
+        var orderIdString = await _transactionRedisService.GetCartIdByOrderPaymentCodeAsync(paymentCode);
+        if (string.IsNullOrWhiteSpace(orderIdString))
+            throw new DomainException("Không tìm thấy đơn hàng từ mã thanh toán hoặc đã hết hạn.");
+
+        if (!Guid.TryParse(orderIdString, out var orderId))
+            throw new DomainException("Mã đơn hàng không hợp lệ.");
+
+        var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+        if (order == null)
+            throw new DomainException("Đơn hàng không tồn tại.");
+
+        if (order.Status != OrderStatus.Unpaid)
         {
             return;
         }
 
-        var cartId = await _transactionRedisService.GetCartIdByOrderPaymentCodeAsync(paymentCode);
-        if (string.IsNullOrWhiteSpace(cartId))
-            throw new DomainException("Không tìm thấy cartId từ mã thanh toán hoặc đã hết hạn.");
-
-        var json = await _cartRedisService.GetRawCartAsync(cartId);
-        if (string.IsNullOrEmpty(json))
-            throw new DomainException("Giỏ hàng không tồn tại hoặc đã hết hạn.");
-
-        var cart = JsonSerializer.Deserialize<CartModel>(json)
-                   ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
-
-        if (cart.Items == null || !cart.Items.Any())
-            throw new DomainException("Giỏ hàng trống, không thể tạo đơn hàng.");
-
-        var expectedAmount = Math.Round(cart.TotalAmount);
+        var expectedAmount = Math.Round(order.FinalAmount);
         if (Math.Round(transferAmount) < expectedAmount)
-            throw new DomainException("Số tiền thanh toán không khớp với tổng tiền giỏ hàng.");
-
-        var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(cart.RestaurantId);
-        if (restaurant == null)
-            throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            throw new DomainException("Số tiền thanh toán không khớp với tổng tiền đơn hàng.");
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var (startUtc, endUtc, dateInt) = GetVietnamDayRangeUtc();
-            int orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(cart.RestaurantId, startUtc, endUtc, dateInt);
+            order.Status = OrderStatus.Pending;
+            _unitOfWork.Orders.Update(order);
 
-            var orderId = Guid.NewGuid();
-            var order = new Order
-            {
-                Id = orderId,
-                RestaurantId = cart.RestaurantId,
-                OrderCode = orderCode,
-                IsPreOrder = false,
-                Note = cart.Note,
-                TotalAmount = cart.TotalAmount,
-                PromotionDiscount = 0,
-                FinalAmount = cart.TotalAmount,
-                Status = OrderStatus.Preparing,
-                IsScanned = false,
-                Type = "SePay",
-                NumberPhone = cart.NumberPhone ,
-            };
-
-            await _unitOfWork.Orders.AddAsync(order);
-
-            var details = cart.Items.Select(i => new OrderDetail
-            {
-                OrderId = orderId,
-                DishId = i.DishId,
-                Quantity = i.Quantity,
-                Price = i.Price,
-                SubTotal = i.SubTotal
-            }).ToList();
-
-            await _unitOfWork.OrderDetails.AddRangeAsync(details);
-
-            var transaction = new Transaction
-            {
-                OrderId = orderId,
-                Status = OrderTransactionStatus.Success,
-                TotalAmount = expectedAmount,
-                TransactionCode = paymentCode,
-                PaymentMethod = PaymentMethod.BankTransfer
-            };
-
-            await _unitOfWork.Transactions.AddAsync(transaction);
+            transaction.Status = OrderTransactionStatus.Success;
+            _unitOfWork.Transactions.Update(transaction);
 
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
 
-            await _cartRedisService.DeleteCartAsync(cartId);
             await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
         }
         catch

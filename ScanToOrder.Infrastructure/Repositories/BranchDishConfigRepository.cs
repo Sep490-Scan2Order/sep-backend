@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
@@ -55,6 +55,23 @@ namespace ScanToOrder.Infrastructure.Repositories
                             .Where(b => dishIds
                             .Contains(b.DishId))
                             .ToListAsync();
+        }
+
+        public async Task<bool> ReserveDishAvailabilityAsync(int restaurantId, int dishId, int quantity)
+        {
+            var affected = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE ""BranchDishConfigs""
+                SET ""DishAvailability"" = ""DishAvailability"" - {quantity},
+                    ""IsSoldOut"" = CASE WHEN ""DishAvailability"" - {quantity} <= 0 THEN TRUE ELSE ""IsSoldOut"" END
+                WHERE ""RestaurantId"" = {restaurantId}
+                  AND ""DishId"" = {dishId}
+                  AND ""IsDeleted"" = FALSE
+                  AND ""IsSelling"" = TRUE
+                  AND ""IsSoldOut"" = FALSE
+                  AND ""DishAvailability"" >= {quantity};
+                ");
+
+            return affected > 0;
         }
     }
 }

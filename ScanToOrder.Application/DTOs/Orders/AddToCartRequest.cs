@@ -9,8 +9,7 @@ public class AddToCartRequest
     public int DishId { get; set; }
 
     public int Quantity { get; set; } = 1;
-
-    public string NumberPhone { get; set; } = null!;    
+  
 
     public string? Note { get; set; }
 
