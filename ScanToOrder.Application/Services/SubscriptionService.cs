@@ -342,4 +342,37 @@ public class SubscriptionService : ISubscriptionService
             throw new Exception("Error while updating subscriptions: " + ex.Message);
         }
     }
+
+    public async Task<List<RestaurantSubscriptionDto>> GetSubscriptionsByTenantAsync(Guid tenantId)
+    {
+        var restaurants = await _unitOfWork.Restaurants.GetRestaurantsWithSubscriptionsByTenantIdAsync(tenantId);
+        
+        var result = restaurants.Select(r =>
+        {
+            var currentSub = r.Subscription;
+
+            var dto = new RestaurantSubscriptionDto
+            {
+                RestaurantId = r.Id,
+                RestaurantName = r.RestaurantName,
+                Address = r.Address ?? string.Empty,
+                IsActive = r.IsActive ?? false
+            };
+
+            if (currentSub != null)
+            {
+                dto.CurrentSubscriptionId = currentSub.Id;
+                dto.CurrentPlanId = currentSub.PlanId;
+                dto.CurrentPlanName = currentSub.Plan?.Name;
+                dto.StartDate = currentSub.StartDate;
+                dto.EndDate = currentSub.EndDate;
+                
+                dto.Status = currentSub.EndDate > DateTime.UtcNow ? "Active" : "Expired";
+            }
+
+            return dto;
+        }).ToList();
+
+        return result;
+    }
 }

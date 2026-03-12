@@ -40,5 +40,15 @@ namespace ScanToOrder.Api.Controllers
             var paymentResult = await _subscriptionService.CreatePaymentAsync(request, tenantId);
             return Success(paymentResult);
         }
+        
+        [HttpGet("get-by-tenant")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<List<RestaurantSubscriptionDto>>>> GetSubscriptionsByTenantAsync()
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var paymentResult = await _subscriptionService.GetSubscriptionsByTenantAsync(tenantId);
+            return Success(paymentResult);
+        }
     }
 }

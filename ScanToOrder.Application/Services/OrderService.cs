@@ -158,61 +158,69 @@ public class OrderService : IOrderService
         var cart = JsonSerializer.Deserialize<CartModel>(json)
                    ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
 
-        if (cart.Items != null && cart.Items.Any())
+        cart = await SyncCartPricingAndAvailabilityAsync(cart);
+
+        return _mapper.Map<CartDto>(cart);
+    }
+
+    private async Task<CartModel> SyncCartPricingAndAvailabilityAsync(CartModel cart)
+    {
+        if (cart.Items == null || !cart.Items.Any())
+            return cart;
+
+        var dishIds = cart.Items.Select(i => i.DishId).ToList();
+        var dishesWithPromo = await GetDishesByIdsWithPromotionAsync(cart.RestaurantId, dishIds);
+
+        bool isUpdated = false;
+        var itemsToRemove = new List<CartItemModel>();
+
+        foreach (var item in cart.Items)
         {
-            var dishIds = cart.Items.Select(i => i.DishId).ToList();
-            var dishesWithPromo = await GetDishesByIdsWithPromotionAsync(cart.RestaurantId, dishIds);
+            var dishInfo = dishesWithPromo.FirstOrDefault(d => d.DishId == item.DishId);
 
-            bool isUpdated = false;
-            var itemsToRemove = new List<CartItemModel>();
-
-            foreach (var item in cart.Items)
+            if (dishInfo == null || dishInfo.IsSoldOut)
             {
-                var dishInfo = dishesWithPromo.FirstOrDefault(d => d.DishId == item.DishId);
+                itemsToRemove.Add(item);
+                isUpdated = true;
+                continue;
+            }
 
-                if (dishInfo == null || dishInfo.IsSoldOut)
+            if (item.Price != dishInfo.DiscountedPrice)
+            {
+                item.Price = dishInfo.DiscountedPrice;
+                item.SubTotal = item.Price * item.Quantity;
+                isUpdated = true;
+            }
+
+            if (item.Quantity > dishInfo.DishAvailabilityStock)
+            {
+                item.Quantity = Math.Max(0, dishInfo.DishAvailabilityStock);
+                if (item.Quantity == 0)
                 {
                     itemsToRemove.Add(item);
-                    isUpdated = true;
-                    continue;
                 }
-
-                if (item.Price != dishInfo.DiscountedPrice)
+                else
                 {
-                    item.Price = dishInfo.DiscountedPrice;
                     item.SubTotal = item.Price * item.Quantity;
-                    isUpdated = true;
                 }
 
-                if (item.Quantity > dishInfo.DishAvailabilityStock)
-                {
-                    item.Quantity = Math.Max(0, dishInfo.DishAvailabilityStock);
-                    if (item.Quantity == 0)
-                    {
-                        itemsToRemove.Add(item);
-                    }
-                    else
-                    {
-                        item.SubTotal = item.Price * item.Quantity;
-                    }
-                    isUpdated = true;
-                }
-            }
-
-            if (itemsToRemove.Any())
-            {
-                foreach (var item in itemsToRemove) cart.Items.Remove(item);
-            }
-
-            if (isUpdated)
-            {
-                cart.TotalAmount = cart.Items.Sum(i => i.SubTotal);
-                var updatedJson = JsonSerializer.Serialize(cart);
-                await _cartRedisService.SaveRawCartAsync(cartId, updatedJson, TimeSpan.FromMinutes(60));
+                isUpdated = true;
             }
         }
 
-        return _mapper.Map<CartDto>(cart);
+        if (itemsToRemove.Any())
+        {
+            foreach (var item in itemsToRemove) cart.Items.Remove(item);
+        }
+
+        if (isUpdated)
+        {
+            cart.TotalAmount = cart.Items.Sum(i => i.SubTotal);
+            var updatedJson = JsonSerializer.Serialize(cart);
+            await _cartRedisService.SaveRawCartAsync(cart.CartId, updatedJson, TimeSpan.FromMinutes(60));
+        }
+
+        return cart;
     }
 
     public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone)
@@ -395,12 +403,10 @@ public class OrderService : IOrderService
 
     public async Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId)
     {
-
-
         var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId);
 
         if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();
-
+        
         return orders.Select(order => new KdsOrderResponse
         {
             Id = order.Id.ToString(),
@@ -420,6 +426,7 @@ public class OrderService : IOrderService
             }).ToList()
         }).ToList();
     }
+
     public async Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
@@ -439,6 +446,7 @@ public class OrderService : IOrderService
                 (int)newStatus
             );
         }
+
         return true;
     }
 
@@ -484,6 +492,7 @@ public class OrderService : IOrderService
             await _realtimeService.NotifyCountChanged(kdsOrder.RestaurantId.ToString(), 1);
         }
     }
+
     // Get list of dishes with promotion info for given dishIds in a restaurant, used for FE to display correct price and promotion label when user add to cart
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
@@ -506,7 +515,8 @@ public class OrderService : IOrderService
                             && !p.PromotionDishes.Any()))
         );
 
-        var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(restaurantId, dishIds);
+        var branchDishes =
+            await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(restaurantId, dishIds);
 
         var result = branchDishes.Select(bdc =>
         {
@@ -522,7 +532,7 @@ public class OrderService : IOrderService
             var winningPromo = allEligiblePromotions
                 .Where(p => p.IsValidAt(now))
                 .OrderByDescending(p => p.Priority)
-                    .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
+                .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                 .FirstOrDefault();
 
             int discountedPrice = (int)bdc.Price;
@@ -570,6 +580,7 @@ public class OrderService : IOrderService
             ? Math.Min(discount, p.MaxDiscountValue.Value)
             : discount;
     }
+
     // Calculate the actual expiration time of a promotion considering its type and daily time rules
     private static DateTime? CalculateTrueExpiredAt(Promotion p, DateTime now)
     {
@@ -588,6 +599,7 @@ public class OrderService : IOrderService
                 {
                     trueExpiredAt = today.AddDays(1).AddTicks(-1);
                 }
+
                 break;
 
             case PromotionType.Clearance:
@@ -622,4 +634,3 @@ public class OrderService : IOrderService
         }
     }
 }
-
