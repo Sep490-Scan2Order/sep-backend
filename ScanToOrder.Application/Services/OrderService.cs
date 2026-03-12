@@ -442,48 +442,49 @@ public class OrderService : IOrderService
         return true;
     }
 
-    public async Task<KdsOrderResponse?> GetSingleOrderForKds(Guid orderId)
-    {
-        var order = await _unitOfWork.Orders.GetOrderWithDetailsForKdsAsync(orderId);
+    //public async Task<KdsOrderResponse?> GetSingleOrderForKds(Guid orderId)
+    //{
+    //    var order = await _unitOfWork.Orders.GetOrderWithDetailsForKdsAsync(orderId);
 
-        if (order == null) return null;
+    //    if (order == null) return null;
 
-        return new KdsOrderResponse
-        {
-            Id = order.Id.ToString(),
-            OrderCode = order.OrderCode,
-            CreatedAt = order.CreatedAt,
-            Amount = order.FinalAmount,
-            Phone = order.NumberPhone,
-            Status = (int)order.Status,
-            RestaurantId = order.RestaurantId,
+    //    return new KdsOrderResponse
+    //    {
+    //        Id = order.Id.ToString(),
+    //        OrderCode = order.OrderCode,
+    //        CreatedAt = order.CreatedAt,
+    //        Amount = order.FinalAmount,
+    //        Phone = order.NumberPhone,
+    //        Status = (int)order.Status,
+    //        RestaurantId = order.RestaurantId,
 
-            Items = order.OrderDetails.Select(od => new KdsItemResponse
-            {
-                Id = od.Id.ToString(),
-                Name = od.Dish.DishName,
-                Price = od.Price,
-                Quantity = od.Quantity,
-                Image = od.Dish.ImageUrl
-            }).ToList()
-        };
-    }
+    //        Items = order.OrderDetails.Select(od => new KdsItemResponse
+    //        {
+    //            Id = od.Id.ToString(),
+    //            Name = od.Dish.DishName,
+    //            Price = od.Price,
+    //            Quantity = od.Quantity,
+    //            Image = od.Dish.ImageUrl
+    //        }).ToList()
+    //    };
+    //}
 
-    public async Task ProcessAndNotifyKds(Guid orderId)
-    {
-        // 1. Lấy dữ liệu chuẩn KDS
-        var kdsOrder = await GetSingleOrderForKds(orderId);
+    //public async Task ProcessAndNotifyKds(Guid orderId)
+    //{
+    //    // 1. Lấy dữ liệu chuẩn KDS
+    //    var kdsOrder = await GetSingleOrderForKds(orderId);
 
-        if (kdsOrder != null)
-        {
-            // 2. Bắn SignalR đến Group của nhà hàng
-            // Staff thuộc nhà hàng này sẽ nhận được ngay lập tức
-            await _realtimeService.SendOrderToKitchen(kdsOrder.RestaurantId.ToString(), kdsOrder);
+    //    if (kdsOrder != null)
+    //    {
+    //        // 2. Bắn SignalR đến Group của nhà hàng
+    //        // Staff thuộc nhà hàng này sẽ nhận được ngay lập tức
+    //        await _realtimeService.SendOrderToKitchen(kdsOrder.RestaurantId.ToString(), kdsOrder);
 
-            // (Tùy chọn) Thông báo cập nhật số lượng đơn hàng đang chờ
-            await _realtimeService.NotifyCountChanged(kdsOrder.RestaurantId.ToString(), 1);
-        }
-    }
+    //        // (Tùy chọn) Thông báo cập nhật số lượng đơn hàng đang chờ
+    //        await _realtimeService.NotifyCountChanged(kdsOrder.RestaurantId.ToString(), 1);
+    //    }
+    //}
+
     // Get list of dishes with promotion info for given dishIds in a restaurant, used for FE to display correct price and promotion label when user add to cart
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
