@@ -236,17 +236,6 @@ public class OrderService : IOrderService
 
             await _unitOfWork.OrderDetails.AddRangeAsync(details);
 
-            var pendingTransaction = new Transaction
-            {
-                OrderId = orderId,
-                Status = OrderTransactionStatus.Pending,
-                TotalAmount = amount,
-                TransactionCode = null,
-                PaymentMethod = PaymentMethod.BankTransfer
-            };
-
-            await _unitOfWork.Transactions.AddAsync(pendingTransaction);
-
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
         }
