@@ -403,10 +403,12 @@ public class OrderService : IOrderService
 
     public async Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId)
     {
+
+
         var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId);
 
         if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();
-        
+
         return orders.Select(order => new KdsOrderResponse
         {
             Id = order.Id.ToString(),
@@ -426,7 +428,6 @@ public class OrderService : IOrderService
             }).ToList()
         }).ToList();
     }
-
     public async Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
@@ -446,53 +447,9 @@ public class OrderService : IOrderService
                 (int)newStatus
             );
         }
-
         return true;
     }
-
-    public async Task<KdsOrderResponse?> GetSingleOrderForKds(Guid orderId)
-    {
-        var order = await _unitOfWork.Orders.GetOrderWithDetailsForKdsAsync(orderId);
-
-        if (order == null) return null;
-
-        return new KdsOrderResponse
-        {
-            Id = order.Id.ToString(),
-            OrderCode = order.OrderCode,
-            CreatedAt = order.CreatedAt,
-            Amount = order.FinalAmount,
-            Phone = order.NumberPhone,
-            Status = (int)order.Status,
-            RestaurantId = order.RestaurantId,
-
-            Items = order.OrderDetails.Select(od => new KdsItemResponse
-            {
-                Id = od.Id.ToString(),
-                Name = od.Dish.DishName,
-                Price = od.Price,
-                Quantity = od.Quantity,
-                Image = od.Dish.ImageUrl
-            }).ToList()
-        };
-    }
-
-    public async Task ProcessAndNotifyKds(Guid orderId)
-    {
-        // 1. Lấy dữ liệu chuẩn KDS
-        var kdsOrder = await GetSingleOrderForKds(orderId);
-
-        if (kdsOrder != null)
-        {
-            // 2. Bắn SignalR đến Group của nhà hàng
-            // Staff thuộc nhà hàng này sẽ nhận được ngay lập tức
-            await _realtimeService.SendOrderToKitchen(kdsOrder.RestaurantId.ToString(), kdsOrder);
-
-            // (Tùy chọn) Thông báo cập nhật số lượng đơn hàng đang chờ
-            await _realtimeService.NotifyCountChanged(kdsOrder.RestaurantId.ToString(), 1);
-        }
-    }
-
+    
     // Get list of dishes with promotion info for given dishIds in a restaurant, used for FE to display correct price and promotion label when user add to cart
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
@@ -515,8 +472,7 @@ public class OrderService : IOrderService
                             && !p.PromotionDishes.Any()))
         );
 
-        var branchDishes =
-            await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(restaurantId, dishIds);
+        var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(restaurantId, dishIds);
 
         var result = branchDishes.Select(bdc =>
         {
@@ -532,7 +488,7 @@ public class OrderService : IOrderService
             var winningPromo = allEligiblePromotions
                 .Where(p => p.IsValidAt(now))
                 .OrderByDescending(p => p.Priority)
-                .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
+                    .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                 .FirstOrDefault();
 
             int discountedPrice = (int)bdc.Price;
@@ -580,7 +536,6 @@ public class OrderService : IOrderService
             ? Math.Min(discount, p.MaxDiscountValue.Value)
             : discount;
     }
-
     // Calculate the actual expiration time of a promotion considering its type and daily time rules
     private static DateTime? CalculateTrueExpiredAt(Promotion p, DateTime now)
     {
@@ -599,7 +554,6 @@ public class OrderService : IOrderService
                 {
                     trueExpiredAt = today.AddDays(1).AddTicks(-1);
                 }
-
                 break;
 
             case PromotionType.Clearance:
@@ -634,3 +588,4 @@ public class OrderService : IOrderService
         }
     }
 }
+
