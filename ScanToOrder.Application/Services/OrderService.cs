@@ -342,6 +342,154 @@ public class OrderService : IOrderService
         };
     }
 
+    public async Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CartId))
+            throw new DomainException("CartId không được để trống.");
+
+        if (string.IsNullOrWhiteSpace(request.Phone))
+            throw new DomainException("Số điện thoại không được để trống.");
+
+        var json = await _cartRedisService.GetRawCartAsync(request.CartId);
+        if (string.IsNullOrEmpty(json))
+            throw new DomainException("Giỏ hàng không tồn tại hoặc đã hết hạn.");
+
+        var cart = JsonSerializer.Deserialize<CartModel>(json)
+                   ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
+
+        if (cart.Items == null || !cart.Items.Any())
+            throw new DomainException("Giỏ hàng trống, không thể tạo đơn hàng.");
+
+        var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(cart.RestaurantId);
+        if (restaurant == null)
+            throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+        var amount = Math.Round(cart.TotalAmount);
+
+        await using var tx = await _unitOfWork.BeginTransactionAsync();
+        Guid orderId;
+        try
+        {
+            foreach (var item in cart.Items)
+            {
+                var reserved = await _unitOfWork.BranchDishConfigs
+                    .ReserveDishAvailabilityAsync(cart.RestaurantId, item.DishId, item.Quantity);
+
+                if (!reserved)
+                {
+                    throw new DomainException($"Món {item.DishName} đã hết số lượng.");
+                }
+            }
+
+            var (startUtc, endUtc, dateInt) = GetVietnamDayRangeUtc();
+            int orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
+                cart.RestaurantId, startUtc, endUtc, dateInt);
+
+            orderId = Guid.NewGuid();
+            var order = new Order
+            {
+                Id = orderId,
+                RestaurantId = cart.RestaurantId,
+                OrderCode = orderCode,
+                IsPreOrder = false,
+                Note = cart.Note,
+                TotalAmount = cart.TotalAmount,
+                PromotionDiscount = 0,
+                FinalAmount = cart.TotalAmount,
+                Status = OrderStatus.Unpaid,
+                IsScanned = false,
+                Type = "Cash",
+                NumberPhone = request.Phone
+            };
+
+            await _unitOfWork.Orders.AddAsync(order);
+
+            var details = cart.Items.Select(i => new OrderDetail
+            {
+                OrderId = orderId,
+                DishId = i.DishId,
+                Quantity = i.Quantity,
+                Price = i.Price,
+                SubTotal = i.SubTotal
+            }).ToList();
+
+            await _unitOfWork.OrderDetails.AddRangeAsync(details);
+
+            await _unitOfWork.Transactions.AddAsync(new Transaction
+            {
+                OrderId = orderId,
+                Status = OrderTransactionStatus.Pending,
+                TotalAmount = amount,
+                TransactionCode = null,
+                PaymentMethod = PaymentMethod.Cash
+            });
+
+            await _unitOfWork.SaveAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+
+        await _cartRedisService.DeleteCartAsync(request.CartId);
+
+        return new CashCheckoutResponse
+        {
+            OrderId = orderId,
+            OrderCode = (await _unitOfWork.Orders.GetByIdAsync(orderId))!.OrderCode,
+            TotalAmount = amount,
+            RestaurantName = restaurant.RestaurantName,
+            Phone = request.Phone,
+            Note = cart.Note
+        };
+    }
+
+    public async Task ConfirmCashPaymentAsync(Guid orderId)
+    {
+        if (orderId == Guid.Empty)
+            throw new DomainException("OrderId không hợp lệ.");
+
+        var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+        if (order == null)
+            throw new DomainException("Đơn hàng không tồn tại.");
+
+        if (order.Status != OrderStatus.Unpaid)
+        {           
+            return;
+        }
+
+        var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(
+            t => t.OrderId == orderId && t.PaymentMethod == PaymentMethod.Cash);
+
+        if (transaction == null)
+            throw new DomainException("Giao dịch tiền mặt không tồn tại.");
+
+        if (transaction.Status == OrderTransactionStatus.Success)
+        {
+            return;
+        }
+
+        await using var tx = await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            order.Status = OrderStatus.Pending; 
+            _unitOfWork.Orders.Update(order);
+
+            transaction.Status = OrderTransactionStatus.Success;
+            _unitOfWork.Transactions.Update(transaction);
+
+            await _unitOfWork.SaveAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+    }
+
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)
     {
         if (string.IsNullOrWhiteSpace(paymentCode))

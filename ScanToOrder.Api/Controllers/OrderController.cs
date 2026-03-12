@@ -33,12 +33,27 @@ public class OrderController : BaseController
         return Success(result);
     }
 
-    [HttpGet("payment/qr")]
+    [HttpPost("checkout/bank-transfer")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromQuery] string cartId, string phone)
+    public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromBody] PaymentQrRequest request)
     {
-        var result = await _orderService.GetPaymentQrAsync(cartId, phone);
+        var result = await _orderService.GetPaymentQrAsync(request.CartId, request.Phone);
         return Success(result);
+    }
+
+    [HttpPost("checkout/cash")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<CashCheckoutResponse>>> CheckoutCash([FromBody] CashCheckoutRequest request)
+    {
+        var result = await _orderService.CheckoutCashAsync(request);
+        return Success(result, "Tạo đơn thanh toán tiền mặt thành công.");
+    }
+
+    [HttpPost("cash/{orderId:guid}/confirm")]
+    public async Task<ActionResult<ApiResponse<string>>> ConfirmCashPayment([FromRoute] Guid orderId)
+    {
+        await _orderService.ConfirmCashPaymentAsync(orderId);
+        return Success("Xác nhận thanh toán tiền mặt thành công.");
     }
 
     [HttpGet("kds/active-orders/{restaurantId}")]
