@@ -473,6 +473,25 @@ public class OrderService : IOrderService
         {           
             return;
         }
+       
+        if (_authenticatedUserService.ProfileId == null)
+            throw new DomainException("Không xác định được nhân viên đăng nhập.");
+
+        var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
+        if (staff == null)
+            throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+        if (staff.RestaurantId != order.RestaurantId)
+            throw new DomainException(StaffMessage.StaffError.STAFF_NOT_IN_RESTAURANT);
+
+        var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+            s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
+
+        if (activeShift == null)
+            throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
+
+        if (activeShift.StaffId != staff.Id)
+            throw new DomainException(StaffMessage.StaffError.UNAUTHORIZED_ACCESS);
 
         var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(
             t => t.OrderId == orderId && t.PaymentMethod == PaymentMethod.Cash);
@@ -491,6 +510,7 @@ public class OrderService : IOrderService
             order.Status = OrderStatus.Pending; 
             _unitOfWork.Orders.Update(order);
 
+            transaction.ShiftId = activeShift.Id;
             transaction.Status = OrderTransactionStatus.Success;
             _unitOfWork.Transactions.Update(transaction);
 

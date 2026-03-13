@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Shift;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Shifts;
@@ -33,7 +33,7 @@ namespace ScanToOrder.Application.Services
             }
 
             var activeShift = await _unitOfWork.Shifts
-                .FirstOrDefaultAsync(x => x.StaffId == staffId && x.Status == ShiftStatus.Open);
+                .FirstOrDefaultAsync(x => x.RestaurantId == restaurantId && x.Status == ShiftStatus.Open);
 
             if (activeShift != null)
             {
