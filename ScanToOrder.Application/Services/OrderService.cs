@@ -124,6 +124,7 @@ public class OrderService : IOrderService
                 DishName = dish.DishName,
                 Quantity = request.Quantity,
                 Price = branchDish.Price,
+                OriginalPrice = branchDish.Price,
                 SubTotal = branchDish.Price * request.Quantity
             };
             cart.Items.Add(existingItem);
@@ -141,7 +142,10 @@ public class OrderService : IOrderService
         var json = JsonSerializer.Serialize(cart);
         await _cartRedisService.SaveRawCartAsync(cartId, json, TimeSpan.FromMinutes(60));
 
-        // 8. Build DTO trả về cho FE 
+        // 8. Đồng bộ lại giá/khuyến mãi/tồn kho trước khi trả về
+        cart = await SyncCartPricingAndAvailabilityAsync(cart);
+
+        // 9. Trả về full CartDto 
         return _mapper.Map<CartDto>(cart);
     }
 
@@ -190,7 +194,14 @@ public class OrderService : IOrderService
 
             if (item.Price != dishInfo.DiscountedPrice)
             {
+                if (item.OriginalPrice == 0)
+                {
+                    item.OriginalPrice = dishInfo.Price;
+                }
+
                 item.Price = dishInfo.DiscountedPrice;
+                item.DiscountAmount = (item.OriginalPrice - item.Price) * item.Quantity;
+                item.PromotionName = dishInfo.PromotionName;
                 item.SubTotal = item.Price * item.Quantity;
                 isUpdated = true;
             }

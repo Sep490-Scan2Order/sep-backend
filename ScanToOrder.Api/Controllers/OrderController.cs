@@ -25,13 +25,13 @@ public class OrderController : BaseController
         return Success(result, "Thêm món vào giỏ hàng thành công.");
     }
 
-    [HttpGet("cart/{cartId}")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<CartDto>>> GetCart([FromRoute] string cartId)
-    {
-        var result = await _orderService.GetCartAsync(cartId);
-        return Success(result);
-    }
+    // [HttpGet("cart/{cartId}")]
+    // [AllowAnonymous]
+    // public async Task<ActionResult<ApiResponse<CartDto>>> GetCart([FromRoute] string cartId)
+    // {
+    //     var result = await _orderService.GetCartAsync(cartId);
+    //     return Success(result);
+    // }
 
     [HttpPost("checkout/bank-transfer")]
     [AllowAnonymous]
