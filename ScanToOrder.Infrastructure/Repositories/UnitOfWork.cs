@@ -34,6 +34,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IShiftReportRepository ShiftReports { get; }
         public IPaymentTransactionRepository PaymentTransactions { get; }
         public ISubscriptionLogRepository SubscriptionLogs { get; }
+        public IComboDetailRepository ComboDetails { get; }
 
         public UnitOfWork(
             AppDbContext context,
@@ -63,7 +64,8 @@ namespace ScanToOrder.Infrastructure.Repositories
             IShiftRepository shifts,
             IShiftReportRepository shiftReports,
             IPaymentTransactionRepository paymentTransactions,
-            ISubscriptionLogRepository subscriptionLogs)
+            ISubscriptionLogRepository subscriptionLogs,
+            IComboDetailRepository comboDetails)
         {
             _context = context;
             AuthenticationUsers = authenticationUsers;
@@ -93,6 +95,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             ShiftReports = shiftReports;
             PaymentTransactions = paymentTransactions;
             SubscriptionLogs = subscriptionLogs;
+            ComboDetails = comboDetails;
         }
 
         public async Task<IDbTransaction> BeginTransactionAsync()

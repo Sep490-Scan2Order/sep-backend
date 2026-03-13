@@ -1,4 +1,6 @@
-﻿namespace ScanToOrder.Application.DTOs.Dishes
+﻿using ScanToOrder.Domain.Enums;
+
+namespace ScanToOrder.Application.DTOs.Dishes
 {
     public class DishDto
     {   
@@ -9,9 +11,9 @@
         public decimal Price { get; set; }
 
         public string Description { get; set; } = null!;
-
+        
         public string ImageUrl { get; set; } = null!;
-
+        public DishType Type { get; set; }
         public bool IsAvailable { get; set; }
         public DateTime CreatedAt { get; set; }
     }

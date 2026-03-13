@@ -8,7 +8,7 @@ namespace ScanToOrder.Domain.Enums
 {
     public enum DishType
     {
-        Combo,
-        Single
+        Combo = 1,
+        Single = 0
     }
 }

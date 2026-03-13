@@ -40,6 +40,7 @@ namespace ScanToOrder.Domain.Interfaces
         IShiftReportRepository ShiftReports { get; }
         IPaymentTransactionRepository PaymentTransactions { get; }
         ISubscriptionLogRepository SubscriptionLogs { get; }
+        IComboDetailRepository ComboDetails { get; }
         Task<IDbTransaction> BeginTransactionAsync();
         Task SaveAsync();
     }

@@ -157,7 +157,7 @@ namespace ScanToOrder.Application.Services
 
                 if (string.IsNullOrEmpty(tenant.CardNumber) || tenant.BankId == null)
                     throw new DomainException("Thông tin ngân hàng chưa được cập nhật");
-                if (BankQrLinkUtils.RemoveVietnameseTones(result.Data.OwnerName).ToLower().Equals(tenant.Name.ToLower()))
+                if (BankQrLinkUtils.RemoveVietnameseTones(tenant.Name).ToLower().Equals(result.Data.OwnerName.ToLower()))
                 {
                     tenant.IsVerifyTax = true;
                 }
