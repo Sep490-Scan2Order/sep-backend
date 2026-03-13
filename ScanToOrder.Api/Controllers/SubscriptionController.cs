@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -49,6 +50,26 @@ namespace ScanToOrder.Api.Controllers
             var tenantId = _authenticatedUserService.ProfileId.Value;
             var paymentResult = await _subscriptionService.GetSubscriptionsByTenantAsync(tenantId);
             return Success(paymentResult);
+        }
+
+        [HttpGet("payment-status/{orderCode:long}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<PaymentStatusResponse>>> GetPaymentStatusAsync(long orderCode)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var result = await _subscriptionService.GetPaymentStatusAsync(orderCode, tenantId);
+            return Success(result);
+        }
+
+        [HttpPost("cancel-payment/{orderCode:long}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<string>>> CancelPaymentAsync(long orderCode)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            await _subscriptionService.MarkPaymentCanceledAsync(orderCode, tenantId);
+            return Success("Canceled", "Đã hủy giao dịch thanh toán.");
         }
     }
 }

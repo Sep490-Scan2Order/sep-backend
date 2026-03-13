@@ -43,6 +43,10 @@ public class WebhooksController : BaseController
             {
                 await _subscriptionService.ProcessPaymentSuccessAsync(data.OrderCode);
             }
+            else
+            {
+                await _subscriptionService.MarkPaymentFailedAsync(data.OrderCode);
+            }
             return Ok(new { success = true });
         }
         catch (Exception ex)
