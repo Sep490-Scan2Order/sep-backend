@@ -14,11 +14,11 @@ namespace ScanToOrder.Application.DTOs.Orders
 
         public int Quantity { get; set; }
 
-        public decimal Price { get; set; }
+        public decimal DiscountedPrice { get; set; }
 
         public decimal OriginalPrice { get; set; }
 
-        public decimal DiscountAmount { get; set; }
+        public decimal PromotionAmount { get; set; }
 
         public string? PromotionName { get; set; }
 

@@ -7,9 +7,11 @@ namespace ScanToOrder.Domain.Entities.Orders
     {
         public Guid OrderId { get; set; }
         public int DishId { get; set; }
-        public int Quantity { get; set; }
+        public int Quantity { get; set; }     
         public decimal SubTotal { get; set; }
-        public decimal Price { get; set; }
+        public decimal OriginalPrice { get; set; }
+        public decimal DiscountedPrice { get; set; }
+        public decimal PromotionAmount { get; set; }
 
         public virtual Order Order { get; set; } = null!;
         public virtual Dish Dish { get; set; } = null!;

@@ -123,7 +123,7 @@ public class OrderService : IOrderService
                 DishId = request.DishId,
                 DishName = dish.DishName,
                 Quantity = request.Quantity,
-                Price = branchDish.Price,
+                DiscountedPrice = branchDish.Price,
                 OriginalPrice = branchDish.Price,
                 SubTotal = branchDish.Price * request.Quantity
             };
@@ -132,7 +132,7 @@ public class OrderService : IOrderService
         else
         {
             existingItem.Quantity += request.Quantity;
-            existingItem.SubTotal = existingItem.Price * existingItem.Quantity;
+            existingItem.SubTotal = existingItem.DiscountedPrice * existingItem.Quantity;
         }
 
         // 6. Tính lại tổng tiền giỏ
@@ -192,17 +192,17 @@ public class OrderService : IOrderService
                 continue;
             }
 
-            if (item.Price != dishInfo.DiscountedPrice)
+            if (item.DiscountedPrice != dishInfo.DiscountedPrice)
             {
                 if (item.OriginalPrice == 0)
                 {
                     item.OriginalPrice = dishInfo.Price;
                 }
 
-                item.Price = dishInfo.DiscountedPrice;
-                item.DiscountAmount = (item.OriginalPrice - item.Price) * item.Quantity;
+                item.DiscountedPrice = dishInfo.DiscountedPrice;
+                item.PromotionAmount = (item.OriginalPrice - item.DiscountedPrice) * item.Quantity;
                 item.PromotionName = dishInfo.PromotionName;
-                item.SubTotal = item.Price * item.Quantity;
+                item.SubTotal = item.DiscountedPrice * item.Quantity;
                 isUpdated = true;
             }
 
@@ -215,7 +215,7 @@ public class OrderService : IOrderService
                 }
                 else
                 {
-                    item.SubTotal = item.Price * item.Quantity;
+                    item.SubTotal = item.DiscountedPrice * item.Quantity;
                 }
 
                 isUpdated = true;
@@ -311,7 +311,7 @@ public class OrderService : IOrderService
                 OrderId = orderId,
                 DishId = i.DishId,
                 Quantity = i.Quantity,
-                Price = i.Price,
+                DiscountedPrice = i.DiscountedPrice,
                 SubTotal = i.SubTotal
             }).ToList();
 
@@ -423,7 +423,9 @@ public class OrderService : IOrderService
                 OrderId = orderId,
                 DishId = i.DishId,
                 Quantity = i.Quantity,
-                Price = i.Price,
+                DiscountedPrice = i.DiscountedPrice,
+                OriginalPrice = i.OriginalPrice,
+                PromotionAmount = i.PromotionAmount,
                 SubTotal = i.SubTotal
             }).ToList();
 
@@ -529,62 +531,32 @@ public class OrderService : IOrderService
         if (_authenticatedUserService.ProfileId == null)
             throw new DomainException("Không xác định được nhân viên đăng nhập.");
 
-        var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
-        if (staff == null)
-            throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+        var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value)
+            ?? throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
 
-        var restaurantId = staff.RestaurantId;
+        var orders = await _unitOfWork.Orders.GetCashOrdersPendingConfirmAsync(staff.RestaurantId);
 
-        var orders = await _unitOfWork.Orders.GetCashOrdersPendingConfirmAsync(restaurantId);
-        if (orders == null || !orders.Any())
+        if (orders == null)
             return new List<CashPendingOrderResponse>();
 
-        var result = new List<CashPendingOrderResponse>();
-
-        foreach (var order in orders)
+        return orders.Select(o => new CashPendingOrderResponse
         {
-            var dishIds = order.OrderDetails.Select(x => x.DishId).ToList();
-
-            var dishesPromo = await GetDishesByIdsWithPromotionAsync(order.RestaurantId, dishIds);
-
-            var items = order.OrderDetails.Select(od =>
+            Id = o.Id.ToString(),
+            OrderCode = o.OrderCode,
+            CreatedAt = o.CreatedAt,
+            Amount = o.TotalAmount,
+            Phone = o.NumberPhone,
+            Note = o.Note,
+            Items = o.OrderDetails.Select(od => new CashPendingOrderItem
             {
-                var promo = dishesPromo.FirstOrDefault(d => d.DishId == od.DishId);
-
-                var originalPrice = promo?.Price ?? od.Price;
-                var discountedPrice = promo?.DiscountedPrice ?? od.Price;
-
-                return new CashPendingOrderItem
-                {
-                    DishId = od.DishId,
-                    DishName = od.Dish.DishName,
-                    Quantity = od.Quantity,
-
-                    OriginalPrice = originalPrice,
-                    Price = discountedPrice,
-
-                    DiscountAmount = (originalPrice - discountedPrice) * od.Quantity,
-                    PromotionName = promo?.PromotionName,
-
-                    SubTotal = discountedPrice * od.Quantity
-                };
-            }).ToList();
-
-            result.Add(new CashPendingOrderResponse
-            {
-                Id = order.Id.ToString(),
-                OrderCode = order.OrderCode,
-                RestaurantId = order.RestaurantId,
-                CreatedAt = order.CreatedAt,
-                Amount = order.FinalAmount,
-                Phone = order.NumberPhone,
-                Note = order.Note,
-                Status = (int)order.Status,
-                Items = items
-            });
-        }
-
-        return result;
+                DishName = od.Dish?.DishName,
+                Quantity = od.Quantity,
+                OriginalPrice = od.OriginalPrice,
+                DiscountedPrice = od.DiscountedPrice,
+                PromotionAmount = od.PromotionAmount,
+                SubTotal = od.SubTotal
+            }).ToList()
+        }).ToList();
     }
 
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)
@@ -667,7 +639,9 @@ public class OrderService : IOrderService
             {
                 Id = od.Id.ToString(),
                 Name = od.Dish.DishName,
-                Price = od.Price,
+                OriginalPrice = od.OriginalPrice,
+                DiscountedPrice = od.DiscountedPrice,
+                PromotionAmount = od.PromotionAmount,
                 Quantity = od.Quantity,
                 Image = od.Dish.ImageUrl
             }).ToList()

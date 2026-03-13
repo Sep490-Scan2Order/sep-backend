@@ -10,7 +10,10 @@ namespace ScanToOrder.Application.DTOs.Orders
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public decimal Price { get; set; }
+        public decimal DiscountedPrice { get; set; }
+        public decimal OriginalPrice { get; set; }
+        public decimal PromotionAmount { get; set; }
+
         public int Quantity { get; set; }
         public string Image { get; set; }
     }
