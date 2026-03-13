@@ -198,8 +198,8 @@ public class SubscriptionService : ISubscriptionService
             {
                 OrderCode = transactionCode,
                 Amount = (long)previewResult.TotalAmountToPay,
-                CancelUrl = $"{GetFrontendBaseUrl()}/pages/public/cancle?orderCode={transactionCode}",
-                ReturnUrl = $"{GetFrontendBaseUrl()}/pages/public/success?orderCode={transactionCode}",
+                CancelUrl = $"{GetFrontendBaseUrl()}/tenant/subscription-callback/cancel?orderCode={transactionCode}",
+                ReturnUrl = $"{GetFrontendBaseUrl()}/tenant/subscription-callback/success?orderCode={transactionCode}",
                 Description = $"Thanh toán dịch vụ S2O",
             };
 
