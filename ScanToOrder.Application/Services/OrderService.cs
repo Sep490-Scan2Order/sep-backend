@@ -516,19 +516,55 @@ public class OrderService : IOrderService
         var restaurantId = staff.RestaurantId;
 
         var orders = await _unitOfWork.Orders.GetCashOrdersPendingConfirmAsync(restaurantId);
-        if (orders == null || !orders.Any()) return new List<CashPendingOrderResponse>();
+        if (orders == null || !orders.Any())
+            return new List<CashPendingOrderResponse>();
 
-        return orders.Select(order => new CashPendingOrderResponse
+        var result = new List<CashPendingOrderResponse>();
+
+        foreach (var order in orders)
         {
-            Id = order.Id.ToString(),
-            OrderCode = order.OrderCode,
-            RestaurantId = order.RestaurantId,
-            CreatedAt = order.CreatedAt,
-            Amount = order.FinalAmount,
-            Phone = order.NumberPhone,
-            Note = order.Note,
-            Status = (int)order.Status
-        }).ToList();
+            var dishIds = order.OrderDetails.Select(x => x.DishId).ToList();
+
+            var dishesPromo = await GetDishesByIdsWithPromotionAsync(order.RestaurantId, dishIds);
+
+            var items = order.OrderDetails.Select(od =>
+            {
+                var promo = dishesPromo.FirstOrDefault(d => d.DishId == od.DishId);
+
+                var originalPrice = promo?.Price ?? od.Price;
+                var discountedPrice = promo?.DiscountedPrice ?? od.Price;
+
+                return new CashPendingOrderItem
+                {
+                    DishId = od.DishId,
+                    DishName = od.Dish.DishName,
+                    Quantity = od.Quantity,
+
+                    OriginalPrice = originalPrice,
+                    Price = discountedPrice,
+
+                    DiscountAmount = (originalPrice - discountedPrice) * od.Quantity,
+                    PromotionName = promo?.PromotionName,
+
+                    SubTotal = discountedPrice * od.Quantity
+                };
+            }).ToList();
+
+            result.Add(new CashPendingOrderResponse
+            {
+                Id = order.Id.ToString(),
+                OrderCode = order.OrderCode,
+                RestaurantId = order.RestaurantId,
+                CreatedAt = order.CreatedAt,
+                Amount = order.FinalAmount,
+                Phone = order.NumberPhone,
+                Note = order.Note,
+                Status = (int)order.Status,
+                Items = items
+            });
+        }
+
+        return result;
     }
 
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)

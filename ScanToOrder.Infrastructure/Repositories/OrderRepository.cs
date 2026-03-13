@@ -55,9 +55,11 @@ namespace ScanToOrder.Infrastructure.Repositories
                             && !o.IsDeleted
                             && o.Status == OrderStatus.Unpaid
                             && _context.Transactions.Any(t =>
-                                t.OrderId == o.Id
-                                && t.PaymentMethod == PaymentMethod.Cash
-                                && t.Status == OrderTransactionStatus.Pending))
+                                t.OrderId == o.Id &&
+                                t.PaymentMethod == PaymentMethod.Cash &&
+                                t.Status == OrderTransactionStatus.Pending))
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Dish)
                 .OrderByDescending(o => o.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
