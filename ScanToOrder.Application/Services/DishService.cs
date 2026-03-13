@@ -6,6 +6,7 @@ using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
@@ -104,6 +105,115 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             return _mapper.Map<DishDto>(dishEntity);
+        }
+
+        public async Task<DishDto> CreateCombo(Guid tenantId, int categoryId, CreateComboRequest request)
+        {
+            var existTenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
+            if (existTenant == null)
+            {
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            }
+
+            var existCategory = await _unitOfWork.Categories.GetByFieldsIncludeAsync(x => x.Id == categoryId && x.TenantId == tenantId);
+            if (existCategory == null)
+            {
+                throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+            }
+
+            if (request.Items == null || !request.Items.Any())
+            {
+                throw new DomainException("Combo phải có ít nhất 1 món ăn.");
+            }
+
+            var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();
+            var dishes = await _unitOfWork.Dishes.FindAsync(d => dishIds.Contains(d.Id) && !d.IsDeleted);
+            
+            if (dishes == null || dishes.Count() != dishIds.Count)
+            {
+                throw new DomainException("Một hoặc nhiều món ăn không tồn tại.");
+            }
+
+            if (dishes.Any(d => d.Type != DishType.Single))
+            {
+                throw new DomainException("Combo chỉ được bao gồm các món ăn lẻ (Single).");
+            }
+
+            string uploadImageUrl = string.Empty;
+            if (request.ImageUrl != null && request.ImageUrl.Length > 0)
+            {
+                try
+                {
+                    using var ms = new MemoryStream();
+                    await request.ImageUrl.CopyToAsync(ms);
+                    var fileBytes = ms.ToArray();
+
+                    string extension = Path.GetExtension(request.ImageUrl.FileName);
+                    string fileName = $"combo_{Guid.NewGuid()}{extension}";
+                    uploadImageUrl = await _storageService.UploadFromBytesAsync(fileBytes, fileName, "dishes");
+                }
+                catch (Exception ex)
+                {
+                    throw new DomainException($"Lỗi khi tải ảnh lên: {ex.Message}");
+                }
+            }
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                var comboEntity = new Dish
+                {
+                    CategoryId = categoryId,
+                    DishName = request.ComboName,
+                    Price = request.Price,
+                    Description = request.Description ?? string.Empty,
+                    ImageUrl = uploadImageUrl,
+                    Type = DishType.Combo,
+                    IsAvailable = true,
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+
+                await _unitOfWork.Dishes.AddAsync(comboEntity);
+                await _unitOfWork.SaveAsync();
+
+                var comboDetails = request.Items.Select(item => new ComboDetail
+                {
+                    DishId = comboEntity.Id,
+                    ItemDishId = item.DishId,
+                    Quantity = item.Quantity > 0 ? item.Quantity : 1
+                }).ToList();
+
+                await _unitOfWork.ComboDetails.AddRangeAsync(comboDetails);
+
+                var restaurantId = await _unitOfWork.Restaurants.GetByTenantIdAsync(tenantId);
+                var branchConfigs = new List<BranchDishConfig>();
+
+                foreach (var res in restaurantId)
+                {
+                    var config = new BranchDishConfig
+                    {
+                        RestaurantId = res.Id,
+                        DishId = comboEntity.Id,
+                        Price = comboEntity.Price,
+                        IsSelling = true,
+                        IsSoldOut = false
+                    };
+                    branchConfigs.Add(config);
+                }
+
+                await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigs);
+                await _unitOfWork.SaveAsync();
+
+                await transaction.CommitAsync();
+
+                return _mapper.Map<DishDto>(comboEntity);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<List<DishDto>> GetAllDishesByTenant(Guid tenantId, bool includeDeleted = false)

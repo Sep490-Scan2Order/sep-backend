@@ -124,6 +124,7 @@ public class OrderService : IOrderService
                 DishName = dish.DishName,
                 Quantity = request.Quantity,
                 Price = branchDish.Price,
+                OriginalPrice = branchDish.Price,
                 SubTotal = branchDish.Price * request.Quantity
             };
             cart.Items.Add(existingItem);
@@ -141,7 +142,10 @@ public class OrderService : IOrderService
         var json = JsonSerializer.Serialize(cart);
         await _cartRedisService.SaveRawCartAsync(cartId, json, TimeSpan.FromMinutes(60));
 
-        // 8. Build DTO trả về cho FE 
+        // 8. Đồng bộ lại giá/khuyến mãi/tồn kho trước khi trả về
+        cart = await SyncCartPricingAndAvailabilityAsync(cart);
+
+        // 9. Trả về full CartDto 
         return _mapper.Map<CartDto>(cart);
     }
 
@@ -190,7 +194,14 @@ public class OrderService : IOrderService
 
             if (item.Price != dishInfo.DiscountedPrice)
             {
+                if (item.OriginalPrice == 0)
+                {
+                    item.OriginalPrice = dishInfo.Price;
+                }
+
                 item.Price = dishInfo.DiscountedPrice;
+                item.DiscountAmount = (item.OriginalPrice - item.Price) * item.Quantity;
+                item.PromotionName = dishInfo.PromotionName;
                 item.SubTotal = item.Price * item.Quantity;
                 isUpdated = true;
             }
@@ -505,19 +516,55 @@ public class OrderService : IOrderService
         var restaurantId = staff.RestaurantId;
 
         var orders = await _unitOfWork.Orders.GetCashOrdersPendingConfirmAsync(restaurantId);
-        if (orders == null || !orders.Any()) return new List<CashPendingOrderResponse>();
+        if (orders == null || !orders.Any())
+            return new List<CashPendingOrderResponse>();
 
-        return orders.Select(order => new CashPendingOrderResponse
+        var result = new List<CashPendingOrderResponse>();
+
+        foreach (var order in orders)
         {
-            Id = order.Id.ToString(),
-            OrderCode = order.OrderCode,
-            RestaurantId = order.RestaurantId,
-            CreatedAt = order.CreatedAt,
-            Amount = order.FinalAmount,
-            Phone = order.NumberPhone,
-            Note = order.Note,
-            Status = (int)order.Status
-        }).ToList();
+            var dishIds = order.OrderDetails.Select(x => x.DishId).ToList();
+
+            var dishesPromo = await GetDishesByIdsWithPromotionAsync(order.RestaurantId, dishIds);
+
+            var items = order.OrderDetails.Select(od =>
+            {
+                var promo = dishesPromo.FirstOrDefault(d => d.DishId == od.DishId);
+
+                var originalPrice = promo?.Price ?? od.Price;
+                var discountedPrice = promo?.DiscountedPrice ?? od.Price;
+
+                return new CashPendingOrderItem
+                {
+                    DishId = od.DishId,
+                    DishName = od.Dish.DishName,
+                    Quantity = od.Quantity,
+
+                    OriginalPrice = originalPrice,
+                    Price = discountedPrice,
+
+                    DiscountAmount = (originalPrice - discountedPrice) * od.Quantity,
+                    PromotionName = promo?.PromotionName,
+
+                    SubTotal = discountedPrice * od.Quantity
+                };
+            }).ToList();
+
+            result.Add(new CashPendingOrderResponse
+            {
+                Id = order.Id.ToString(),
+                OrderCode = order.OrderCode,
+                RestaurantId = order.RestaurantId,
+                CreatedAt = order.CreatedAt,
+                Amount = order.FinalAmount,
+                Phone = order.NumberPhone,
+                Note = order.Note,
+                Status = (int)order.Status,
+                Items = items
+            });
+        }
+
+        return result;
     }
 
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)

@@ -108,18 +108,18 @@ namespace ScanToOrder.Application.Services
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (tenant == null) throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
-            //_ = true switch
-            //{
-            //    _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
-            //        .TENANT_MISSING_TAX_NUMBER),
-            //    _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage
-            //        .TenantError.TENANT_MISSING_BANK),
-            //    _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError
-            //        .TENANT_MISSING_CARD),
-            //    _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError
-            //        .TENANT_MISSING_PHONE),
-            //    _ => true
-            //};
+            // _ = true switch
+            // {
+            //     _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
+            //         .TENANT_MISSING_TAX_NUMBER),
+            //     _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage
+            //         .TenantError.TENANT_MISSING_BANK),
+            //     _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError
+            //         .TENANT_MISSING_CARD),
+            //     _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError
+            //         .TENANT_MISSING_PHONE),
+            //     _ => true
+            // };
 
             var restaurant = _mapper.Map<Restaurant>(request);
             restaurant.TenantId = tenantId;
@@ -314,6 +314,7 @@ namespace ScanToOrder.Application.Services
                             PromotionLabel = promoLabel,
                             PromoType = winningPromo?.Type,
                             // Calculate real-time expiration for UI countdown
+                            Type = bdc.Dish.Type,
                             DishAvailabilityStock = bdc.DishAvailability,
                             ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
                             IsSoldOut = bdc.IsSoldOut

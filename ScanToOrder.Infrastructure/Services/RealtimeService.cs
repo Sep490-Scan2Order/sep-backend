@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Infrastructure.Hubs;
 
@@ -26,6 +26,16 @@ namespace ScanToOrder.Infrastructure.Services
         public async Task NotifyListChanged(string tenantId)
         {
             await _hubContext.Clients.Group(tenantId).SendAsync("ListChanged");
+        }
+
+        public async Task NotifyTenantProfileChanged(string tenantId)
+        {
+            await _hubContext.Clients.Group(tenantId).SendAsync("ProfileChanged");
+        }
+
+        public async Task NotifySubscriptionChanged(string tenantId)
+        {
+            await _hubContext.Clients.Group(tenantId).SendAsync("SubscriptionChanged");
         }
 
         public async Task SendOrderToKitchen(string restaurantId, object order)

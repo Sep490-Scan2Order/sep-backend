@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
@@ -21,6 +21,7 @@ namespace ScanToOrder.Application.Services
         private readonly IOtpRedisService _otpRedisService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly ITransactionRedisService _transactionRedisService;
+        private readonly IRealtimeService _realtimeService;
 
         public TenantService(
             IUnitOfWork unitOfWork,
@@ -29,7 +30,8 @@ namespace ScanToOrder.Application.Services
             IOtpRedisService otpRedisService,
             IAuthenticatedUserService authenticatedUserService,
             IBankLookupService bankLookupService,
-            ITransactionRedisService transactionRedisService)
+            ITransactionRedisService transactionRedisService,
+            IRealtimeService realtimeService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -38,6 +40,7 @@ namespace ScanToOrder.Application.Services
             _authenticatedUserService = authenticatedUserService;
             _bankLookupService = bankLookupService;
             _transactionRedisService = transactionRedisService;
+            _realtimeService = realtimeService;
         }
 
         public async Task<string> RegisterTenantAsync(RegisterTenantRequest request)
@@ -157,7 +160,7 @@ namespace ScanToOrder.Application.Services
 
                 if (string.IsNullOrEmpty(tenant.CardNumber) || tenant.BankId == null)
                     throw new DomainException("Thông tin ngân hàng chưa được cập nhật");
-                if (BankQrLinkUtils.RemoveVietnameseTones(result.Data.OwnerName).ToLower().Equals(tenant.Name.ToLower()))
+                if (BankQrLinkUtils.RemoveVietnameseTones(tenant.Name).ToLower().Equals(result.Data.OwnerName.ToLower()))
                 {
                     tenant.IsVerifyTax = true;
                 }
@@ -165,6 +168,9 @@ namespace ScanToOrder.Application.Services
                 _unitOfWork.Tenants.Update(tenant);
                 await _transactionRedisService.DeleteTransactionCodeAsync(paymentCode);
                 await _unitOfWork.SaveAsync();
+                
+                await _realtimeService.NotifyTenantProfileChanged(tenantId);
+                
                 return true;
             }
 

@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.Interfaces;
@@ -14,11 +15,19 @@ public class SubscriptionService : ISubscriptionService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPaymentService _paymentService;
+    private readonly IRealtimeService _realtimeService;
+    private readonly IConfiguration _configuration;
 
-    public SubscriptionService(IUnitOfWork unitOfWork, IPaymentService paymentService)
+    public SubscriptionService(
+        IUnitOfWork unitOfWork,
+        IPaymentService paymentService,
+        IRealtimeService realtimeService,
+        IConfiguration configuration)
     {
         _unitOfWork = unitOfWork;
         _paymentService = paymentService;
+        _realtimeService = realtimeService;
+        _configuration = configuration;
     }
 
     public async Task<CheckoutPreviewResponse> CalculatePreviewAsync(PlanCheckoutRequest request, Guid currentTenantId)
@@ -151,6 +160,7 @@ public class SubscriptionService : ISubscriptionService
     public async Task<string> CreatePaymentAsync(PlanCheckoutRequest request, Guid currentTenantId)
     {
         var previewResult = await CalculatePreviewAsync(request, currentTenantId);
+        var subscriptions = await _unitOfWork.Subscriptions.GetAllAsync(s => s.RestaurantId == request.Items.First().RestaurantId);
         if (previewResult.TotalAmountToPay <= 0)
         {
             throw new InvalidOperationException("Hóa đơn 0đ, vui lòng liên hệ Admin để nâng cấp tự động.");
@@ -188,8 +198,8 @@ public class SubscriptionService : ISubscriptionService
             {
                 OrderCode = transactionCode,
                 Amount = (long)previewResult.TotalAmountToPay,
-                CancelUrl = "https://scan2order.id.vn/cancle",
-                ReturnUrl = "https://scan2order.id.vn/success",
+                CancelUrl = $"{GetFrontendBaseUrl()}/pages/public/cancle?orderCode={transactionCode}",
+                ReturnUrl = $"{GetFrontendBaseUrl()}/pages/public/success?orderCode={transactionCode}",
                 Description = $"Thanh toán dịch vụ S2O",
             };
 
@@ -202,6 +212,88 @@ public class SubscriptionService : ISubscriptionService
             await dbTxn.RollbackAsync();
             throw new DomainException("Hệ thống thanh toán đang bận, vui lòng thử lại sau.");
         }
+    }
+
+    public async Task MarkPaymentFailedAsync(long transactionCode)
+    {
+        var paymentTransaction = (await _unitOfWork.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.TransactionCode == transactionCode.ToString()))
+            .OrThrow("Giao dịch không tồn tại");
+
+        if (paymentTransaction.Status == PaymentTransactionStatus.Success ||
+            paymentTransaction.Status == PaymentTransactionStatus.Canceled)
+        {
+            return;
+        }
+
+        paymentTransaction.Status = PaymentTransactionStatus.Failed;
+        paymentTransaction.PaymentDate = DateTime.UtcNow;
+        _unitOfWork.PaymentTransactions.Update(paymentTransaction);
+        await _unitOfWork.SaveAsync();
+    }
+
+    public async Task MarkPaymentCanceledAsync(long transactionCode, Guid currentTenantId)
+    {
+        var paymentTransaction = (await _unitOfWork.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.TransactionCode == transactionCode.ToString()))
+            .OrThrow("Giao dịch không tồn tại");
+
+        if (paymentTransaction.TenantId != currentTenantId)
+        {
+            throw new DomainException("Không có quyền cập nhật giao dịch này.");
+        }
+
+        if (paymentTransaction.Status == PaymentTransactionStatus.Success)
+        {
+            return;
+        }
+
+        paymentTransaction.Status = PaymentTransactionStatus.Canceled;
+        paymentTransaction.PaymentDate = DateTime.UtcNow;
+        _unitOfWork.PaymentTransactions.Update(paymentTransaction);
+        await _unitOfWork.SaveAsync();
+    }
+
+    public async Task<PaymentStatusResponse> GetPaymentStatusAsync(long transactionCode, Guid currentTenantId)
+    {
+        var paymentTransaction = (await _unitOfWork.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.TransactionCode == transactionCode.ToString()))
+            .OrThrow("Giao dịch không tồn tại");
+
+        if (paymentTransaction.TenantId != currentTenantId)
+        {
+            throw new DomainException("Không có quyền xem giao dịch này.");
+        }
+
+        var isFinal = paymentTransaction.Status == PaymentTransactionStatus.Success ||
+                      paymentTransaction.Status == PaymentTransactionStatus.Failed ||
+                      paymentTransaction.Status == PaymentTransactionStatus.Canceled;
+
+        return new PaymentStatusResponse
+        {
+            OrderCode = transactionCode,
+            TotalAmount = paymentTransaction.TotalAmount,
+            Status = paymentTransaction.Status.ToString(),
+            IsFinal = isFinal,
+            LastUpdatedAt = paymentTransaction.UpdatedAt ?? paymentTransaction.PaymentDate
+        };
+    }
+
+    private string GetFrontendBaseUrl()
+    {
+        var localBaseUrl = _configuration["FrontEndUrl:local"];
+        if (!string.IsNullOrWhiteSpace(localBaseUrl))
+        {
+            return localBaseUrl.TrimEnd('/');
+        }
+
+        var baseUrl = _configuration["FrontEndUrl:scan2order_id_vn"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            baseUrl = "http://localhost:3000";
+        }
+
+        return baseUrl.TrimEnd('/');
     }
 
     public async Task ProcessPaymentSuccessAsync(long transactionCode)
@@ -296,6 +388,7 @@ public class SubscriptionService : ISubscriptionService
                     currentSub.PlanId = item.NewPlanId;
                     currentSub.StartDate = now;
                     currentSub.EndDate = newExpiredDate;
+                    _unitOfWork.Subscriptions.Update(currentSub);
                 }
                 else if (item.ActionType == SubscriptionLogStatus.Renew)
                 {
@@ -304,6 +397,7 @@ public class SubscriptionService : ISubscriptionService
                     newExpiredDate = baseDate.AddDays(totalDaysToAdd);
 
                     currentSub.EndDate = newExpiredDate;
+                    _unitOfWork.Subscriptions.Update(currentSub);
                 }
 
                 // Create a subscription log entry to securely track historical changes
@@ -331,10 +425,14 @@ public class SubscriptionService : ISubscriptionService
             // Mark the overarching transaction as fully successful
             paymentTransaction.Status = PaymentTransactionStatus.Success;
             paymentTransaction.PaymentDate = DateTime.UtcNow;
-
+            _unitOfWork.PaymentTransactions.Update(paymentTransaction);
+            
             // Persist all modifications to the database in one single batch
             await _unitOfWork.SaveAsync();
             await dbTxn.CommitAsync();
+
+            await _realtimeService.NotifySubscriptionChanged(paymentTransaction.TenantId.ToString());
+            await _realtimeService.NotifyTenantProfileChanged(paymentTransaction.TenantId.ToString());
         }
         catch (Exception ex)
         {

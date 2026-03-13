@@ -207,6 +207,7 @@ namespace ScanToOrder.Application.Services
             {
                 Domain.Enums.Role.Tenant => user.Tenant?.Id,
                 Domain.Enums.Role.Staff => user.Staff?.Id,
+                Domain.Enums.Role.Cashier => user.Staff?.Id,
                 Domain.Enums.Role.Customer => user.Customer?.Id,
                 _ => null
             };
