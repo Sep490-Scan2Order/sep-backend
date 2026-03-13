@@ -11,7 +11,7 @@ namespace ScanToOrder.Application.Message
         public class ShiftError
         {
             public const string SHIFT_NOT_FOUND = "Không tìm thấy ca làm.";
-            public const string SHIFT_ALREADY_OPEN = "Nhân viên đã có ca làm đang mở.";
+            public const string SHIFT_ALREADY_OPEN = "Hiện có nhân viên đang làm trong ca.";
             public const string SHIFT_ALREADY_CLOSED = "Ca làm đã được đóng.";
             public const string OPENING_CASH_INVALID = "Tiền đầu ca không được thấp hơn mức tối thiểu.";
             public const string CASH_AMOUNT_INVALID = "Số tiền không được thấp hơn mức tối thiểu.";

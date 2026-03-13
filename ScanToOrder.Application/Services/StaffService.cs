@@ -31,7 +31,7 @@ namespace ScanToOrder.Application.Services
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(staffDto.Phone);
             if (existingUser != null)
             {
-                throw new DomainException(StaffMessage.StaffError.STAFF_ALREADY_EXISTS);
+               throw new DomainException(StaffMessage.StaffError.STAFF_ALREADY_EXISTS);
             }
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(staffDto.RestaurantId);
 
