@@ -33,7 +33,7 @@ namespace ScanToOrder.Api.Controllers
         
         [HttpPost("create-payment")]
         [Authorize(Roles = "Tenant")]
-        public async Task<ActionResult<ApiResponse<string>>> CreatePaymentReqeust([FromBody] PlanCheckoutRequest request)
+        public async Task<ActionResult<ApiResponse<string>>> CreatePaymentRequest([FromBody] PlanCheckoutRequest request)
         {
             if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
             var tenantId = _authenticatedUserService.ProfileId.Value;
