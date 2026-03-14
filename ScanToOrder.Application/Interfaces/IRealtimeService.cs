@@ -1,3 +1,5 @@
+using ScanToOrder.Application.DTOs.Orders;
+
 namespace ScanToOrder.Application.Interfaces
 {
     public interface IRealtimeService
@@ -8,7 +10,7 @@ namespace ScanToOrder.Application.Interfaces
         Task NotifyTenantProfileChanged(string tenantId);
         Task NotifySubscriptionChanged(string tenantId);
 
-        Task SendOrderToKitchen(string restaurantId, string orderId);
+        Task SendOrderToKitchen(string restaurantId, OrderRealtimeDto order);
         Task NotifyOrderStatusChanged(string restaurantId, string orderId, int newStatus);
     }
 }
