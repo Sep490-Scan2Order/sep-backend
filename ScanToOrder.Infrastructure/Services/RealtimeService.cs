@@ -38,9 +38,9 @@ namespace ScanToOrder.Infrastructure.Services
             await _hubContext.Clients.Group(tenantId).SendAsync("SubscriptionChanged");
         }
 
-        public async Task SendOrderToKitchen(string restaurantId, object order)
+        public async Task SendOrderToKitchen(string restaurantId, string orderId)
         {
-            await _hubContext.Clients.Group(restaurantId).SendAsync("ReceiveOrder", order);
+            await _hubContext.Clients.Group(restaurantId).SendAsync("ReceiveOrder", new { OrderId = orderId});
         }
 
         public async Task NotifyOrderCountChanged(string restaurantId, int newCount)

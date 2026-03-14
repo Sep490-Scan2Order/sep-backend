@@ -8,8 +8,7 @@ namespace ScanToOrder.Application.Interfaces
         Task NotifyTenantProfileChanged(string tenantId);
         Task NotifySubscriptionChanged(string tenantId);
 
-        Task SendOrderToKitchen(string restaurantId, object order);
-        Task NotifyOrderCountChanged(string restaurantId, int newCount);
+        Task SendOrderToKitchen(string restaurantId, string orderId);
         Task NotifyOrderStatusChanged(string restaurantId, string orderId, int newStatus);
     }
 }

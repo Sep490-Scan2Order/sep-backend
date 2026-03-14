@@ -12,6 +12,7 @@ using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Promotions;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
@@ -439,9 +440,14 @@ public class OrderService : IOrderService
                 TransactionCode = null,
                 PaymentMethod = PaymentMethod.Cash
             });
-
+         
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+
+            if (_realtimeService != null)
+            {
+                await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), order.Id.ToString());
+            }
         }
         catch
         {
@@ -450,7 +456,7 @@ public class OrderService : IOrderService
         }
 
         await _cartRedisService.DeleteCartAsync(request.CartId);
-
+      
         return new CashCheckoutResponse
         {
             OrderId = orderId,
@@ -460,6 +466,7 @@ public class OrderService : IOrderService
             Phone = request.Phone,
             Note = cart.Note
         };
+
     }
 
     public async Task ConfirmCashPaymentAsync(Guid orderId)
@@ -524,6 +531,7 @@ public class OrderService : IOrderService
             await tx.RollbackAsync();
             throw;
         }
+
     }
 
     public async Task<List<CashPendingOrderResponse>> GetCashOrdersPendingConfirmAsync()
