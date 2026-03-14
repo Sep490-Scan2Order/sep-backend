@@ -668,8 +668,6 @@ public class OrderService : IOrderService
 
     public async Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId)
     {
-
-
         var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId);
 
         if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();
@@ -695,6 +693,7 @@ public class OrderService : IOrderService
             }).ToList()
         }).ToList();
     }
+    
     public async Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);

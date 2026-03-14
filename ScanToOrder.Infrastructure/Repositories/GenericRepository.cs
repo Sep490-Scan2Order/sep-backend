@@ -2,6 +2,7 @@
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System.Linq.Expressions;
+using ScanToOrder.Domain.Entities;
 
 
 namespace ScanToOrder.Infrastructure.Repositories
@@ -113,6 +114,34 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
         {
             return await _dbSet.CountAsync(predicate);
+        }
+        
+        public async Task<PagedResult<T>> GetPagedAndSortedAsync(
+            int pageNumber, 
+            int pageSize, 
+            Expression<Func<T, bool>>? predicate = null, 
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null, 
+            params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet.AsNoTracking();
+
+            if (predicate != null) query = query.Where(predicate);
+
+            foreach (var include in includes) query = query.Include(include);
+
+            int totalCount = await query.CountAsync();
+            
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<T> { Items = items, TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize };
         }
     }
 }

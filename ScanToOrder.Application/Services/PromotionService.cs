@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Domain.Entities;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
@@ -119,22 +120,33 @@ public class PromotionService : IPromotionService
 
         return dto;
     }
-    
-    public async Task<PromotionResponseDto> GetPromotionByTenantAsync(Guid tenantId)
+
+    public async Task<PagedResult<PromotionResponseDto>> GetPromotionsByTenantAsync(Guid tenantId, int pageNumber = 1, int pageSize = 10)
     {
-        var promotion = await _unitOfWork.Promotions.GetByFieldsIncludeAsync(p => p.TenantId == tenantId,
-            p => p.PromotionDishes,
-            p => p.RestaurantPromotions);
+        var pagedResult = await _unitOfWork.Promotions
+            .GetPagedAndSortedAsync(
+                pageNumber,
+                pageSize,
+                p => p.TenantId == tenantId && !p.IsDeleted,
+                orderBy: q => q.OrderByDescending(p => p.Priority).ThenByDescending(p => p.CreatedAt),
+                p => p.PromotionDishes,
+                p => p.RestaurantPromotions);
+        
+        var dtos = _mapper.Map<List<PromotionResponseDto>>(pagedResult.Items);
 
-        if (promotion == null || promotion.IsDeleted)
-            throw new NotFoundException("Promotion", tenantId);
-
-        var dto = _mapper.Map<PromotionResponseDto>(promotion);
-
-        dto.DishIds = promotion.PromotionDishes.Select(pd => pd.DishId).ToList();
-        dto.RestaurantIds = promotion.RestaurantPromotions.Select(rp => rp.RestaurantId).ToList();
-
-        return dto;
+        for (int i = 0; i < dtos.Count; i++)
+        {
+            dtos[i].DishIds = pagedResult.Items[i].PromotionDishes.Select(pd => pd.DishId).ToList();
+            dtos[i].RestaurantIds = pagedResult.Items[i].RestaurantPromotions.Select(rp => rp.RestaurantId).ToList();
+        }
+        
+        return new PagedResult<PromotionResponseDto>
+        {
+            Items = dtos,
+            TotalCount = pagedResult.TotalCount,
+            PageNumber = pagedResult.PageNumber,
+            PageSize = pagedResult.PageSize
+        };
     }
 
     public async Task UpdatePromotionAsync(UpdatePromotionDto dto)
@@ -177,6 +189,7 @@ public class PromotionService : IPromotionService
                 {
                     promotion.PromotionDishes.Clear();
                 }
+
                 UpdateRestaurantPromotions(promotion, dto.RestaurantIds ?? new List<int>());
             }
             else
@@ -207,7 +220,7 @@ public class PromotionService : IPromotionService
         await _unitOfWork.SaveAsync();
     }
 
-    
+
     // Helper methods to manage many-to-many relationships for PromotionDishes and RestaurantPromotions
     private void UpdatePromotionDishes(Promotion promotion, List<int> newDishIds)
     {

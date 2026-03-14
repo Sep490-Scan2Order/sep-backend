@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using ScanToOrder.Domain.Entities;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -20,5 +21,12 @@ namespace ScanToOrder.Domain.Interfaces
         void RemoveRange(IEnumerable<T> entities);
         void UpdateRange(IEnumerable<T> entities);
         Task<int> CountAsync(Expression<Func<T, bool>> predicate);
+
+        Task<PagedResult<T>> GetPagedAndSortedAsync(
+            int pageNumber,
+            int pageSize,
+            Expression<Func<T, bool>>? predicate = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            params Expression<Func<T, object>>[] includes);
     }
 }
