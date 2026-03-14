@@ -18,11 +18,11 @@ namespace ScanToOrder.Api.Controllers
             _authenticatedUserService = authenticatedUserService;
         }
 
-        [HttpGet("get-dishes-by-tenant-include-delete")]
+        [HttpGet("get-dishes-by-tenant")]
         public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetAllDishesByTenant()
         {
             var tenantId = _authenticatedUserService.ProfileId.Value;
-            var dishes = await dishService.GetAllDishesByTenant(tenantId, true);
+            var dishes = await dishService.GetAllDishesByTenant(tenantId);
             return Success(dishes, DishMessage.DishSuccess.DISH_RETRIEVED);
         }
 
