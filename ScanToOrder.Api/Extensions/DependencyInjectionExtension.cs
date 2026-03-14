@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Mappings;
@@ -56,6 +56,9 @@ namespace ScanToOrder.Api.Extensions
             );
             
             services.Configure<EsmsSettings>(configuration.GetSection("EsmsSettings"));
+            services.Configure<VpsSettings>(configuration.GetSection("VpsSettings"));
+            services.Configure<OpenAiSettings>(configuration.GetSection("OpenAiSettings"));
+            services.Configure<SupabaseSettings>(configuration.GetSection("Supabase"));
             services.AddHttpClient<ISmsSender, EsmsSender>();
             
             services.AddMemoryCache();

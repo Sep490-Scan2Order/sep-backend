@@ -160,7 +160,6 @@ public class SubscriptionService : ISubscriptionService
     public async Task<string> CreatePaymentAsync(PlanCheckoutRequest request, Guid currentTenantId)
     {
         var previewResult = await CalculatePreviewAsync(request, currentTenantId);
-        var subscriptions = await _unitOfWork.Subscriptions.GetAllAsync(s => s.RestaurantId == request.Items.First().RestaurantId);
         if (previewResult.TotalAmountToPay <= 0)
         {
             throw new InvalidOperationException("Hóa đơn 0đ, vui lòng liên hệ Admin để nâng cấp tự động.");
