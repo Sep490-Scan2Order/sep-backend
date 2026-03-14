@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
+using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Infrastructure.Hubs;
+using System.Text.Json;
 
 namespace ScanToOrder.Infrastructure.Services
 {
@@ -38,9 +40,13 @@ namespace ScanToOrder.Infrastructure.Services
             await _hubContext.Clients.Group(tenantId).SendAsync("SubscriptionChanged");
         }
 
-        public async Task SendOrderToKitchen(string restaurantId, string orderId)
+        public async Task SendOrderToKitchen(string restaurantId, OrderRealtimeDto order)
         {
-            await _hubContext.Clients.Group(restaurantId).SendAsync("ReceiveOrder", new { OrderId = orderId});
+            Console.WriteLine($"Sent order {JsonSerializer.Serialize(order)} to restaurant {restaurantId}");
+            await _hubContext.Clients
+                .Group(restaurantId)
+                .SendAsync("ReceiveOrder", order);
+         
         }
 
         public async Task NotifyOrderCountChanged(string restaurantId, int newCount)

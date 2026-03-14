@@ -320,6 +320,25 @@ public class OrderService : IOrderService
 
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+            var orderRealtime = new OrderRealtimeDto
+            {
+                Id = order.Id,
+                OrderCode = order.OrderCode,
+                Phone = order.NumberPhone,
+                TotalAmount = order.FinalAmount,
+                Note = order.Note,
+                Status = (int)order.Status,
+                Items = cart.Items.Select(i => new OrderItemRealtimeDto
+                {
+                    DishId = i.DishId,
+                    Quantity = i.Quantity,
+                    Price = i.DiscountedPrice
+                }).ToList()
+            };
+            await _realtimeService.SendOrderToKitchen(
+         order.RestaurantId.ToString(),
+         orderRealtime
+     );
         }
         catch
         {
@@ -443,11 +462,25 @@ public class OrderService : IOrderService
          
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
-
-            if (_realtimeService != null)
+            var orderRealtime = new OrderRealtimeDto
             {
-                await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), order.Id.ToString());
-            }
+                Id = order.Id,
+                OrderCode = order.OrderCode,
+                Phone = order.NumberPhone,
+                TotalAmount = order.FinalAmount,
+                Note = order.Note,
+                Status = (int)order.Status,
+                Items = cart.Items.Select(i => new OrderItemRealtimeDto
+                {
+                    DishId = i.DishId,
+                    Quantity = i.Quantity,
+                    Price = i.DiscountedPrice
+                }).ToList()
+            };
+            await _realtimeService.SendOrderToKitchen(
+         order.RestaurantId.ToString(),
+         orderRealtime
+     );
         }
         catch
         {
@@ -610,13 +643,20 @@ public class OrderService : IOrderService
         {
             order.Status = OrderStatus.Pending;
             _unitOfWork.Orders.Update(order);
-
+           
             transaction.Status = OrderTransactionStatus.Success;
             _unitOfWork.Transactions.Update(transaction);
 
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
-
+            if (_realtimeService != null)
+            {
+                await _realtimeService.NotifyOrderStatusChanged(
+                    order.RestaurantId.ToString(),
+                    order.Id.ToString(),
+                    (int)order.Status
+                );
+            }
             await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
         }
         catch
