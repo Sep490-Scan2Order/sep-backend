@@ -602,6 +602,20 @@ public class OrderService : IOrderService
         }).ToList();
     }
 
+    public async Task EnsureOrderInStaffRestaurantAsync(int orderNumber)
+    {
+        if (_authenticatedUserService.ProfileId == null)
+            throw new DomainException("Không xác định được nhân viên đăng nhập.");
+
+        var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
+        if (staff == null)
+            throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+        var order = await _unitOfWork.Orders.GetByOrderCodeAndRestaurantAsync(orderNumber, staff.RestaurantId);
+        if (order == null)
+            throw new DomainException("Không tìm thấy đơn hàng với số thứ tự này tại nhà hàng của bạn.");
+    }
+
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)
     {
         if (string.IsNullOrWhiteSpace(paymentCode))

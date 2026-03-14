@@ -92,8 +92,11 @@ public class OrderController : BaseController
     }
     
     [HttpPost("ready-for-pickup/{orderNumber}")]
+    [Authorize(Roles = "Staff, Cashier")]
     public async Task<IActionResult> MarkOrderReady(int orderNumber)
     {
+        await _orderService.EnsureOrderInStaffRestaurantAsync(orderNumber);
+
         string textInput =
             $"Xin mời khách hàng có số thứ tự {orderNumber} đến quầy nhận món.";
 

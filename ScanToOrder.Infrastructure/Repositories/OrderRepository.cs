@@ -64,6 +64,14 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task<Order?> GetByOrderCodeAndRestaurantAsync(int orderCode, int restaurantId)
+        {
+            return await _dbSet
+                .Where(o => o.RestaurantId == restaurantId && o.OrderCode == orderCode && !o.IsDeleted)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
     }
 }
 
