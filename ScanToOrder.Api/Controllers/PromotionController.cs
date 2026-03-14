@@ -4,6 +4,7 @@ using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
+using ScanToOrder.Domain.Entities;
 using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers;
@@ -38,9 +39,18 @@ public class PromotionController : BaseController
     }
     
     [HttpGet("{id:Guid}/tenant")]
-    public async Task<ActionResult<ApiResponse<PromotionResponseDto>>> GetPromotionByTenantId([FromRoute] Guid id)
+    public async Task<ActionResult<ApiResponse<PagedResult<PromotionResponseDto>>>> GetPromotionByTenantId([FromRoute] Guid id, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var result = await _promotionService.GetPromotionByTenantAsync(id);
+        var result = await _promotionService.GetPromotionsByTenantAsync(id);
+        return Success(result);
+    }
+    
+    [HttpGet("tenant-logged-in")]
+    public async Task<ActionResult<ApiResponse<PagedResult<PromotionResponseDto>>>> GetPromotionByTenantLoggedIn([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+        var tenantId = _authenticatedUserService.ProfileId.Value;
+        var result = await _promotionService.GetPromotionsByTenantAsync(tenantId, pageNumber, pageSize);
         return Success(result);
     }
     
