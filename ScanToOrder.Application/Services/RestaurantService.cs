@@ -127,6 +127,8 @@ namespace ScanToOrder.Application.Services
             restaurant.IsOpened = false;
 
             string baseSlug = request.RestaurantName.GenerateSlug();
+            // Đảm bảo slug không chứa ký tự '#' để tránh xung đột fragment trong URL
+            baseSlug = baseSlug.Replace("#", "-");
             restaurant.Slug = $"{baseSlug}-{Guid.NewGuid().ToString("N").Substring(0, 4)}";
 
             if (request.Image != null && request.Image.Length > 0)
