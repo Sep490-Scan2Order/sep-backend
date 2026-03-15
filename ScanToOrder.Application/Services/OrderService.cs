@@ -17,6 +17,7 @@ using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace ScanToOrder.Application.Services;
 
@@ -28,7 +29,8 @@ public class OrderService : IOrderService
     private readonly IRealtimeService _realtimeService;
     private readonly IMapper _mapper;
     private readonly IAuthenticatedUserService _authenticatedUserService;
-
+    private readonly IStorageService _storageService;
+    private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         IUnitOfWork unitOfWork,
@@ -36,7 +38,9 @@ public class OrderService : IOrderService
         ITransactionRedisService transactionRedisService,
         IRealtimeService realtimeService,
         IMapper mapper,
-        IAuthenticatedUserService authenticatedUserService)
+        IAuthenticatedUserService authenticatedUserService,
+        IStorageService storageService,
+        ILogger<OrderService> logger)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
@@ -44,6 +48,8 @@ public class OrderService : IOrderService
         _realtimeService = realtimeService;
         _mapper = mapper;
         _authenticatedUserService = authenticatedUserService;
+        _storageService = storageService;
+        _logger = logger;
     }
 
     public async Task<CartDto> AddToCartAsync(AddToCartRequest request)
@@ -70,9 +76,14 @@ public class OrderService : IOrderService
             throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
         }
 
-        if (!branchDish.IsSelling || branchDish.IsSoldOut)
+        if (!branchDish.IsSelling)
         {
-            throw new DomainException("Món ăn hiện không còn bán tại nhà hàng này.");
+            throw new DomainException(BranchDishMessage.BranchDishError.NOT_SELLING);
+        }
+
+        if (branchDish.IsSoldOut)
+        {
+            throw new DomainException(BranchDishMessage.BranchDishError.SOLD_OUT);
         }
 
         // 3. Lấy thông tin món ăn để hiển thị trong DTO
@@ -681,6 +692,16 @@ public class OrderService : IOrderService
                     order.Id.ToString(),
                     (int)order.Status
                 );
+                string audioUrl = string.Empty;
+                try
+                {
+                    audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, transferAmount);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Tạo audio thông báo đã nhận chuyển khoản thất bại. OrderCode={OrderCode}, Amount={Amount}", order.OrderCode, transferAmount);
+                }
+                await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transferAmount, audioUrl);
             }
             await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
         }
