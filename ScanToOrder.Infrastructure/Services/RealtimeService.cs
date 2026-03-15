@@ -57,5 +57,10 @@ namespace ScanToOrder.Infrastructure.Services
         {
             await _hubContext.Clients.Group(restaurantId).SendAsync("UpdateStatus", new { OrderId = orderId, Status = newStatus });
         }
+
+        public async Task NotifyPaymentReceived(string restaurantId, int orderCode, decimal amount, string audioUrl)
+        {
+            await _hubContext.Clients.Group(restaurantId).SendAsync("PaymentReceived", new { orderCode, amount, audioUrl });
+        }
     }
 }

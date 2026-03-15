@@ -76,6 +76,21 @@ namespace ScanToOrder.Infrastructure.Services
             return expectedUrl;
         }
 
+        public async Task<string> GetOrGeneratePaymentReceivedAudioAsync(int orderCode, decimal amount)
+        {
+            string fileName = $"order_{orderCode}_payment.mp3";
+            string expectedUrl = $"{_vpsBaseUrl}audio/{fileName}";
+
+            if (await CheckFileExistsAsync(expectedUrl))
+                return expectedUrl;
+
+            string amountText = amount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
+            string textToSpeak = $"Đã nhận chuyển khoản {amountText} đồng cho đơn số {orderCode}.";
+            byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
+            await UploadAudioToVpsAsync(audioBytes, fileName);
+            return expectedUrl;
+        }
+
         private async Task<bool> CheckFileExistsAsync(string url)
         {
             try

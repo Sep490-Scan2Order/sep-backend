@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +14,8 @@ namespace ScanToOrder.Application.Message
             public const string BRANCH_DISH_ALREADY_EXISTS = "Món ăn đã tồn tại tại chi nhánh.";
             public const string INVALID_SOLD_OUT_STATUS = "Trạng thái bán không hợp lệ.";
             public const string BRANCH_DISH_NOT_BELONG_TO_RESTAURANT = "Món ăn không thuộc nhà hàng này.";
+            public const string NOT_SELLING = "Món này không còn được bán nữa.";
+            public const string SOLD_OUT = "Món này đã hết số lượng.";
         }
 
         public class BranchDishSuccess
