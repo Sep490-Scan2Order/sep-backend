@@ -13,6 +13,7 @@ public class AuthController : BaseController
     private readonly IAuthService _authService;
     private readonly IBankLookupService _lookupService;
     private readonly ITaxService _taxService;
+    
 
     public AuthController(IAuthService authService, IBankLookupService lookupService, ITaxService taxService)
     {
@@ -29,35 +30,40 @@ public class AuthController : BaseController
     }
 
     [HttpPost("login-phone")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerLogin([FromBody] LoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerLogin(
+        [FromBody] LoginRequest request)
     {
         var result = await _authService.VerifyAndLoginAsync(request);
         return Success(result);
     }
-    
+
     [HttpPost("tenant-login")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<TenantDto>>>> TenantLogin([FromBody] TenantLoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<TenantDto>>>> TenantLogin(
+        [FromBody] TenantLoginRequest request)
     {
         var result = await _authService.TenantLoginAsync(request);
         return Success(result);
     }
 
     [HttpPost("staff-login")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<StaffDto>>>> StaffLogin([FromBody] StaffLoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<StaffDto>>>> StaffLogin(
+        [FromBody] StaffLoginRequest request)
     {
         var result = await _authService.StaffLoginAsync(request);
         return Success(result);
     }
 
     [HttpPost("administrator-login")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<AdminDto>>>> AdministratorLogin([FromBody] AdminLoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<AdminDto>>>> AdministratorLogin(
+        [FromBody] AdminLoginRequest request)
     {
         var result = await _authService.AdministratorLoginAsync(request);
         return Success(result);
     }
 
     [HttpPost("register-phone")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerRegister([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerRegister(
+        [FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
         return Success(result);
@@ -71,26 +77,29 @@ public class AuthController : BaseController
     }
 
     [HttpPost("Complete-reset-password")]
-    public async Task<ActionResult<ApiResponse<string>>> CompleteResetPassword([FromBody] CompleteResetPasswordRequest request)
+    public async Task<ActionResult<ApiResponse<string>>> CompleteResetPassword(
+        [FromBody] CompleteResetPasswordRequest request)
     {
-        var result = await _authService.CompleteResetPasswordAsync(request.Email, request.ResetToken, request.NewPassword);
+        var result =
+            await _authService.CompleteResetPasswordAsync(request.Email, request.ResetToken, request.NewPassword);
         return Success(result);
     }
 
     [HttpPost("Verify-forgot-password-otp")]
-    public async Task<ActionResult<ApiResponse<string>>> VerifyForgotPasswordOtp([FromBody] VerifyForgotPasswordOtpRequest request)
+    public async Task<ActionResult<ApiResponse<string>>> VerifyForgotPasswordOtp(
+        [FromBody] VerifyForgotPasswordOtpRequest request)
     {
         var result = await _authService.VerifyForgotPasswordOtpAsync(request.Email, request.OtpCode);
         return Success(result);
     }
-    
+
     // Test
     [HttpPost("BankLookup")]
     public async Task<ActionResult<ApiResponse<object?>>> TestBank([FromBody] BankLookRequest request)
     {
         return Success<object?>(await _lookupService.LookupAccountAsync(request));
     }
-    
+
     [HttpGet("Tax")]
     public async Task<ActionResult<ApiResponse<object?>>> TestTax([FromQuery] string taxCode)
     {
@@ -99,7 +108,8 @@ public class AuthController : BaseController
     //
 
     [HttpPost("reset-password-staff")]
-    public async Task<ActionResult<ApiResponse<string>>> ResetPasswordStaff([FromBody] CompleteResetPasswordRequest request)
+    public async Task<ActionResult<ApiResponse<string>>> ResetPasswordStaff(
+        [FromBody] CompleteResetPasswordRequest request)
     {
         var result = await _authService.ResetPasswordStaff(request);
         return Success(result);

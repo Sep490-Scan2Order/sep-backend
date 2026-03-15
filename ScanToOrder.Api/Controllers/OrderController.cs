@@ -11,10 +11,11 @@ namespace ScanToOrder.Api.Controllers;
 public class OrderController : BaseController
 {
     private readonly IOrderService _orderService;
-
-    public OrderController(IOrderService orderService)
+    private readonly IStorageService _storageService;
+    public OrderController(IOrderService orderService, IStorageService storageService)
     {
         _orderService = orderService;
+        _storageService = storageService;
     }
 
     [HttpPost("add-to-cart")]
@@ -88,6 +89,25 @@ public class OrderController : BaseController
         var result = await _orderService.GetDishesByIdsWithPromotionAsync(request.RestaurantId, request.DishIds);
 
         return Success(result);
+    }
+    
+    [HttpPost("ready-for-pickup/{orderNumber}")]
+    [Authorize(Roles = "Staff, Cashier")]
+    public async Task<IActionResult> MarkOrderReady(int orderNumber)
+    {
+        await _orderService.EnsureOrderInStaffRestaurantAsync(orderNumber);
+
+        string textInput =
+            $"Xin mời khách hàng có số thứ tự {orderNumber} đến quầy nhận món.";
+
+        string audioUrl = await _storageService.GetOrGenerateOrderAudioAsync(orderNumber, textInput);
+
+        return Ok(new
+        {
+            Success = true,
+            OrderNumber = orderNumber,
+            AudioUrl = audioUrl 
+        });
     }
 }
 

@@ -11,5 +11,6 @@ namespace ScanToOrder.Domain.Interfaces
         Task<Order?> GetOrderWithDetailsForKdsAsync(Guid orderId);
 
         Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId);
+        Task<Order?> GetByOrderCodeAndRestaurantAsync(int orderCode, int restaurantId);
     }
 }

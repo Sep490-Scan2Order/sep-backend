@@ -32,12 +32,13 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpPut("toggle-sold-out/{id}")]
-        [Authorize(Roles = "Staff")]
-        public async Task<ActionResult<ApiResponse<BranchDishConfigDto>>> ToggleSoldOut(int id, [FromQuery] bool isSoldOut)
+        [HttpPut("toggle-sold-out/{restaurantId}/{dishId}")]
+        [Authorize(Roles = "Staff, Cashier")]
+        public async Task<ActionResult<ApiResponse<string>>> ToggleSoldOutStatus(int restaurantId, int dishId, [FromQuery] bool isSoldOut, int quantity)
         {
-            var result = await _branchDishConfigService.ToggleSoldOutAsync(id, isSoldOut);
-            return Success(result);
+            var result = await _branchDishConfigService.UpdateIsSoldOutBranchDish(restaurantId, dishId, isSoldOut, quantity);
+            return Success(result, "Cập nhật trạng thái hết món thành công.");
         }
+
     }
 }

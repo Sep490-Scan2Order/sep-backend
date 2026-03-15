@@ -22,7 +22,6 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        # Cấu hình Cách 2: Trỏ đích danh vị trí Dockerfile nằm trong thư mục Api
         file: ./ScanToOrder.Api/Dockerfile 
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/s2o-api:latest
@@ -39,7 +38,6 @@ jobs:
           docker stop s2o-backend || true
           docker rm s2o-backend || true
           
-          # Khởi chạy Docker và bơm TOÀN BỘ cấu hình môi trường vào
           docker run -d \
             --name s2o-backend \
             -p 5000:8080 \
@@ -65,6 +63,7 @@ jobs:
             -e "scan2order.io.vn__ApiUrl=https://api.resend.com/emails" \
             -e "scan2order.id.vn__ApiKey=${{ secrets.RESEND_API_KEY_ID }}" \
             -e "scan2order.id.vn__FromEmail=no-reply@scan2order.id.vn" \
+            -e "scan2order.id.vn__ToEmail=administrator@scan2order.id.vn" \
             -e "scan2order.id.vn__ApiUrl=https://api.resend.com/emails" \
             -e "RedisSettings__ConnectionString=${{ secrets.REDIS_CONNECTION }}" \
             -e "RedisSettings__InstanceName=ScanToOrder:" \
@@ -79,6 +78,10 @@ jobs:
             -e "FrontEndUrl__scan2order_id_vn=https://scan2order.id.vn" \
             -e "Supabase__Url=https://ysafyqmiutvhohvsthnt.supabase.co" \
             -e "Supabase__Key=${{ secrets.SUPABASE_KEY }}" \
+            -e "OpenAiSettings__ApiKey=${{ secrets.OPENAI_API_KEY }}" \
+            -e "OpenAiSettings__SpeechUrl=https://api.openai.com/v1/audio/speech" \
+            -e "VpsSettings__VpsBaseUrl=${{ secrets.VPS_BASEURL }}" \
+            -e "VpsSettings__UploadApiUrl=${{ secrets.VPS_UPLOAD_API_URL }}" \
             ${{ secrets.DOCKER_USERNAME }}/s2o-api:latest
             
           docker image prune -af
