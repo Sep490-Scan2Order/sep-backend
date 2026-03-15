@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using ScanToOrder.Api.Extensions;
 using ScanToOrder.Api.Middleware;
 using ScanToOrder.Infrastructure.Hubs;
+using ScanToOrder.Api.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
+    Authorization = new[] { new HangfireAuthorizationFilter() }
 });
 
 app.UseMiddleware<HandleExceptionMiddleware>();
