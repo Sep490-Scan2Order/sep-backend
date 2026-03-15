@@ -77,7 +77,8 @@ namespace ScanToOrder.Application.Mappings
                     src.RestaurantPromotions.Select(rp => rp.RestaurantId).ToList()));
 
             CreateMap<UpdatePromotionDto, Promotion>()
-                .IncludeBase<CreatePromotionDto, Promotion>();
+                .IncludeBase<CreatePromotionDto, Promotion>()
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive));
 
             CreateMap<Shift, ShiftDto>();
         }
