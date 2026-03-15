@@ -14,5 +14,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<BranchDishConfigDto>> GetBranchDishByRestaurant(int restaurantId);
 
         Task<BranchDishConfigDto> ToggleSoldOutAsync(int branchDishConfigId, bool isSoldOut);
+
+        Task<string> UpdateIsSoldOutBranchDish(int restauurantId, int dishId, bool isSoldOut, int quantity);
     }
 }

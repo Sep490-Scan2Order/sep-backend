@@ -76,5 +76,32 @@ namespace ScanToOrder.Application.Services
 
             return _mapper.Map<BranchDishConfigDto>(branchDishConfig);
         }
+
+        public async Task<string> UpdateIsSoldOutBranchDish(int restauurantId, int dishId, bool isSoldOut, int quantity)
+        {
+            var restaurantId = await _unitOfWork.Restaurants.ExistsAsync(x => x.Id == restauurantId);
+            if (!restaurantId)
+                throw new Exception(Message.RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            var dishIdExists = await _unitOfWork.Dishes.ExistsAsync(x => x.Id == dishId);
+            if (!dishIdExists)
+                throw new Exception(Message.DishMessage.DishError.DISH_NOT_FOUND);
+
+            var branchDishConfig = (await _unitOfWork.BranchDishConfigs.FirstOrDefaultAsync(x => x.RestaurantId == restauurantId && x.DishId == dishId))
+                .OrThrow(Message.BranchDishMessage.BranchDishError.BRANCH_DISH_ALREADY_EXISTS);
+           branchDishConfig.IsSoldOut = isSoldOut;
+            if (isSoldOut)
+            {
+                branchDishConfig.DishAvailability = 0;
+            }
+            else
+            {
+                branchDishConfig.DishAvailability = quantity;
+            }
+            
+            _unitOfWork.BranchDishConfigs.Update(branchDishConfig);
+            await _unitOfWork.SaveAsync();
+            return Message.BranchDishMessage.BranchDishSuccess.BRANCH_DISH_SOLD_OUT_UPDATED;
+
+        }
     }
 }

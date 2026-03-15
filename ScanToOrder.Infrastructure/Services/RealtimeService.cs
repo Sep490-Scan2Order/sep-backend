@@ -61,6 +61,7 @@ namespace ScanToOrder.Infrastructure.Services
 
         public async Task NotifyPaymentReceived(string restaurantId, int orderCode, decimal amount, string audioUrl)
         {
+            Console.WriteLine($"NotifyPaymentReceived called | restaurantId={restaurantId}, orderCode={orderCode}, amount={amount}, audioUrl={audioUrl}");
             await _hubContext.Clients.Group(restaurantId).SendAsync("PaymentReceived", new { orderCode, amount, audioUrl });
         }
     }
