@@ -521,10 +521,10 @@ public class OrderService : IOrderService
         if (_authenticatedUserService.ProfileId == null)
             throw new DomainException("Không xác định được nhân viên đăng nhập.");
 
+
         var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
         if (staff == null)
             throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
-
         if (staff.RestaurantId != order.RestaurantId)
             throw new DomainException(StaffMessage.StaffError.STAFF_NOT_IN_RESTAURANT);
 
@@ -560,6 +560,15 @@ public class OrderService : IOrderService
 
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+
+            if (_realtimeService != null)
+            {
+                await _realtimeService.NotifyOrderStatusChanged(
+                    order.RestaurantId.ToString(),
+                    order.Id.ToString(),
+                    (int)order.Status
+                );
+            }
         }
         catch
         {
