@@ -20,5 +20,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<bool> DeActiveDish(Guid tenantId, int categoryId, int dishId);
 
         Task<bool> ActiveDish(Guid tenantId, int categoryId, int dishId);
+
+        Task<List<DishDto>> GetComboById(int dishId);
     }
 }

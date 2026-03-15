@@ -47,7 +47,7 @@ namespace ScanToOrder.Api.Controllers
 
             throw new DomainException("ProfileId is null");
         }
-        
+
         [HttpPost("create-combo/{categoryId:int}")]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<ApiResponse<DishDto>>> CreateCombo(int categoryId, [FromForm] CreateComboRequest request)
@@ -130,6 +130,13 @@ namespace ScanToOrder.Api.Controllers
                 return Success(result, DishMessage.DishSuccess.DISH_ACTIVATED);
             }
             throw new DomainException("ProfileId is null");
+        }
+
+        [HttpGet("get-combo-by-id/{dishId:int}")]
+        public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetComboById(int dishId)
+        {
+            var combo = await dishService.GetComboById(dishId);
+            return Success(combo, DishMessage.DishSuccess.DISH_RETRIEVED);
         }
     }
 }

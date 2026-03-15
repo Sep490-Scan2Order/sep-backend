@@ -515,5 +515,21 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
             return true;
         }
+
+        public Task<List<DishDto>> GetComboById(int dishId)
+        {
+            var comboDetails = _unitOfWork.ComboDetails.GetAllAsync(x => x.DishId.Equals(dishId),y => y.ItemDish);
+            return comboDetails.ContinueWith(task =>
+            {
+                var details = task.Result;
+                if (details == null || !details.Any())
+                {
+                    throw new DomainException(DishMessage.DishError.DISH_COMBO_NOT_FOUND);
+                }
+
+                var dishDtos = details.Select(d => _mapper.Map<DishDto>(d.ItemDish)).ToList();
+                return dishDtos;
+            });
+        }
     }
 }
