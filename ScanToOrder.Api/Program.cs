@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.AspNetCore.HttpOverrides;
 using ScanToOrder.Api.Extensions;
 using ScanToOrder.Api.Middleware;
@@ -19,6 +20,7 @@ builder.Services.AddRedisCloudServices(builder.Configuration);
 builder.Services.AddEmailServices(builder.Configuration);
 builder.Services.AddPayOSConfig(builder.Configuration); 
 builder.Services.AddSignalR();
+builder.Services.AddBackgroundJobs(builder.Configuration);
 
 builder.Services.AddCors(options =>
 
@@ -36,6 +38,9 @@ var app = builder.Build();
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
 });
 
 app.UseMiddleware<HandleExceptionMiddleware>();

@@ -43,6 +43,7 @@ jobs:
             -p 5000:8080 \
             --restart unless-stopped \
             -e "ConnectionStrings__DefaultConnection=${{ secrets.DB_CONNECTION }}" \
+            -e "ConnectionStrings__HangFireConnection=${{ secrets.HANGFIRE_DB_CONNECTION }}" \
             -e "JwtSettings__AccessSecretKey=${{ secrets.JWT_ACCESS_SECRET }}" \
             -e "JwtSettings__RefreshSecretKey=${{ secrets.JWT_REFRESH_SECRET }}" \
             -e "JwtSettings__Issuer=ScanToOrder_Api" \

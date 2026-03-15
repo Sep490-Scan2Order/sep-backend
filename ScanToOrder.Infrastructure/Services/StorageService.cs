@@ -26,9 +26,7 @@ namespace ScanToOrder.Infrastructure.Services
             HttpClient httpClient)
         {
             _httpClient = httpClient;
-
             _supabase = new Supabase.Client(supabaseOptions.Value.Url, supabaseOptions.Value.Key);
-
             _vpsBaseUrl = vpsOptions.Value.VpsBaseUrl;
             _uploadApiUrl = vpsOptions.Value.UploadApiUrl;
             _openAiApiKey = openAiOptions.Value.ApiKey;

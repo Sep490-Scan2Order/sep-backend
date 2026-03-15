@@ -56,7 +56,7 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<ShiftDto>(shift);
         }
 
-        public async Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal cashAmount,string? note)
+        public async Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal cashAmount, string? note)
         {
             var shift = await _unitOfWork.Shifts.GetByIdAsync(shiftId);
 
