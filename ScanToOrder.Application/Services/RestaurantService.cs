@@ -282,7 +282,7 @@ namespace ScanToOrder.Application.Services
 
                         // 6. Identify the "Winning" promotion (Highest Priority, then Highest Value) 
                         var winningPromo = allEligiblePromotions
-                            .Where(p => p.IsValidAt(now))
+                            .Where(p => p.IsValidAt(now) && (bdc.Price - CalculateDiscountValue(bdc.Price, p) > 0))
                             .OrderByDescending(p => p.Priority)
                                 .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                             .FirstOrDefault();
