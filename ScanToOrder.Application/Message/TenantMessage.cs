@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Message
+namespace ScanToOrder.Application.Message
 {
     public partial class TenantMessage
     {
@@ -20,8 +20,11 @@
             public const string TENANT_MISSING_BANK = "Vui lòng cung cấp thông tin ngân hàng để tạo nhà hàng.";
             public const string TENANT_MISSING_CARD = "Vui lòng cung cấp thông tin thẻ ngân hàng để tạo nhà hàng.";
             public const string TENANT_MISSING_PHONE = "Vui lòng cung cấp số điện thoại để tạo nhà hàng.";
-            public const string TENANT_ALREADY_ACTIVE = "Nhà hàng này hiện đang hoạt động.";
-            public const string TENANT_ALREADY_BLOCKED = "Nhà hàng này hiện đã bị khóa.";
+            public const string TENANT_ALREADY_ACTIVE = "khách hàng hiện đang hoạt động.";
+            public const string TENANT_ALREADY_BLOCKED = "khách hàng hiện đã bị khóa.";
+            public const string CANNOT_UPDATE_TAX_CODE_WHEN_VERIFIED = "Không thể cập nhật mã số thuế khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.";
+            public const string CANNOT_UPDATE_BANK_INFO_WHEN_VERIFIED = "Không thể cập nhật thông tin ngân hàng khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.";
+            public const string BANK_INFO_NOT_YET_UPDATED = "Thông tin ngân hàng chưa được cập nhật";
         }
     }
 }

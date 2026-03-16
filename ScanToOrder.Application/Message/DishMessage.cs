@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +16,7 @@ namespace ScanToOrder.Application.Message
             public const string INVALID_DISH_AVAILABILITY = "Số lượng món ăn không được bé hơn số lượng hiện tại.";
             public const string DISH_IMPORT_FILE_INVALID = "File import món ăn không hợp lệ.";
             public const string DISH_COMBO_NOT_FOUND = "Không tìm thấy combo.";
+            public const string IMAGE_UPLOAD_ERROR = "Lỗi khi tải ảnh lên: {0}";
         }
 
         public class DishSuccess

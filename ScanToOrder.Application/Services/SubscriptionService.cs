@@ -7,6 +7,7 @@ using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services;
@@ -162,7 +163,7 @@ public class SubscriptionService : ISubscriptionService
         var previewResult = await CalculatePreviewAsync(request, currentTenantId);
         if (previewResult.TotalAmountToPay <= 0)
         {
-            throw new InvalidOperationException("Hóa đơn 0đ, vui lòng liên hệ Admin để nâng cấp tự động.");
+            throw new InvalidOperationException(SubscriptionMessage.SubscriptionError.INVOICE_ZERO_CONTACT_ADMIN);
         }
 
         var payloadItems = previewResult.Details.Select(detail => new OrderPayloadItemPlan
@@ -209,7 +210,7 @@ public class SubscriptionService : ISubscriptionService
         catch (Exception ex)
         {
             await dbTxn.RollbackAsync();
-            throw new DomainException("Hệ thống thanh toán đang bận, vui lòng thử lại sau.");
+            throw new DomainException(SubscriptionMessage.SubscriptionError.PAYMENT_SYSTEM_BUSY);
         }
     }
 
@@ -239,7 +240,7 @@ public class SubscriptionService : ISubscriptionService
 
         if (paymentTransaction.TenantId != currentTenantId)
         {
-            throw new DomainException("Không có quyền cập nhật giao dịch này.");
+            throw new DomainException(SubscriptionMessage.SubscriptionError.NO_PERMISSION_TO_UPDATE_TRANSACTION);
         }
 
         if (paymentTransaction.Status == PaymentTransactionStatus.Success)
@@ -261,7 +262,7 @@ public class SubscriptionService : ISubscriptionService
 
         if (paymentTransaction.TenantId != currentTenantId)
         {
-            throw new DomainException("Không có quyền xem giao dịch này.");
+            throw new DomainException(SubscriptionMessage.SubscriptionError.NO_PERMISSION_TO_VIEW_TRANSACTION);
         }
 
         var isFinal = paymentTransaction.Status == PaymentTransactionStatus.Success ||
