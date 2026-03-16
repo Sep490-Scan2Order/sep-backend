@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Exceptions;
 
@@ -39,7 +40,7 @@ namespace ScanToOrder.Api.Controllers
             var result = await _tenantService.UpdateTenantStatusAsync(id, isActive);
 
             if (!result)
-                throw new DomainException("Tenant is already blocked");
+                throw new DomainException(TenantMessage.TenantError.TENANT_ALREADY_BLOCKED);
 
             return Success(string.Empty);
         }
@@ -51,7 +52,7 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _tenantService.ValidationTaxCodeAsync(taxCode);
             if (!result)
-                throw new DomainException("Mã số thuế không hợp lệ");
+                throw new DomainException(TenantMessage.TenantError.TAX_CODE_INVALID);
 
             return Success(string.Empty);
         }

@@ -56,7 +56,7 @@ public class OrderService : IOrderService
     {
         if (request.Quantity <= 0)
         {
-            throw new DomainException("Số lượng phải lớn hơn 0.");
+            throw new DomainException(OrderMessage.OrderError.QUANTITY_MUST_BE_GREATER_THAN_ZERO);
         }
 
         // 1. Kiểm tra nhà hàng tồn tại
@@ -111,7 +111,7 @@ public class OrderService : IOrderService
 
             if (cart.RestaurantId != request.RestaurantId)
             {
-                throw new DomainException("Không thể thêm món của nhà hàng khác vào cùng một giỏ hàng.");
+                throw new DomainException(OrderMessage.OrderError.CANNOT_ADD_DISH_FROM_OTHER_RESTAURANT);
             }
         }
         else
@@ -167,17 +167,17 @@ public class OrderService : IOrderService
     {
         if (string.IsNullOrWhiteSpace(cartId))
         {
-            throw new DomainException("CartId không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
         }
 
         var json = await _cartRedisService.GetRawCartAsync(cartId);
         if (string.IsNullOrEmpty(json))
         {
-            throw new DomainException("Giỏ hàng không tồn tại hoặc đã hết hạn.");
+            throw new DomainException(OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED);
         }
 
         var cart = JsonSerializer.Deserialize<CartModel>(json)
-                   ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
+                   ?? throw new DomainException(OrderMessage.OrderError.INVALID_CART_DATA);
 
         cart = await SyncCartPricingAndAvailabilityAsync(cart);
 
@@ -254,17 +254,17 @@ public class OrderService : IOrderService
     public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone)
     {
         if (string.IsNullOrWhiteSpace(cartId))
-            throw new DomainException("CartId không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
 
         var json = await _cartRedisService.GetRawCartAsync(cartId);
         if (string.IsNullOrEmpty(json))
-            throw new DomainException("Giỏ hàng không tồn tại hoặc đã hết hạn.");
+            throw new DomainException(OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED);
 
         var cart = JsonSerializer.Deserialize<CartModel>(json)
-                   ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
+                   ?? throw new DomainException(OrderMessage.OrderError.INVALID_CART_DATA);
 
         if (cart.Items == null || !cart.Items.Any())
-            throw new DomainException("Giỏ hàng trống, không thể tạo mã thanh toán.");
+            throw new DomainException(OrderMessage.OrderError.CART_EMPTY_CANNOT_CREATE_PAYMENT);
 
         var restaurant = await _unitOfWork.Restaurants.GetByIdWithTenantBankAsync(cart.RestaurantId);
         if (restaurant?.Tenant == null)
@@ -272,13 +272,13 @@ public class OrderService : IOrderService
 
         var tenant = restaurant.Tenant;
         if (tenant.BankId == null || tenant.Bank == null || string.IsNullOrWhiteSpace(tenant.CardNumber))
-            throw new DomainException("Nhà hàng chưa cấu hình tài khoản ngân hàng để nhận thanh toán.");
+            throw new DomainException(OrderMessage.OrderError.RESTAURANT_NO_BANK_CONFIGURED);
 
         if (!tenant.IsVerifyBank)
-            throw new DomainException("Tài khoản ngân hàng của nhà hàng chưa được xác thực.");
+            throw new DomainException(OrderMessage.OrderError.RESTAURANT_BANK_NOT_VERIFIED);
 
         if (string.IsNullOrWhiteSpace(phone))
-            throw new DomainException("Số điện thoại không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
 
         var amount = Math.Round(cart.TotalAmount);
 
@@ -293,7 +293,7 @@ public class OrderService : IOrderService
 
                 if (!reserved)
                 {
-                    throw new DomainException($"Món {item.DishName} đã hết số lượng.");
+                    throw new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
                 }
             }
 
@@ -392,20 +392,20 @@ public class OrderService : IOrderService
     public async Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.CartId))
-            throw new DomainException("CartId không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
 
         if (string.IsNullOrWhiteSpace(request.Phone))
-            throw new DomainException("Số điện thoại không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
 
         var json = await _cartRedisService.GetRawCartAsync(request.CartId);
         if (string.IsNullOrEmpty(json))
-            throw new DomainException("Giỏ hàng không tồn tại hoặc đã hết hạn.");
+            throw new DomainException(OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED);
 
         var cart = JsonSerializer.Deserialize<CartModel>(json)
-                   ?? throw new DomainException("Dữ liệu giỏ hàng không hợp lệ.");
+                   ?? throw new DomainException(OrderMessage.OrderError.INVALID_CART_DATA);
 
         if (cart.Items == null || !cart.Items.Any())
-            throw new DomainException("Giỏ hàng trống, không thể tạo đơn hàng.");
+            throw new DomainException(OrderMessage.OrderError.CART_EMPTY_CANNOT_CREATE_ORDER);
 
         var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(cart.RestaurantId);
         if (restaurant == null)
@@ -424,7 +424,7 @@ public class OrderService : IOrderService
 
                 if (!reserved)
                 {
-                    throw new DomainException($"Món {item.DishName} đã hết số lượng.");
+                    throw new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
                 }
             }
 
@@ -518,11 +518,11 @@ public class OrderService : IOrderService
     public async Task ConfirmCashPaymentAsync(Guid orderId)
     {
         if (orderId == Guid.Empty)
-            throw new DomainException("OrderId không hợp lệ.");
+            throw new DomainException(OrderMessage.OrderError.INVALID_ORDER_ID);
 
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
         if (order == null)
-            throw new DomainException("Đơn hàng không tồn tại.");
+            throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
 
         if (order.Status != OrderStatus.Unpaid)
         {           
@@ -530,7 +530,7 @@ public class OrderService : IOrderService
         }
        
         if (_authenticatedUserService.ProfileId == null)
-            throw new DomainException("Không xác định được nhân viên đăng nhập.");
+            throw new DomainException(OrderMessage.OrderError.STAFF_NOT_IDENTIFIED);
 
 
         var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
@@ -552,7 +552,7 @@ public class OrderService : IOrderService
             t => t.OrderId == orderId && t.PaymentMethod == PaymentMethod.Cash);
 
         if (transaction == null)
-            throw new DomainException("Giao dịch tiền mặt không tồn tại.");
+            throw new DomainException(OrderMessage.OrderError.CASH_TRANSACTION_NOT_FOUND);
 
         if (transaction.Status == OrderTransactionStatus.Success)
         {
@@ -601,7 +601,7 @@ public class OrderService : IOrderService
     public async Task<List<CashPendingOrderResponse>> GetCashOrdersPendingConfirmAsync()
     {
         if (_authenticatedUserService.ProfileId == null)
-            throw new DomainException("Không xác định được nhân viên đăng nhập.");
+            throw new DomainException(OrderMessage.OrderError.STAFF_NOT_IDENTIFIED);
 
         var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value)
             ?? throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
@@ -634,7 +634,7 @@ public class OrderService : IOrderService
     public async Task EnsureOrderInStaffRestaurantAsync(int orderNumber)
     {
         if (_authenticatedUserService.ProfileId == null)
-            throw new DomainException("Không xác định được nhân viên đăng nhập.");
+            throw new DomainException(OrderMessage.OrderError.STAFF_NOT_IDENTIFIED);
 
         var staff = await _unitOfWork.Staffs.GetByIdAsync(_authenticatedUserService.ProfileId.Value);
         if (staff == null)
@@ -642,21 +642,21 @@ public class OrderService : IOrderService
 
         var order = await _unitOfWork.Orders.GetByOrderCodeAndRestaurantAsync(orderNumber, staff.RestaurantId);
         if (order == null)
-            throw new DomainException("Không tìm thấy đơn hàng với số thứ tự này tại nhà hàng của bạn.");
+            throw new DomainException(OrderMessage.OrderError.ORDER_SEQUENCE_NOT_FOUND_IN_RESTAURANT);
     }
 
     public async Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount)
     {
         if (string.IsNullOrWhiteSpace(paymentCode))
-            throw new DomainException("PaymentCode không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.PAYMENT_CODE_REQUIRED);
 
         if (transferAmount <= 0)
-            throw new DomainException("Số tiền thanh toán không hợp lệ.");
+            throw new DomainException(OrderMessage.OrderError.INVALID_PAYMENT_AMOUNT);
 
         var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(
             t => t.TransactionCode == paymentCode);
         if (transaction == null)
-            throw new DomainException("Giao dịch không tồn tại.");
+            throw new DomainException(OrderMessage.OrderError.TRANSACTION_NOT_FOUND);
 
         if (transaction.Status == OrderTransactionStatus.Success)
         {
@@ -665,14 +665,14 @@ public class OrderService : IOrderService
 
         var orderIdString = await _transactionRedisService.GetCartIdByOrderPaymentCodeAsync(paymentCode);
         if (string.IsNullOrWhiteSpace(orderIdString))
-            throw new DomainException("Không tìm thấy đơn hàng từ mã thanh toán hoặc đã hết hạn.");
+            throw new DomainException(OrderMessage.OrderError.ORDER_FROM_PAYMENT_CODE_NOT_FOUND_OR_EXPIRED);
 
         if (!Guid.TryParse(orderIdString, out var orderId))
-            throw new DomainException("Mã đơn hàng không hợp lệ.");
+            throw new DomainException(OrderMessage.OrderError.INVALID_ORDER_CODE);
 
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
         if (order == null)
-            throw new DomainException("Đơn hàng không tồn tại.");
+            throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
 
         if (order.Status != OrderStatus.Unpaid)
         {
@@ -681,7 +681,7 @@ public class OrderService : IOrderService
 
         var expectedAmount = Math.Round(order.FinalAmount);
         if (Math.Round(transferAmount) < expectedAmount)
-            throw new DomainException("Số tiền thanh toán không khớp với tổng tiền đơn hàng.");
+            throw new DomainException(OrderMessage.OrderError.PAYMENT_AMOUNT_MISMATCH);
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         try
@@ -775,7 +775,7 @@ public class OrderService : IOrderService
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
         if (dishIds == null || !dishIds.Any())
-            throw new DomainException("Danh sách DishId không được để trống.");
+            throw new DomainException(OrderMessage.OrderError.DISH_ID_LIST_REQUIRED);
 
         var now = DateTime.UtcNow.AddHours(7);
 

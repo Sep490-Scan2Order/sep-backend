@@ -36,14 +36,18 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = new[] { new HangfireAuthorizationFilter() }
 });
+
+app.RegisterCronJobs();
 
 app.UseMiddleware<HandleExceptionMiddleware>();
 app.UseCors("AllowFrontend");

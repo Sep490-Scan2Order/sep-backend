@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Message
+namespace ScanToOrder.Application.Message
 {
     public partial class BankMessage
     {
@@ -11,6 +11,7 @@
         {
             public const string BANK_NOT_FOUND = "Không tìm thấy ngân hàng.";
             public const string BANK_ALREADY_EXISTS = "Ngân hàng đã tồn tại.";
+            public const string INVALID_BANK_ACCOUNT_INFO = "Thông tin tài khoản ngân hàng không hợp lệ";
         }
     }
 }

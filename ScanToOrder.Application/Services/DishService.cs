@@ -66,7 +66,7 @@ namespace ScanToOrder.Application.Services
                 }
                 catch (Exception ex)
                 {
-                    throw new DomainException($"Lỗi khi tải ảnh lên: {ex.Message}");
+                    throw new DomainException(string.Format(DishMessage.DishError.IMAGE_UPLOAD_ERROR, ex.Message));
                 }
             }
 

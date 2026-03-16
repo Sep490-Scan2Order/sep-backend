@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Message
+namespace ScanToOrder.Application.Message
 {
     public partial class AuthMessage
     {
@@ -21,6 +21,7 @@
             public const string ACCOUNT_WRONG_PASSWORD = "Mật khẩu không đúng.";
             public const string PHONE_REGISTERED = "Số điện thoại này đã được đăng ký.";
             public const string USER_PROFILE_NOT_FOUND = "Thông tin người dùng không tồn tại.";
+            public const string PROFILE_ID_IS_NULL = "ProfileId is null";
         }
     }
 }

@@ -45,7 +45,7 @@ namespace ScanToOrder.Api.Controllers
                 return Success(dish, DishMessage.DishSuccess.DISH_CREATED);
             }
 
-            throw new DomainException("ProfileId is null");
+            throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
         }
 
         [HttpPost("create-combo/{categoryId:int}")]
@@ -59,7 +59,7 @@ namespace ScanToOrder.Api.Controllers
                 return Success(dish, DishMessage.DishSuccess.DISH_CREATED);
             }
 
-            throw new DomainException("ProfileId is null");
+            throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
         }
 
         [HttpPut("update-dish/{categoryId:int}/{dishId:int}")]
@@ -72,7 +72,7 @@ namespace ScanToOrder.Api.Controllers
                 var dish = await dishService.UpdateDish(tenantId, categoryId, dishId, request);
                 return Success(dish, DishMessage.DishSuccess.DISH_UPDATED);
             }
-            throw new DomainException("ProfileId is null");
+            throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
         }
 
         [HttpPost("import-dishes")]
@@ -86,7 +86,7 @@ namespace ScanToOrder.Api.Controllers
 
             if (_authenticatedUserService.ProfileId == null)
             {
-                throw new DomainException("ProfileId is null");
+                throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
             }
 
             var tenantId = _authenticatedUserService.ProfileId.Value;
@@ -104,7 +104,7 @@ namespace ScanToOrder.Api.Controllers
                 var result = await dishService.DeleteDish(tenantId, categoryId, dishId);
                 return Success(result, DishMessage.DishSuccess.DISH_DELETED);
             }
-            throw new DomainException("ProfileId is null");
+            throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
 
         }
 
@@ -117,7 +117,7 @@ namespace ScanToOrder.Api.Controllers
                 var result = await dishService.DeActiveDish(tenantId, categoryId, dishId);
                 return Success(result, DishMessage.DishSuccess.DISH_DEACTIVE);
             }
-            throw new DomainException("ProfileId is null");
+            throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
         }
 
         [HttpPut("active-dish/{categoryId:int}/{dishId:int}")]
@@ -129,7 +129,7 @@ namespace ScanToOrder.Api.Controllers
                 var result = await dishService.ActiveDish(tenantId, categoryId, dishId);
                 return Success(result, DishMessage.DishSuccess.DISH_ACTIVATED);
             }
-            throw new DomainException("ProfileId is null");
+            throw new DomainException(AuthMessage.AuthError.PROFILE_ID_IS_NULL);
         }
 
         [HttpGet("get-combo-by-id/{dishId:int}")]
