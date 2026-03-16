@@ -8,6 +8,6 @@ namespace ScanToOrder.Application.DTOs.Orders
 {
     public class ScanQrRequest
     {
-        public Guid OrderId { get; set; }
+        public string QrContent { get; set; } = null!;
     }
 }

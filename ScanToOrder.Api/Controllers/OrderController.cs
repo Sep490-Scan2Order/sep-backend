@@ -111,9 +111,9 @@ public class OrderController : BaseController
     }
 
     [HttpPost("scan-qr")]
-    public async Task<ActionResult<ApiResponse<bool>>> ValidateQrCode([FromBody] string qrContent)
+    public async Task<ActionResult<ApiResponse<bool>>> ValidateQrCode([FromBody] ScanQrRequest request)
     {
-        var isValid = await _orderService.ValidateQrCodeAsync(qrContent);
+        var isValid = await _orderService.ValidateQrCodeAsync(request.QrContent);
         return Success(isValid);
     }
 }
