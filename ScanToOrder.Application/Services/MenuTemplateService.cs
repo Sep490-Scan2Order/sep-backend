@@ -77,7 +77,6 @@ namespace ScanToOrder.Application.Services
             template.FontFamily = request.FontFamily;
             template.BackgroundImageUrl = request.BackgroundImageUrl;
             template.LayoutConfigJson = request.LayoutConfigJson;
-            template.IsActive = request.IsActive;
 
             _unitOfWork.MenuTemplates.Update(template);
             await _unitOfWork.SaveAsync();
