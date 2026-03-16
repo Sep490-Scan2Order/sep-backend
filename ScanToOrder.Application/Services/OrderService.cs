@@ -31,6 +31,7 @@ public class OrderService : IOrderService
     private readonly IAuthenticatedUserService _authenticatedUserService;
     private readonly IStorageService _storageService;
     private readonly ILogger<OrderService> _logger;
+    private readonly IQrCodeService _qrCodeService;
 
     public OrderService(
         IUnitOfWork unitOfWork,
@@ -40,7 +41,8 @@ public class OrderService : IOrderService
         IMapper mapper,
         IAuthenticatedUserService authenticatedUserService,
         IStorageService storageService,
-        ILogger<OrderService> logger)
+        ILogger<OrderService> logger,
+        IQrCodeService qrCodeService)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
@@ -50,6 +52,7 @@ public class OrderService : IOrderService
         _authenticatedUserService = authenticatedUserService;
         _storageService = storageService;
         _logger = logger;
+        _qrCodeService = qrCodeService;
     }
 
     public async Task<CartDto> AddToCartAsync(AddToCartRequest request)
@@ -284,6 +287,7 @@ public class OrderService : IOrderService
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         Guid orderId;
+        string qrOrderUrl;
         try
         {
             foreach (var item in cart.Items)
@@ -302,6 +306,10 @@ public class OrderService : IOrderService
                 cart.RestaurantId, startUtc, endUtc, dateInt);
 
             orderId = Guid.NewGuid();
+            string qrContent = orderId.ToString();
+            var qrBytes = _qrCodeService.GenerateQrCodeBytes(qrContent);
+
+            qrOrderUrl = await _storageService.UploadOrderQrAsync(qrBytes, orderId);
             var order = new Order
             {
                 Id = orderId,
@@ -315,7 +323,8 @@ public class OrderService : IOrderService
                 Status = OrderStatus.Unpaid,
                 IsScanned = false,
                 Type = "SePay",
-                NumberPhone = phone
+                NumberPhone = phone,
+                QrCodeUrl = qrOrderUrl
             };
 
             await _unitOfWork.Orders.AddAsync(order);
@@ -385,7 +394,8 @@ public class OrderService : IOrderService
             QrUrl = qrUrl,
             PaymentCode = paymentCode,
             TotalAmount = amount,
-            RestaurantName = restaurant.RestaurantName ?? ""
+            RestaurantName = restaurant.RestaurantName ?? "",
+            QrCodeBase64 = qrOrderUrl
         };
     }
 
@@ -415,6 +425,8 @@ public class OrderService : IOrderService
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         Guid orderId;
+        string qrOrderUrl;
+
         try
         {
             foreach (var item in cart.Items)
@@ -433,6 +445,10 @@ public class OrderService : IOrderService
                 cart.RestaurantId, startUtc, endUtc, dateInt);
 
             orderId = Guid.NewGuid();
+            string qrContent = orderId.ToString();
+            var qrBytes = _qrCodeService.GenerateQrCodeBytes(qrContent);
+
+            qrOrderUrl = await _storageService.UploadOrderQrAsync(qrBytes, orderId);
             var order = new Order
             {
                 Id = orderId,
@@ -446,7 +462,8 @@ public class OrderService : IOrderService
                 Status = OrderStatus.Unpaid,
                 IsScanned = false,
                 Type = "Cash",
-                NumberPhone = request.Phone
+                NumberPhone = request.Phone,
+                QrCodeUrl = qrOrderUrl
             };
 
             await _unitOfWork.Orders.AddAsync(order);
@@ -503,6 +520,7 @@ public class OrderService : IOrderService
 
         await _cartRedisService.DeleteCartAsync(request.CartId);
       
+
         return new CashCheckoutResponse
         {
             OrderId = orderId,
@@ -510,7 +528,8 @@ public class OrderService : IOrderService
             TotalAmount = amount,
             RestaurantName = restaurant.RestaurantName,
             Phone = request.Phone,
-            Note = cart.Note
+            Note = cart.Note,
+            QrCodeBase64 = qrOrderUrl
         };
 
     }
@@ -843,6 +862,33 @@ public class OrderService : IOrderService
         }).ToList();
 
         return result;
+    }
+
+    public async Task<bool> ValidateQrCodeAsync(string qrContent)
+    {
+        if (string.IsNullOrWhiteSpace(qrContent))
+            throw new DomainException(OrderMessage.OrderError.QR_INVALID);
+
+        if (!Guid.TryParse(qrContent, out var orderId))
+            throw new DomainException(OrderMessage.OrderError.QR_ORDER_ID_INVALID);
+
+        var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+
+        if (order == null)
+            throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
+
+        if (order.IsScanned)
+            throw new DomainException(OrderMessage.OrderError.QR_ALREADY_SCANNED);
+
+        if (order.Status != OrderStatus.Ready)
+            throw new DomainException(OrderMessage.OrderError.ORDER_NOT_READY);
+
+        order.Status = OrderStatus.Served;
+        order.IsScanned = true;
+
+        await _unitOfWork.SaveAsync();
+
+        return true;
     }
 
     // Calculate discount value based on promotion type and rules

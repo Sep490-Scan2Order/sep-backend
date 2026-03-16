@@ -151,5 +151,44 @@ namespace ScanToOrder.Infrastructure.Services
                 throw new Exception($"Lỗi upload lên VPS: Mã lỗi {response.StatusCode}");
             }
         }
+
+        public async Task<string> UploadOrderQrAsync(byte[] qrBytes, Guid orderId)
+        {
+            if (qrBytes == null || qrBytes.Length == 0)
+                throw new DomainException("QR code rỗng.");
+
+            const string bucketName = "order_qr_codes";
+            string fileName = $"orders/{orderId}.png";
+
+            try
+            {
+                await _supabase.Storage
+                    .From(bucketName)
+                    .Upload(qrBytes, fileName, new Supabase.Storage.FileOptions
+                    {
+                        ContentType = "image/png",
+                        Upsert = true
+                    });
+
+                return _supabase.Storage
+                    .From(bucketName)
+                    .GetPublicUrl(fileName);
+            }
+            catch (Exception ex)
+            {
+                throw new DomainException($"Upload QR thất bại: {ex.Message}");
+            }
+        }
+
+        public string GetOrderQrUrl(Guid orderId)
+        {
+            const string bucketName = "order_qr_codes";
+
+            string fileName = $"orders/{orderId}.png";
+
+            return _supabase.Storage
+                .From(bucketName)
+                .GetPublicUrl(fileName);
+        }
     }
 }

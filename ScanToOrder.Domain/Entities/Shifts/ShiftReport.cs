@@ -11,7 +11,7 @@ public class ShiftReport : BaseEntity<int>
     public decimal ExpectedCashAmount { get; set; }
     public decimal ActualCashAmount { get; set; }
     public decimal Difference { get; set; }
-    public decimal HandoverCashAmount { get; set; } // tiền nộp lại chủ quán khi kết ca
+    public decimal HandoverCashAmount { get; set; }
     public string Note { get; set; } = string.Empty;
     public virtual Shift Shift { get; set; } = null!;
 }

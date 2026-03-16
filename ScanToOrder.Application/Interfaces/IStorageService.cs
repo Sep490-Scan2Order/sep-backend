@@ -7,5 +7,8 @@ namespace ScanToOrder.Application.Interfaces
         Task<string> UploadFromBytesAsync(byte[] imageBytes, string fileName, string bucketName = "restaurant_qrCode");
         Task<string> GetOrGenerateOrderAudioAsync(int orderNumber, string textToSpeak);
         Task<string> GetOrGeneratePaymentReceivedAudioAsync(int orderCode, decimal amount);
+        Task<string> UploadOrderQrAsync(byte[] qrBytes, Guid orderId);
+
+        string GetOrderQrUrl(Guid orderId);
     }
 }

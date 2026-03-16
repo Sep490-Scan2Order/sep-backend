@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -14,9 +15,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260316034455_AddQrCodeOrder")]
+    partial class AddQrCodeOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -510,15 +513,14 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<int>("OrderCode")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("PickupToken")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("PromotionDiscount")
                         .HasColumnType("numeric");
 
                     b.Property<int?>("PromotionId")
                         .HasColumnType("integer");
-
-                    b.Property<string>("QrCodeUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int>("RestaurantId")
                         .HasColumnType("integer");

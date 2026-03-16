@@ -10,5 +10,7 @@ public class CashCheckoutResponse
     public string RestaurantName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string? Note { get; set; }
+
+    public string QrCodeBase64 { get; set; } = null!;
 }
 

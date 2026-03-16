@@ -12,7 +12,7 @@ namespace ScanToOrder.Domain.Entities.Orders
         public int? PromotionId { get; set; }
         public string NumberPhone { get; set; } = null!;
         public int OrderCode { get; set; }
-
+        public string QrCodeUrl { get; set; } = null!;
         public bool IsPreOrder { get; set; }
         public string? Note { get; set; } 
 

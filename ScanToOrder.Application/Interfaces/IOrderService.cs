@@ -19,5 +19,7 @@ public interface IOrderService
     Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId);
 
     Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
+
+    Task<bool> ValidateQrCodeAsync(string qrContent);
 }
 

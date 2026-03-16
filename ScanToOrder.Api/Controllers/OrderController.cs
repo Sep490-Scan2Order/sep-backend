@@ -109,5 +109,12 @@ public class OrderController : BaseController
             AudioUrl = audioUrl 
         });
     }
+
+    [HttpPost("scan-qr")]
+    public async Task<ActionResult<ApiResponse<bool>>> ValidateQrCode([FromBody] string qrContent)
+    {
+        var isValid = await _orderService.ValidateQrCodeAsync(qrContent);
+        return Success(isValid);
+    }
 }
 
