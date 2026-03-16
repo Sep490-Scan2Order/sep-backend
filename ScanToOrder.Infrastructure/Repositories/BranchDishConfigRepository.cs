@@ -125,5 +125,39 @@ namespace ScanToOrder.Infrastructure.Repositories
 
             return affected > 0;
         }
+
+        public async Task<bool> RefundDishAvailabilityAsync(int restaurantId, int dishId, int quantity)
+        {
+            var affected = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE ""BranchDishConfigs""
+                SET ""DishAvailability"" = ""DishAvailability"" + {quantity},
+                    ""IsSoldOut"" = CASE WHEN ""DishAvailability"" + {quantity} > 0 THEN FALSE ELSE ""IsSoldOut"" END
+                WHERE ""RestaurantId"" = {restaurantId}
+                  AND ""DishId"" = {dishId}
+                  AND ""IsDeleted"" = FALSE;
+                ");
+
+            return affected > 0;
+        }
+
+        public async Task<bool> RefundDishAvailabilityBatchAsync(int restaurantId, Dictionary<int, int> dishQuantities)
+        {
+            if (dishQuantities == null || !dishQuantities.Any()) return false;
+
+            var sqlBuilder = new System.Text.StringBuilder();
+            foreach (var kvp in dishQuantities)
+            {
+                sqlBuilder.AppendLine($@"
+                    UPDATE ""BranchDishConfigs""
+                    SET ""DishAvailability"" = ""DishAvailability"" + {kvp.Value},
+                        ""IsSoldOut"" = CASE WHEN ""DishAvailability"" + {kvp.Value} > 0 THEN FALSE ELSE ""IsSoldOut"" END
+                    WHERE ""RestaurantId"" = {restaurantId}
+                      AND ""DishId"" = {kvp.Key}
+                      AND ""IsDeleted"" = FALSE;");
+            }
+
+            var affected = await _context.Database.ExecuteSqlRawAsync(sqlBuilder.ToString());
+            return affected > 0;
+        }
     }
 }

@@ -12,5 +12,6 @@ namespace ScanToOrder.Domain.Interfaces
 
         Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId);
         Task<Order?> GetByOrderCodeAndRestaurantAsync(int orderCode, int restaurantId);
+        Task<List<Order>> GetExpiredUnpaidOrdersAsync(int minuteThreshold);
     }
 }

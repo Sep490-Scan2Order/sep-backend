@@ -72,6 +72,16 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .OrderByDescending(o => o.CreatedAt)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<List<Order>> GetExpiredUnpaidOrdersAsync(int minuteThreshold)
+        {
+            var thresholdTime = DateTime.UtcNow.AddMinutes(-minuteThreshold);
+            return await _dbSet
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Dish)
+                .Where(o => o.Status == OrderStatus.Unpaid && !o.IsDeleted && o.CreatedAt <= thresholdTime)
+                .ToListAsync();
+        }
     }
 }
 

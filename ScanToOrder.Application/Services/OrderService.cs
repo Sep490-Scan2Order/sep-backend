@@ -18,6 +18,7 @@ using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
+using ScanToOrder.Domain.Entities.Dishes;
 
 namespace ScanToOrder.Application.Services;
 
@@ -790,13 +791,12 @@ public class OrderService : IOrderService
         return true;
     }
     
-    // Get list of dishes with promotion info for given dishIds in a restaurant, used for FE to display correct price and promotion label when user add to cart
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
         if (dishIds == null || !dishIds.Any())
             throw new DomainException(OrderMessage.OrderError.DISH_ID_LIST_REQUIRED);
 
-        var now = DateTime.UtcNow.AddHours(7);
+        var now = TimeUtils.GetVietnamTimeNow();
 
         var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId)
                          ?? throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
@@ -826,7 +826,7 @@ public class OrderService : IOrderService
             var allEligiblePromotions = basePromotions.Concat(specificDishPromos);
 
             var winningPromo = allEligiblePromotions
-                .Where(p => p.IsValidAt(now))
+                .Where(p => p.IsValidAt(now) && (bdc.Price - CalculateDiscountValue(bdc.Price, p) > 1000))
                 .OrderByDescending(p => p.Priority)
                     .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                 .FirstOrDefault();
@@ -839,9 +839,12 @@ public class OrderService : IOrderService
                 var discountAmount = CalculateDiscountValue(bdc.Price, winningPromo);
                 discountedPrice = (int)Math.Max(bdc.Price - discountAmount, 0);
 
+                // Round to the nearest thousand (e.g. 21999 -> 22000)
+                discountedPrice = PricingUtils.RoundToNearestThousand(discountedPrice);
+
                 promoLabel = winningPromo.DiscountType == DiscountType.Percentage
                     ? $"-{winningPromo.DiscountValue}%"
-                    : $"-{(winningPromo.DiscountValue / 1000):G}k";
+                    : $"-{(PricingUtils.RoundToNearestThousand(winningPromo.DiscountValue) / 1000):G}k";
             }
 
             return new MenuDishItemDto
@@ -877,14 +880,13 @@ public class OrderService : IOrderService
         if (order == null)
             throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
 
-        if (order.IsScanned)
+        if (order.Status == OrderStatus.Served) 
             throw new DomainException(OrderMessage.OrderError.QR_ALREADY_SCANNED);
 
         if (order.Status != OrderStatus.Ready)
             throw new DomainException(OrderMessage.OrderError.ORDER_NOT_READY);
 
         order.Status = OrderStatus.Served;
-        order.IsScanned = true;
 
         await _unitOfWork.SaveAsync();
 
@@ -952,6 +954,73 @@ public class OrderService : IOrderService
             var utcDate = DateTime.UtcNow.Date;
             int dateInt = (utcDate.Year * 10000) + (utcDate.Month * 100) + utcDate.Day;
             return (utcDate, utcDate.AddDays(1), dateInt);
+        }
+    }
+
+    public async Task CancelExpiredUnpaidOrdersAsync()
+    {
+        var expiredOrders = await _unitOfWork.Orders.GetExpiredUnpaidOrdersAsync(10);
+        
+        if (!expiredOrders.Any())
+            return;
+
+        var comboDishIds = expiredOrders
+            .SelectMany(o => o.OrderDetails)
+            .Where(od => od.Dish != null && od.Dish.Type == DishType.Combo)
+            .Select(od => od.DishId)
+            .Distinct()
+            .ToList();
+
+        var allComboDetails = comboDishIds.Any() 
+            ? await _unitOfWork.ComboDetails.FindAsync(c => comboDishIds.Contains(c.DishId))
+            : new List<ComboDetail>();
+
+        var comboDetailsLookup = allComboDetails.ToLookup(c => c.DishId);
+
+        foreach (var order in expiredOrders)
+        {
+            await using var tx = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                order.Status = OrderStatus.Cancelled;
+                _unitOfWork.Orders.Update(order);
+
+                var dishQuantitiesToRefund = new Dictionary<int, int>();
+
+                foreach (var detail in order.OrderDetails)
+                {
+                    if (dishQuantitiesToRefund.ContainsKey(detail.DishId))
+                        dishQuantitiesToRefund[detail.DishId] += detail.Quantity;
+                    else
+                        dishQuantitiesToRefund[detail.DishId] = detail.Quantity;
+
+                    if (detail.Dish != null && detail.Dish.Type == DishType.Combo)
+                    {
+                        var comboItems = comboDetailsLookup[detail.DishId];
+                        foreach (var comboItem in comboItems)
+                        {
+                            var qty = detail.Quantity * comboItem.Quantity;
+                            if (dishQuantitiesToRefund.ContainsKey(comboItem.ItemDishId))
+                                dishQuantitiesToRefund[comboItem.ItemDishId] += qty;
+                            else
+                                dishQuantitiesToRefund[comboItem.ItemDishId] = qty;
+                        }
+                    }
+                }
+
+                if (dishQuantitiesToRefund.Any())
+                {
+                    await _unitOfWork.BranchDishConfigs.RefundDishAvailabilityBatchAsync(order.RestaurantId, dishQuantitiesToRefund);
+                }
+
+                await _unitOfWork.SaveAsync();
+                await tx.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi hủy đơn hàng chưa thanh toán quá hạn: {OrderId}", order.Id);
+            }
         }
     }
 }
