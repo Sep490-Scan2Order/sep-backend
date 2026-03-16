@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -31,6 +31,24 @@ namespace ScanToOrder.Api.Controllers
         public async Task<ActionResult<ApiResponse<MenuTemplateDto>>> GetTemplateById(int templateId)
         {
             var result = await _menuTemplateService.GetTemplateByIdAsync(templateId);
+            return Success(result);
+        }
+
+        [HttpPut("{templateId:int}")]
+        public async Task<ActionResult<ApiResponse<MenuTemplateDto>>> UpdateTemplate(
+            int templateId,
+            [FromBody] UpdateMenuTemplateDto request)
+        {
+            var result = await _menuTemplateService.UpdateTemplateAsync(templateId, request);
+            return Success(result);
+        }
+
+        [HttpGet("restaurant/{restaurantId:int}/template/{templateId:int}")]
+        public async Task<ActionResult<ApiResponse<MenuTemplateRenderDto>>> GetRestaurantMenuFromTemplate(
+            int restaurantId,
+            int templateId)
+        {
+            var result = await _menuTemplateService.GetRestaurantMenuFromTemplateAsync(restaurantId, templateId);
             return Success(result);
         }
     }

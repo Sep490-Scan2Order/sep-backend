@@ -11,11 +11,16 @@ namespace ScanToOrder.Api.Controllers
     public class RestaurantController : BaseController
     {
         private readonly IRestaurantService _restaurantService;
+        private readonly IRestaurantMenuService _restaurantMenuService;
         private readonly IAuthenticatedUserService _authenticatedUserService;
 
-        public RestaurantController(IRestaurantService restaurantService, IAuthenticatedUserService authenticatedUserService)
+        public RestaurantController(
+            IRestaurantService restaurantService,
+            IRestaurantMenuService restaurantMenuService,
+            IAuthenticatedUserService authenticatedUserService)
         {
             _restaurantService = restaurantService;
+            _restaurantMenuService = restaurantMenuService;
             _authenticatedUserService = authenticatedUserService;
         }
 
@@ -63,7 +68,7 @@ namespace ScanToOrder.Api.Controllers
         [HttpGet("{restaurantId:int}/menu")]
         public async Task<ActionResult<ApiResponse<List<MenuCategoryDto>>>> GetRestaurantMenu([FromRoute] int restaurantId)
         {
-            var menu = await _restaurantService.GetRestaurantMenuAsync(restaurantId);
+            var menu = await _restaurantMenuService.GetMenuForRestaurantAsync(restaurantId);
             return Success(menu);
         }
 

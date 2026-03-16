@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Application.DTOs.Menu;
+using ScanToOrder.Application.DTOs.Menu;
 
 namespace ScanToOrder.Application.Interfaces
 {
@@ -7,5 +7,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<CreateTemplateResponseDto> CreateTemplateAsync(CreateTemplateRequestDto request);
         Task<IEnumerable<MenuTemplateDto>> GetTemplatesAsync();
         Task<MenuTemplateDto> GetTemplateByIdAsync(int templateId);
+        Task<MenuTemplateDto> UpdateTemplateAsync(int templateId, UpdateMenuTemplateDto request);
+        Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId, int templateId);
     }
 }

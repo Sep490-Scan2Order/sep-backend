@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -12,11 +12,18 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IStorageService _storageService;
-        public MenuTemplateService(IUnitOfWork unitOfWork, IMapper mapper, IStorageService storageService)
+        private readonly IRestaurantMenuService _restaurantMenuService;
+
+        public MenuTemplateService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IStorageService storageService,
+            IRestaurantMenuService restaurantMenuService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _storageService = storageService;
+            _restaurantMenuService = restaurantMenuService;
         }
 
         public async Task<CreateTemplateResponseDto> CreateTemplateAsync(CreateTemplateRequestDto request)
@@ -55,6 +62,46 @@ namespace ScanToOrder.Application.Services
                 throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
             }
             return _mapper.Map<MenuTemplateDto>(template);
+        }
+
+        public async Task<MenuTemplateDto> UpdateTemplateAsync(int templateId, UpdateMenuTemplateDto request)
+        {
+            var template = await _unitOfWork.MenuTemplates.GetByIdAsync(templateId);
+            if (template == null)
+            {
+                throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
+            }
+
+            template.TemplateName = request.TemplateName;
+            template.ThemeColor = request.ThemeColor;
+            template.FontFamily = request.FontFamily;
+            template.BackgroundImageUrl = request.BackgroundImageUrl;
+            template.LayoutConfigJson = request.LayoutConfigJson;
+            template.IsActive = request.IsActive;
+
+            _unitOfWork.MenuTemplates.Update(template);
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<MenuTemplateDto>(template);
+        }
+
+        public async Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId, int templateId)
+        {
+            var template = await _unitOfWork.MenuTemplates.GetByIdAsync(templateId);
+            if (template == null)
+            {
+                throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
+            }
+
+            var menuData = await _restaurantMenuService.GetMenuForRestaurantAsync(restaurantId);
+
+            return new MenuTemplateRenderDto
+            {
+                TemplateId = template.Id,
+                RestaurantId = restaurantId,
+                LayoutConfigJson = template.LayoutConfigJson,
+                MenuData = menuData
+            };
         }
     }
 }
