@@ -105,6 +105,8 @@ namespace ScanToOrder.Application.Services
             {
                 TemplateId = template.Id,
                 RestaurantId = restaurantId,
+                ThemeColor = template.ThemeColor,
+                FontFamily = template.FontFamily,
                 LayoutConfigJson = template.LayoutConfigJson,
                 MenuData = menuData
             };
