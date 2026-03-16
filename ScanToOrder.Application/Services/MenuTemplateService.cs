@@ -85,14 +85,20 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<MenuTemplateDto>(template);
         }
 
-        public async Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId, int templateId)
+        public async Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId)
         {
-            var template = await _unitOfWork.MenuTemplates.GetByIdAsync(templateId);
-            if (template == null)
+            // Tìm mapping menu-template cho nhà hàng
+            var menuRestaurant = await _unitOfWork.MenuRestaurants.GetByFieldsIncludeAsync(
+                x => x.RestaurantId == restaurantId && !x.IsDeleted,
+                x => x.MenuTemplate
+            );
+
+            if (menuRestaurant == null || menuRestaurant.MenuTemplate == null)
             {
-                throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
+                throw new Exception(MenuTemplateMessage.MenuTemplateError.MENU_RESTAURANT_NOT_FOUND);
             }
 
+            var template = menuRestaurant.MenuTemplate;
             var menuData = await _restaurantMenuService.GetMenuForRestaurantAsync(restaurantId);
 
             return new MenuTemplateRenderDto

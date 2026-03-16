@@ -43,12 +43,11 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpGet("restaurant/{restaurantId:int}/template/{templateId:int}")]
+        [HttpGet("restaurant/{restaurantId:int}/template")]
         public async Task<ActionResult<ApiResponse<MenuTemplateRenderDto>>> GetRestaurantMenuFromTemplate(
-            int restaurantId,
-            int templateId)
+            int restaurantId)
         {
-            var result = await _menuTemplateService.GetRestaurantMenuFromTemplateAsync(restaurantId, templateId);
+            var result = await _menuTemplateService.GetRestaurantMenuFromTemplateAsync(restaurantId);
             return Success(result);
         }
     }

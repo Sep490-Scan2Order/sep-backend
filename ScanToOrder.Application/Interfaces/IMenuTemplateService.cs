@@ -8,6 +8,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<IEnumerable<MenuTemplateDto>> GetTemplatesAsync();
         Task<MenuTemplateDto> GetTemplateByIdAsync(int templateId);
         Task<MenuTemplateDto> UpdateTemplateAsync(int templateId, UpdateMenuTemplateDto request);
-        Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId, int templateId);
+        Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId);
     }
 }
