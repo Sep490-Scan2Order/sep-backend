@@ -28,5 +28,11 @@ namespace ScanToOrder.Domain.Interfaces
             Expression<Func<T, bool>>? predicate = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
             params Expression<Func<T, object>>[] includes);
+
+        Task<List<TResult>> QueryAsync<TResult>(
+             Func<IQueryable<T>, IQueryable<TResult>> queryBuilder);
+        Task<decimal> SumAsync(
+   Expression<Func<T, bool>> predicate,
+   Expression<Func<T, decimal>> selector);
     }
 }
