@@ -820,6 +820,7 @@ public class OrderService : IOrderService
             {
                 DishId = od.DishId,
                 DishName = od.Dish?.DishName ?? string.Empty,
+                ImageUrl = od.Dish?.ImageUrl ?? string.Empty,
                 Quantity = od.Quantity,
                 OriginalPrice = od.OriginalPrice,
                 DiscountedPrice = od.DiscountedPrice,
