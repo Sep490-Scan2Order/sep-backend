@@ -21,5 +21,6 @@ public interface IOrderService
     Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
 
     Task<bool> ValidateQrCodeAsync(string qrContent);
+    Task CancelExpiredUnpaidOrdersAsync();
 }
 

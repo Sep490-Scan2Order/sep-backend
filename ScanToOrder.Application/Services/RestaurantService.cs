@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
@@ -236,11 +237,10 @@ namespace ScanToOrder.Application.Services
             return dtos;
         }
         
-        // This method is the core of the menu retrieval logic, combining restaurant data with active promotions to calculate real-time pricing and labels for the UI.
         public async Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId)
         {
             // 0. Use consistent time with UTC+7 offset for local business logic
-            var now = DateTime.UtcNow.AddHours(7);
+            var now = TimeUtils.GetVietnamTimeNow();
 
             // 1. Verify restaurant and get TenantId
             var restaurantEntity = (await _unitOfWork.Restaurants.GetByIdAsync(restaurantId))
@@ -284,7 +284,7 @@ namespace ScanToOrder.Application.Services
 
                         // 6. Identify the "Winning" promotion (Highest Priority, then Highest Value) 
                         var winningPromo = allEligiblePromotions
-                            .Where(p => p.IsValidAt(now) && (bdc.Price - CalculateDiscountValue(bdc.Price, p) > 0))
+                            .Where(p => p.IsValidAt(now) && (bdc.Price - CalculateDiscountValue(bdc.Price, p) > 1000))
                             .OrderByDescending(p => p.Priority)
                                 .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                             .FirstOrDefault();
@@ -298,10 +298,13 @@ namespace ScanToOrder.Application.Services
                             var discountAmount = CalculateDiscountValue(bdc.Price, winningPromo);
                             discountedPrice = (int)Math.Max(bdc.Price - discountAmount, 0);
 
+                            // Round to the nearest thousand (e.g. 21999 -> 22000)
+                            discountedPrice = PricingUtils.RoundToNearestThousand(discountedPrice);
+
                             // Generate UI Label: "-20%" or "-15k"
                             promoLabel = winningPromo.DiscountType == DiscountType.Percentage
                                 ? $"-{winningPromo.DiscountValue}%"
-                                : $"-{(winningPromo.DiscountValue / 1000):G}k";
+                                : $"-{(PricingUtils.RoundToNearestThousand(winningPromo.DiscountValue) / 1000):G}k";
                         }
 
                         return new MenuDishItemDto
@@ -328,7 +331,7 @@ namespace ScanToOrder.Application.Services
             return menu;
         }
 
-        private decimal CalculateDiscountValue(decimal price, Promotion p)
+        private static decimal CalculateDiscountValue(decimal price, Promotion p)
         {
             // Fixed amount discount (e.g., subtract 20,000đ)
             if (p.DiscountType == DiscountType.FixedAmount)
@@ -343,7 +346,7 @@ namespace ScanToOrder.Application.Services
                 : discount;
         }
 
-        private DateTime? CalculateTrueExpiredAt(Promotion p, DateTime now)
+        private static DateTime? CalculateTrueExpiredAt(Promotion p, DateTime now)
         {
             // Use the Date from the 'now' parameter to stay consistent with UTC+7 context
             var today = now.Date;

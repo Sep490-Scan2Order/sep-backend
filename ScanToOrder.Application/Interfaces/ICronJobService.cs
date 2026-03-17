@@ -1,6 +1,6 @@
-﻿namespace ScanToOrder.Application.Interfaces;
+namespace ScanToOrder.Application.Interfaces;
 
 public interface ICronJobService
 {
-    Task DailyTurnOffPromotionsAsync(CancellationToken cancellationToken = default);
+    Task CancelExpiredUnpaidOrdersAsync(CancellationToken cancellationToken = default);
 }

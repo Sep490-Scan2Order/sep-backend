@@ -1,35 +1,36 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services;
 
 public class CronJobService : ICronJobService
 {
-    private readonly ILogger<CronJobService> _logger;
-    private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<CronJobService> _logger;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOrderService _orderService;
 
-    public CronJobService(ILogger<CronJobService> logger, IUnitOfWork unitOfWork)
-    {
-        _logger = logger;
-        _unitOfWork = unitOfWork;
-    }
-    
-    public async Task DailyTurnOffPromotionsAsync(CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Bắt đầu chạy CronJob: DailyTurnOffPromotionsAsync vào lúc {Time}", DateTimeOffset.Now);
-        var promotionsToTurnOff = await _unitOfWork.Promotions.GetAllAsync();
-        foreach (var p in promotionsToTurnOff)
+        public CronJobService(ILogger<CronJobService> logger, IUnitOfWork unitOfWork, IOrderService orderService)
         {
-            p.IsActive = false;
+            _logger = logger;
+            _unitOfWork = unitOfWork;
+            _orderService = orderService;
         }
         
-        _unitOfWork.Promotions.UpdateRange(promotionsToTurnOff);
-        await _unitOfWork.SaveAsync();
-        
-        await Task.Delay(1000, cancellationToken); 
-        _logger.LogInformation("Đã hoàn thành CronJob: DailyTurnOffPromotionsAsync");
+        public async Task CancelExpiredUnpaidOrdersAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: CancelExpiredUnpaidOrdersAsync vào lúc {Time}", DateTimeOffset.Now);
+            
+            try
+            {
+                await _orderService.CancelExpiredUnpaidOrdersAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: CancelExpiredUnpaidOrdersAsync");
+            }
+            
+            _logger.LogInformation("Đã hoàn thành CronJob: CancelExpiredUnpaidOrdersAsync");
+        }
     }
-    
-    
-}

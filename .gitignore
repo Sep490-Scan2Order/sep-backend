@@ -27,6 +27,8 @@ artifacts/
 CodeCoverage/
 *.VisualState.xml
 TestResult.xml
+CoverageReport/
+*.cobertura.xml
 
 ## OS specific files
 .DS_Store

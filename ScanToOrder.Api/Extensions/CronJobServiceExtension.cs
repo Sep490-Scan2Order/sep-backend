@@ -26,10 +26,10 @@ public static class CronJobServiceExtension
         using var scope = app.Services.CreateScope();
         var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
 
-        // recurringJobManager.AddOrUpdate<ICronJobService>(
-        //     "Daily-TurnOff-Promotions", 
-        //     job => job.DailyTurnOffPromotionsAsync(CancellationToken.None), 
-        //     Cron.MinuteInterval(2)
-        // );
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Cancel-Expired-Unpaid-Orders", 
+            job => job.CancelExpiredUnpaidOrdersAsync(CancellationToken.None), 
+            Cron.MinuteInterval(5)
+        );
     }
 }
