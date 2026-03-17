@@ -13,6 +13,10 @@ namespace ScanToOrder.Domain.Interfaces
         Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId);
         Task<Order?> GetByOrderCodeAndRestaurantAsync(int orderCode, int restaurantId);
         Task<List<Order>> GetExpiredUnpaidOrdersAsync(int minuteThreshold);
+        Task<List<(int RestaurantId, string RestaurantName, string? Image,
+                   int TotalOrders, decimal TotalRevenue,
+                   string? PlanName, SubscriptionStatus? Status)>>
+            GetTopRestaurantsFullDataAsync(int top);
         Task<List<Order>> GetRecentByRestaurantAndPhoneAsync(int restaurantId, string phone, int limit);
     }
 }

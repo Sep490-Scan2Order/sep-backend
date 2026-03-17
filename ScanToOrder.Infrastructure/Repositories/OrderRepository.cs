@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.Orders;
+using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
@@ -83,6 +84,41 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<(int RestaurantId, string RestaurantName, string? Image,
+      int TotalOrders, decimal TotalRevenue,
+      string? PlanName, SubscriptionStatus? Status)>> GetTopRestaurantsFullDataAsync(int top)
+        {
+            var query = await _dbSet
+                .GroupBy(o => o.RestaurantId)
+                .Select(g => new
+                {
+                    RestaurantId = g.Key,
+                    TotalOrders = g.Count(),
+                    TotalRevenue = g.Sum(x => x.TotalAmount)
+                })
+                .OrderByDescending(x => x.TotalRevenue)
+                .Take(top)
+                .Join(_context.Restaurants,
+                    stat => stat.RestaurantId,
+                    r => r.Id,
+                    (stat, r) => new
+                    {
+                        stat.RestaurantId,
+                        r.RestaurantName,
+                        r.Image,
+                        stat.TotalOrders,
+                        stat.TotalRevenue,
+                        PlanName = r.Subscription != null ? r.Subscription.Plan.Name : null,
+                        Status = r.Subscription != null ? r.Subscription.Status : (SubscriptionStatus?)null
+                    })
+                .ToListAsync();
+
+            return query.Select(x =>
+                (x.RestaurantId, x.RestaurantName, x.Image,
+                 x.TotalOrders, x.TotalRevenue,
+                 x.PlanName, x.Status)
+            ).ToList();
+        }
         public async Task<List<Order>> GetRecentByRestaurantAndPhoneAsync(int restaurantId, string phone, int limit)
         {
             var cutoffUtc = DateTime.UtcNow.AddHours(-1);

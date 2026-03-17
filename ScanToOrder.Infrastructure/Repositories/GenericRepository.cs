@@ -143,5 +143,21 @@ namespace ScanToOrder.Infrastructure.Repositories
 
             return new PagedResult<T> { Items = items, TotalCount = totalCount, PageNumber = pageNumber, PageSize = pageSize };
         }
+        public async Task<List<TResult>> QueryAsync<TResult>(
+            Func<IQueryable<T>, IQueryable<TResult>> queryBuilder)
+        {
+            IQueryable<T> query = _dbSet.AsNoTracking();
+
+            return await queryBuilder(query).ToListAsync();
+        }
+
+        public async Task<decimal> SumAsync(
+    Expression<Func<T, bool>> predicate,
+    Expression<Func<T, decimal>> selector)
+        {
+            return await _dbSet
+                .Where(predicate)
+                .SumAsync(selector);
+        }
     }
 }
