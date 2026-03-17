@@ -392,6 +392,7 @@ public class OrderService : IOrderService
 
         return new PaymentQrDto
         {
+            OrderId = orderId,
             QrUrl = qrUrl,
             PaymentCode = paymentCode,
             TotalAmount = amount,
@@ -787,8 +788,33 @@ public class OrderService : IOrderService
                 order.Id.ToString(),
                 (int)newStatus
             );
+            await _realtimeService.NotifyCustomerOrderStatusChanged(order.Id.ToString(), (int)newStatus);
         }
         return true;
+    }
+
+    public async Task<List<CustomerOrderSummaryDto>> GetCustomerOrdersAsync(int restaurantId, string phone, int limit = 20)
+    {
+        if (restaurantId <= 0)
+            throw new DomainException("RestaurantId không hợp lệ.");
+
+        if (string.IsNullOrWhiteSpace(phone))
+            throw new DomainException("Số điện thoại không được để trống.");
+
+        limit = Math.Clamp(limit, 1, 50);
+        phone = phone.Trim();
+
+        var orders = await _unitOfWork.Orders.GetRecentByRestaurantAndPhoneAsync(restaurantId, phone, limit);
+
+        return orders.Select(o => new CustomerOrderSummaryDto
+        {
+            OrderId = o.Id,
+            OrderCode = o.OrderCode,
+            Status = o.Status,
+            CreatedAt = o.CreatedAt,
+            FinalAmount = o.FinalAmount,
+            QrCodeUrl = o.QrCodeUrl
+        }).ToList();
     }
     
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)

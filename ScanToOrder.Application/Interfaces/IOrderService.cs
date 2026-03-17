@@ -18,6 +18,7 @@ public interface IOrderService
     Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds);
     Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId);
 
+    Task<List<CustomerOrderSummaryDto>> GetCustomerOrdersAsync(int restaurantId, string phone, int limit = 20);
     Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
 
     Task<bool> ValidateQrCodeAsync(string qrContent);

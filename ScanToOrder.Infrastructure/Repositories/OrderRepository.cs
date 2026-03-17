@@ -82,6 +82,21 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Where(o => o.Status == OrderStatus.Unpaid && !o.IsDeleted && o.CreatedAt <= thresholdTime)
                 .ToListAsync();
         }
+
+        public async Task<List<Order>> GetRecentByRestaurantAndPhoneAsync(int restaurantId, string phone, int limit)
+        {
+            var cutoffUtc = DateTime.UtcNow.AddHours(-1);
+            return await _dbSet
+                .Where(o => o.RestaurantId == restaurantId
+                            && !o.IsDeleted
+                            && o.NumberPhone == phone
+                            && (o.Status != OrderStatus.Served && o.Status != OrderStatus.Cancelled
+                                || ((o.UpdatedAt ?? o.CreatedAt) >= cutoffUtc)))
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(limit)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }
 
