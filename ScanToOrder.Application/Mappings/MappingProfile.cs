@@ -79,7 +79,11 @@ namespace ScanToOrder.Application.Mappings
             CreateMap<CreateMenuRestaurantRequestDto, MenuRestaurant>()
                 .ForMember(dest => dest.MenuTemplateId, opt => opt.MapFrom(src => src.TemplateId));
 
-            CreateMap<Restaurant, RestaurantDto>();
+            CreateMap<Restaurant, RestaurantDto>()
+                .ForMember(dest => dest.Longitude,
+                    opt => opt.MapFrom(src => src.Location != null ? (decimal?)src.Location.X : null))
+                .ForMember(dest => dest.Latitude,
+                    opt => opt.MapFrom(src => src.Location != null ? (decimal?)src.Location.Y : null));
             CreateMap<MenuTemplate, MenuTemplateDto>();
             CreateMap<MenuRestaurant, MenuRestaurantDto>();
 
