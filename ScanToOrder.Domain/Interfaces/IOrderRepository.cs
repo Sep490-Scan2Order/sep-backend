@@ -17,5 +17,6 @@ namespace ScanToOrder.Domain.Interfaces
                    int TotalOrders, decimal TotalRevenue,
                    string? PlanName, SubscriptionStatus? Status)>>
             GetTopRestaurantsFullDataAsync(int top);
+        Task<List<Order>> GetRecentByRestaurantAndPhoneAsync(int restaurantId, string phone, int limit);
     }
 }

@@ -116,5 +116,16 @@ public class OrderController : BaseController
         var isValid = await _orderService.ValidateQrCodeAsync(request.QrContent);
         return Success(isValid);
     }
+
+    [HttpGet("customer/orders")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<List<CustomerOrderSummaryDto>>>> GetCustomerOrders(
+        [FromQuery] int restaurantId,
+        [FromQuery] string phone,
+        [FromQuery] int limit = 20)
+    {
+        var result = await _orderService.GetCustomerOrdersAsync(restaurantId, phone, limit);
+        return Success(result);
+    }
 }
 
