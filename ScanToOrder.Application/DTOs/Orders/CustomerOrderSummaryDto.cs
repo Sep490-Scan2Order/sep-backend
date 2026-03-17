@@ -10,6 +10,7 @@ namespace ScanToOrder.Application.DTOs.Orders
         public DateTime CreatedAt { get; set; }
         public decimal FinalAmount { get; set; }
         public string QrCodeUrl { get; set; } = string.Empty;
+        public List<CustomerOrderDetailDto> OrderDetails { get; set; } = new();
     }
 }
 

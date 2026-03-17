@@ -336,6 +336,8 @@ public class OrderService : IOrderService
                 DishId = i.DishId,
                 Quantity = i.Quantity,
                 DiscountedPrice = i.DiscountedPrice,
+                OriginalPrice = i.OriginalPrice,
+                PromotionAmount = i.PromotionAmount,
                 SubTotal = i.SubTotal
             }).ToList();
 
@@ -813,7 +815,16 @@ public class OrderService : IOrderService
             Status = o.Status,
             CreatedAt = o.CreatedAt,
             FinalAmount = o.FinalAmount,
-            QrCodeUrl = o.QrCodeUrl
+            QrCodeUrl = o.QrCodeUrl,
+            OrderDetails = o.OrderDetails.Select(od => new CustomerOrderDetailDto
+            {
+                DishId = od.DishId,
+                DishName = od.Dish?.DishName ?? string.Empty,
+                Quantity = od.Quantity,
+                OriginalPrice = od.OriginalPrice,
+                DiscountedPrice = od.DiscountedPrice,
+                SubTotal = od.SubTotal
+            }).ToList()
         }).ToList();
     }
     

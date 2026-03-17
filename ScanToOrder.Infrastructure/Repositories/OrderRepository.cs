@@ -87,6 +87,8 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             var cutoffUtc = DateTime.UtcNow.AddHours(-1);
             return await _dbSet
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Dish)
                 .Where(o => o.RestaurantId == restaurantId
                             && !o.IsDeleted
                             && o.NumberPhone == phone
