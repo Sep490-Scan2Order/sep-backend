@@ -1,4 +1,5 @@
 using System;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Application.DTOs.Orders;
 
@@ -10,7 +11,7 @@ public class CashCheckoutResponse
     public string RestaurantName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string? Note { get; set; }
-
+    public OrderStatus Status { get; set; }
     public string QrCodeBase64 { get; set; } = null!;
 }
 

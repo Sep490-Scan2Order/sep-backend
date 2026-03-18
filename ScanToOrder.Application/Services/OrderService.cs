@@ -371,7 +371,7 @@ public class OrderService : IOrderService
             throw;
         }
 
-        await _cartRedisService.DeleteCartAsync(cartId);
+        //await _cartRedisService.DeleteCartAsync(cartId);
 
         var (qrUrl, paymentCode) = BankQrLinkUtils.GenerateSePayQrUrl(
             tenant.CardNumber,
@@ -522,8 +522,7 @@ public class OrderService : IOrderService
             throw;
         }
 
-        await _cartRedisService.DeleteCartAsync(request.CartId);
-      
+        //await _cartRedisService.DeleteCartAsync(request.CartId);     
 
         return new CashCheckoutResponse
         {
@@ -533,6 +532,7 @@ public class OrderService : IOrderService
             RestaurantName = restaurant.RestaurantName,
             Phone = request.Phone,
             Note = cart.Note,
+            Status = OrderStatus.Unpaid,
             QrCodeBase64 = qrOrderUrl
         };
 
