@@ -341,7 +341,8 @@ namespace ScanToOrder.Application.Services
                             Type = bdc.Dish.Type,
                             DishAvailabilityStock = bdc.DishAvailability,
                             ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
-                            IsSoldOut = bdc.IsSoldOut
+                            IsSoldOut = bdc.IsSoldOut,
+                            IsSelling = bdc.IsSelling
                         };
                     }).ToList()
                 })

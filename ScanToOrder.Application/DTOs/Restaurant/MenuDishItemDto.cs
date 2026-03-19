@@ -10,6 +10,7 @@ public class MenuDishItemDto
     public string ImageUrl { get; set; } = string.Empty;
     public int Price { get; set; } 
     public bool IsSoldOut { get; set; }
+    public bool IsSelling { get; set; }
     public int DiscountedPrice { get; set; }
     public string? PromotionName { get; set; }
     public string? PromotionLabel { get; set; }

@@ -12,7 +12,6 @@ namespace ScanToOrder.Application.DTOs.Dishes
         public int DishId { get; set; }
         public required string RestaurantName { get; set; }
         public required string DishName { get; set; }
-
         public required string DishImageUrl { get; set; }
         public bool IsSelling { get; set; } = true;
         public decimal Price { get; set; }

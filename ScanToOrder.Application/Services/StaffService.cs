@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
