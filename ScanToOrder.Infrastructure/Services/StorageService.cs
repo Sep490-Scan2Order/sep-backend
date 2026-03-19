@@ -180,6 +180,11 @@ namespace ScanToOrder.Infrastructure.Services
             }
         }
 
+        public async Task<string> UploadPaymentProofAsync(byte[] imageBytes, string fileName)
+        {
+            return await UploadFromBytesAsync(imageBytes, fileName, "payment_proofs");
+        }
+
         public string GetOrderQrUrl(Guid orderId)
         {
             const string bucketName = "order_qr_codes";

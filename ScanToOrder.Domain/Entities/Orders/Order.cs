@@ -10,6 +10,9 @@ namespace ScanToOrder.Domain.Entities.Orders
     {
         public int RestaurantId { get; set; }
         public int? PromotionId { get; set; }
+        
+        public Guid? RefundOrderId { get; set; }
+        public Guid? ResponsibleStaffId { get; set; }
         public string NumberPhone { get; set; } = null!;
         public int OrderCode { get; set; }
         public string QrCodeUrl { get; set; } = null!;
@@ -21,6 +24,10 @@ namespace ScanToOrder.Domain.Entities.Orders
         public decimal FinalAmount { get; set; }
         public OrderStatus Status { get; set; }
         public bool IsScanned { get; set; } = false;
+
+        public TypeOrder typeOrder { get; set; }
+        public RefundType? RefundType { get; set; }
+        public string? PaymentProofUrl { get; set; }
 
         public string Type { get; set; } = null!;
 

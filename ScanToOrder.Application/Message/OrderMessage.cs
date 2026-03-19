@@ -37,6 +37,9 @@ namespace ScanToOrder.Application.Message
             public const string INVALID_ORDER_CODE = "Mã đơn hàng không hợp lệ.";
             public const string PAYMENT_AMOUNT_MISMATCH = "Số tiền thanh toán không khớp với tổng tiền đơn hàng.";
             public const string DISH_ID_LIST_REQUIRED = "Danh sách DishId không được để trống.";
+            public const string ORDER_ALREADY_CANCELLED_OR_REFUNDED = "Đơn hàng đã được hủy hoặc hoàn tiền trước đó.";
+            public const string ONLY_CONFIRM_UNPAID_ORDER = "Chỉ có thể xác nhận thanh toán cho đơn hàng đang ở trạng thái Chưa thanh toán.";
+            public const string SYSTEM_ERROR_MANUAL_ONLY = "Lỗi hệ thống trong mô hình trả trước chỉ được xử lý qua chức năng Xác nhận thanh toán thủ công.";
         }
 
         public class OrderSuccess

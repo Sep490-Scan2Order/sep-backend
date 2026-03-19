@@ -8,6 +8,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<string> GetOrGenerateOrderAudioAsync(int orderNumber, string textToSpeak);
         Task<string> GetOrGeneratePaymentReceivedAudioAsync(int orderCode, decimal amount);
         Task<string> UploadOrderQrAsync(byte[] qrBytes, Guid orderId);
+        Task<string> UploadPaymentProofAsync(byte[] imageBytes, string fileName);
 
         string GetOrderQrUrl(Guid orderId);
     }

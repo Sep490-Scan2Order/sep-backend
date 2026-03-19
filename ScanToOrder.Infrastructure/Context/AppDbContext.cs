@@ -96,6 +96,14 @@ public class AppDbContext : DbContext
             .Property(o => o.Status)
             .HasConversion<string>();
 
+        modelBuilder.Entity<Order>()
+            .Property(o => o.typeOrder)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.RefundType)
+            .HasConversion<string>();
+
         modelBuilder.Entity<Configurations>(entity =>
         {
             entity.HasNoKey(); 
