@@ -36,7 +36,6 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(OrderMessage.OrderError.ONLY_CONFIRM_UNPAID_ORDER);
             }
 
-            // Xử lý upload ảnh minh chứng
             string? paymentProofUrl = null;
             if (request.ImageFile != null && request.ImageFile.Length > 0)
             {
@@ -58,7 +57,6 @@ namespace ScanToOrder.Application.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // 1. Cập nhật trạng thái đơn hàng sang Pending (đã thanh toán, chờ xử lý)
                 order.Status = OrderStatus.Pending;
                 order.PaymentProofUrl = paymentProofUrl;
                 order.ResponsibleStaffId = request.ResponsibleStaffId;
@@ -66,7 +64,6 @@ namespace ScanToOrder.Application.Services
                 order.Note = request.Note;
                 _unitOfWork.Orders.Update(order);
 
-                // 2. Tạo giao dịch thành công để ghi nhận doanh thu vào hệ thống
                 var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
                     s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
 
@@ -77,7 +74,6 @@ namespace ScanToOrder.Application.Services
                     PaymentMethod = PaymentMethod.BankTransfer,
                     Status = OrderTransactionStatus.Success,
                     ShiftId = activeShift?.Id
-                    // Note = "Xác nhận thủ công do lỗi hệ thống" (Bỏ Note theo yêu cầu trước đó)
                 };
                 await _unitOfWork.Transactions.AddAsync(transaction);
 
@@ -100,7 +96,6 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
             }
 
-            // Chỉ hoàn tiền cho những đơn đã thanh toán/phục vụ
             if (originalOrder.Status == OrderStatus.Cancelled)
             {
                 throw new DomainException(OrderMessage.OrderError.ORDER_ALREADY_CANCELLED_OR_REFUNDED);
@@ -109,17 +104,14 @@ namespace ScanToOrder.Application.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // 1. Chuyển trạng thái đơn gốc sang Cancelled để đối trừ doanh thu
                 originalOrder.Status = OrderStatus.Cancelled;
                 _unitOfWork.Orders.Update(originalOrder);
 
-                // 2. Xử lý Log và Giao dịch tùy theo loại lỗi
                 if (request.RefundType == RefundType.SystemError)
                 {
                     throw new DomainException(OrderMessage.OrderError.SYSTEM_ERROR_MANUAL_ONLY);
                 }
 
-                // Tạo Đơn hàng 0đ làm log cho lỗi Khách quan hoặc Nhân viên
                 var (startUtc, endUtc, dateInt) = GetVietnamDayRangeUtc();
                 int nextOrderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
                     originalOrder.RestaurantId, startUtc, endUtc, dateInt);
@@ -147,7 +139,6 @@ namespace ScanToOrder.Application.Services
 
                 await _unitOfWork.Orders.AddAsync(refundOrder);
 
-                // CHỈ log giao dịch âm cho lỗi Khách quan (Objective) và trả tiền mặt
                 if (request.RefundType == RefundType.Objective && originalOrder.Type == "Cash" )
                 {
                     var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(

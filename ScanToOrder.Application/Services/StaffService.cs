@@ -78,5 +78,11 @@ namespace ScanToOrder.Application.Services
 
             return _mapper.Map<List<StaffDto>>(cashiers);
         }
+
+        public async Task<List<StaffDto>> GetStaffByRestaurant(int restaurantId)
+        {
+            var staff = await _unitOfWork.Staffs.FindAsync(s => s.RestaurantId == restaurantId);
+            return _mapper.Map<List<StaffDto>>(staff);
+        }
     }
 }
