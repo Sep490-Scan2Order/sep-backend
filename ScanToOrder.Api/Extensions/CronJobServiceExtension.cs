@@ -31,5 +31,11 @@ public static class CronJobServiceExtension
             job => job.CancelExpiredUnpaidOrdersAsync(CancellationToken.None), 
             Cron.MinuteInterval(5)
         );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Sync-Branch-Dish-Selling-Status", 
+            job => job.SyncBranchDishSellingStatusAsync(CancellationToken.None), 
+            Cron.Daily(2, 00)
+        );
     }
 }

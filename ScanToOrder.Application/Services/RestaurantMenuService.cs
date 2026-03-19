@@ -16,6 +16,11 @@ namespace ScanToOrder.Application.Services
         {
             return _restaurantService.GetRestaurantMenuAsync(restaurantId);
         }
+        
+        public Task<List<MenuCategoryDto>> GetAllMenuForRestaurantAsync(int restaurantId)
+        {
+            return _restaurantService.GetRestaurantMenuAsync(restaurantId, false);
+        }
     }
 }
 
