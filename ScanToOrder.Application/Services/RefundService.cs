@@ -7,6 +7,7 @@ using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
+using AutoMapper;
 
 namespace ScanToOrder.Application.Services
 {
@@ -15,12 +16,21 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<RefundService> _logger;
         private readonly IStorageService _storageService;
+        private readonly IRealtimeService _realtimeService;
+        private readonly IMapper _mapper;
 
-        public RefundService(IUnitOfWork unitOfWork, ILogger<RefundService> logger, IStorageService storageService)
+        public RefundService(
+            IUnitOfWork unitOfWork, 
+            ILogger<RefundService> logger, 
+            IStorageService storageService,
+            IRealtimeService realtimeService,
+            IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _storageService = storageService;
+            _realtimeService = realtimeService;
+            _mapper = mapper;
         }
 
         public async Task<bool> ConfirmSystemErrorPaymentAsync(ConfirmSystemPaymentRequest request)
@@ -79,6 +89,27 @@ namespace ScanToOrder.Application.Services
 
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
+
+                try
+                {
+                    await _realtimeService.NotifyOrderStatusChanged(order.RestaurantId.ToString(), order.Id.ToString(), (int)order.Status);
+                    await _realtimeService.NotifyCustomerOrderStatusChanged(order.Id.ToString(), (int)order.Status);
+
+                    string audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, order.FinalAmount);
+                    await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, order.FinalAmount, audioUrl);
+
+                    var orderWithDetails = await _unitOfWork.Orders.GetOrderWithDetailsForKdsAsync(order.Id);
+                    if (orderWithDetails != null)
+                    {
+                        var realtimeDto = _mapper.Map<OrderRealtimeDto>(orderWithDetails);
+                        await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), realtimeDto);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Lỗi SignalR: {Message}", ex.Message);
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -88,6 +119,7 @@ namespace ScanToOrder.Application.Services
                 throw;
             }
         }
+
         public async Task<bool> RefundOrderAsync(RefundRequest request)
         {
             var originalOrder = await _unitOfWork.Orders.GetByIdAsync(request.OrderId);
@@ -157,6 +189,23 @@ namespace ScanToOrder.Application.Services
 
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
+
+                try
+                {
+                    await _realtimeService.NotifyOrderStatusChanged(originalOrder.RestaurantId.ToString(), originalOrder.Id.ToString(), (int)originalOrder.Status);
+                    await _realtimeService.NotifyCustomerOrderStatusChanged(originalOrder.Id.ToString(), (int)originalOrder.Status);
+                    
+                    var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(originalOrder.RestaurantId);
+                    if (restaurant != null)
+                    {
+                        await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Lỗi SignalR (Refund): {Message}", ex.Message);
+                }
+
                 return true;
             }
             catch (Exception ex)
