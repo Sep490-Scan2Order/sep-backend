@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -34,6 +34,13 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _staffService.GetAvailableCashiers();
             return Ok(result);
+        }
+
+        [HttpGet("restaurant/{restaurantId}")]
+        public async Task<ActionResult<ApiResponse<List<StaffDto>>>> GetStaffByRestaurant(int restaurantId)
+        {
+            var result = await _staffService.GetStaffByRestaurant(restaurantId);
+            return Success(result);
         }
     }
 }
