@@ -71,6 +71,13 @@ namespace ScanToOrder.Api.Controllers
             var menu = await _restaurantMenuService.GetMenuForRestaurantAsync(restaurantId);
             return Success(menu);
         }
+        
+        [HttpGet("{restaurantId:int}/menu-all")]
+        public async Task<ActionResult<ApiResponse<List<MenuCategoryDto>>>> GetRestaurantAllMenu([FromRoute] int restaurantId)
+        {
+            var menu = await _restaurantMenuService.GetAllMenuForRestaurantAsync(restaurantId);
+            return Success(menu);
+        }
 
         // Restaurant Management for Tenant
         [HttpPost]
@@ -140,6 +147,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPut("{id}/receiving-orders")]
+        [Authorize(Roles = "Tenant, Staff, Cashier")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateReceivingOrders(int id, bool isReceivingOrders)
         {
             var result = await _restaurantService.UpdateReceivingOrdersAsync(id, isReceivingOrders);
@@ -148,6 +156,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPut("{id}/assign-present-cashier")]
+        [Authorize(Roles = "Tenant, Staff, Cashier")]
         public async Task<ActionResult<ApiResponse<AssignPresentCashierDto>>> AssignPresentCashier(int id, [FromQuery] Guid cashierId)
         {
             var result = await _restaurantService.AssignPresentCashier(id, cashierId);
@@ -156,6 +165,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPut("config-min-cash-amount")]
+        [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<string>>> ConfigMinCashAmount([FromQuery] int restaurantId, [FromQuery] decimal minCashAmount)
         {
             var result = await _restaurantService.ConfigMinCashAmountAsync(restaurantId, minCashAmount);

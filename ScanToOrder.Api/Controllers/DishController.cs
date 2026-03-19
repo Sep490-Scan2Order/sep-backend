@@ -133,7 +133,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("get-combo-by-id/{dishId:int}")]
-        public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetComboById(int dishId)
+        public async Task<ActionResult<ApiResponse<List<ComboDetailResponse>>>> GetComboById(int dishId)
         {
             var combo = await dishService.GetComboById(dishId);
             return Success(combo, DishMessage.DishSuccess.DISH_RETRIEVED);

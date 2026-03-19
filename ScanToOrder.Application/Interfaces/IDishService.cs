@@ -21,6 +21,6 @@ namespace ScanToOrder.Application.Interfaces
 
         Task<bool> ActiveDish(Guid tenantId, int categoryId, int dishId);
 
-        Task<List<DishDto>> GetComboById(int dishId);
+        Task<List<ComboDetailResponse>> GetComboById(int dishId);
     }
 }

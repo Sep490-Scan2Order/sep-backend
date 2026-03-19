@@ -13,7 +13,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<byte[]> GetRestaurantQrImageBySlugAsync(string slug);
         Task<RestaurantDto> GetRestaurantBySlugAsync(string slug);
         Task<IEnumerable<RestaurantDto>> GetRestaurantsByTenantIdAsync(Guid tenantId);
-        Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId);
+        Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId, bool isSellingOnly = true);
         Task<string> UpdateReceivingOrdersAsync(int restaurantId, bool isReceivingOrders);
         Task<AssignPresentCashierDto> AssignPresentCashier(int restaurantId, Guid cashierId);
         Task<string> ConfigMinCashAmountAsync(int restaurantId, decimal minCashAmount);

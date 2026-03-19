@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +9,7 @@ namespace ScanToOrder.Application.DTOs.Dishes
     public class BranchDishConfigDto
     {
         public int Id { get; set; }
+        public int DishId { get; set; }
         public required string RestaurantName { get; set; }
         public required string DishName { get; set; }
 

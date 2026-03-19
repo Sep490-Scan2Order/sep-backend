@@ -22,6 +22,7 @@ namespace ScanToOrder.Application.Message
         {
             public const string BRANCH_DISH_RETRIEVED = "Lấy danh sách món ăn chi nhánh thành công.";
             public const string BRANCH_DISH_SOLD_OUT_UPDATED = "Cập nhật trạng thái bán thành công.";
+            public const string BRANCH_DISH_IS_SELLING_UPDATED = "Cập nhật trạng thái đang bán thành công.";
             public const string BRANCH_DISH_CREATED = "Thêm món ăn vào chi nhánh thành công.";
             public const string BRANCH_DISH_REMOVED = "Xóa món ăn khỏi chi nhánh thành công.";
         }

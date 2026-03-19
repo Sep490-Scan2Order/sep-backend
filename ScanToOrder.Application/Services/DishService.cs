@@ -101,9 +101,7 @@ namespace ScanToOrder.Application.Services
             }
 
             await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigs);
-
             await _unitOfWork.SaveAsync();
-
             return _mapper.Map<DishDto>(dishEntity);
         }
 
@@ -428,7 +426,6 @@ namespace ScanToOrder.Application.Services
 
             // 2. Cập nhật trạng thái Soft Delete cho Dish
             existingDish.IsDeleted = true;
-            existingDish.IsAvailable = false;
             _unitOfWork.Dishes.Update(existingDish);
 
             // 3. Tìm và xóa hẳn (Hard Delete) các BranchDishConfig liên kết với Dish này
@@ -515,21 +512,22 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
             return true;
         }
-
-        public Task<List<DishDto>> GetComboById(int dishId)
+        
+        public async Task<List<ComboDetailResponse>> GetComboById(int dishId)
         {
-            var comboDetails = _unitOfWork.ComboDetails.GetAllAsync(x => x.DishId.Equals(dishId),y => y.ItemDish);
-            return comboDetails.ContinueWith(task =>
+            var comboDetails = await _unitOfWork.ComboDetails.GetAllAsync(x => x.DishId.Equals(dishId),y => y.ItemDish, y => y.ItemDish.Category);
+            if (comboDetails == null || !comboDetails.Any())
             {
-                var details = task.Result;
-                if (details == null || !details.Any())
-                {
-                    throw new DomainException(DishMessage.DishError.DISH_COMBO_NOT_FOUND);
-                }
-
-                var dishDtos = details.Select(d => _mapper.Map<DishDto>(d.ItemDish)).ToList();
-                return dishDtos;
-            });
+                throw new DomainException(DishMessage.DishError.DISH_COMBO_NOT_FOUND);
+            }
+            
+            var result = comboDetails.Select(d => new ComboDetailResponse
+            {
+                Dish = _mapper.Map<DishDto>(d.ItemDish),
+                Quantity = d.Quantity
+            }).ToList();
+            
+            return result;
         }
     }
 }

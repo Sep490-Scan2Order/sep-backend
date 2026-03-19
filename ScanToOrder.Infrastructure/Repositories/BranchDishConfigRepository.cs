@@ -70,6 +70,42 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .ToListAsync();
         }
         
+        public async Task<List<BranchDishConfig>> GetAllDishesByRestaurantIdAsync(int restaurantId)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Include(bdc => bdc.Dish)
+                .ThenInclude(d => d.Category)
+                .Include(bdc => bdc.Dish)
+                .ThenInclude(d => d.PromotionDishes)
+                .ThenInclude(pd => pd.Promotion)
+                .Where(bdc => bdc.RestaurantId == restaurantId
+                              && !bdc.IsDeleted
+                              && !bdc.Dish.IsDeleted)
+                .Select(bdc => new BranchDishConfig
+                {
+                    Id = bdc.Id,
+                    RestaurantId = bdc.RestaurantId,
+                    DishId = bdc.DishId,
+                    IsSelling = bdc.IsSelling,
+                    Price = bdc.Price,
+                    DishAvailability = bdc.DishAvailability,
+                    IsSoldOut = bdc.IsSoldOut,
+                    Dish = new Dish
+                    {
+                        Id = bdc.Dish.Id,
+                        DishName = bdc.Dish.DishName,
+                        Description = bdc.Dish.Description,
+                        ImageUrl = bdc.Dish.ImageUrl,
+                        Category = bdc.Dish.Category,
+                        PromotionDishes = bdc.Dish.PromotionDishes
+                            .Where(pd => pd.Promotion.IsActive && !pd.Promotion.IsDeleted)
+                            .ToList()
+                    }
+                })
+                .ToListAsync();
+        }
+        
         public async Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAndDishIdsAsync(int restaurantId,
             List<int> dishIds)
         {

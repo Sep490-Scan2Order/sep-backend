@@ -21,16 +21,18 @@ namespace ScanToOrder.Application.Services
         private readonly IQrCodeService _qrCodeService;
         private readonly IConfiguration _configuration;
         private readonly IStorageService _storageService;
+        private readonly IDishRedisService _dishRedisService;
 
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
-            IStorageService storageService)
+            IStorageService storageService, IDishRedisService dishRedisService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _qrCodeService = qrCodeService;
             _configuration = configuration;
             _storageService = storageService;
+            _dishRedisService = dishRedisService;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -109,18 +111,18 @@ namespace ScanToOrder.Application.Services
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (tenant == null) throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
-            // _ = true switch
-            // {
-            //     _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
-            //         .TENANT_MISSING_TAX_NUMBER),
-            //     _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage
-            //         .TenantError.TENANT_MISSING_BANK),
-            //     _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError
-            //         .TENANT_MISSING_CARD),
-            //     _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError
-            //         .TENANT_MISSING_PHONE),
-            //     _ => true
-            // };
+            _ = true switch
+            {
+                _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_MISSING_TAX_NUMBER),
+                _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage
+                    .TenantError.TENANT_MISSING_BANK),
+                _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_MISSING_CARD),
+                _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_MISSING_PHONE),
+                _ => true
+            };
 
             var restaurant = _mapper.Map<Restaurant>(request);
             restaurant.TenantId = tenantId;
@@ -236,8 +238,8 @@ namespace ScanToOrder.Application.Services
             var dtos = restaurants.Select(r => _mapper.Map<RestaurantDto>(r));
             return dtos;
         }
-        
-        public async Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId)
+
+        public async Task<List<MenuCategoryDto>> GetRestaurantMenuAsync(int restaurantId, bool isSellingOnly = true)
         {
             // 0. Use consistent time with UTC+7 offset for local business logic
             var now = TimeUtils.GetVietnamTimeNow();
@@ -260,7 +262,24 @@ namespace ScanToOrder.Application.Services
             );
 
             // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
-            var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAsync(restaurantId);
+            List<BranchDishConfig> branchDishes = new List<BranchDishConfig>();
+            if (isSellingOnly)
+            {
+                branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAsync(restaurantId);
+            }
+            else
+            {
+                branchDishes = await _unitOfWork.BranchDishConfigs.GetAllDishesByRestaurantIdAsync(restaurantId);
+                // sync selling status from Redis for these dishes (to avoid stale data if CronJob hasn't run yet)
+                var redisStatuses = await _dishRedisService.GetDishSellingStatusesAsync(restaurantId);
+                foreach (var bdc in branchDishes)
+                {
+                    if (redisStatuses.TryGetValue(bdc.DishId, out bool isSelling))
+                    {
+                        bdc.IsSelling = isSelling;
+                    }
+                }
+            }
 
             // 4. Build Menu structure
             var menu = branchDishes
@@ -286,7 +305,7 @@ namespace ScanToOrder.Application.Services
                         var winningPromo = allEligiblePromotions
                             .Where(p => p.IsValidAt(now) && (bdc.Price - CalculateDiscountValue(bdc.Price, p) > 1000))
                             .OrderByDescending(p => p.Priority)
-                                .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
+                            .ThenByDescending(p => CalculateDiscountValue(bdc.Price, p))
                             .FirstOrDefault();
 
                         // 7. Calculate final price and UI labels
@@ -449,9 +468,7 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
 
-            return Message.RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED ;
+            return Message.RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED;
         }
-
-
     }
 }

@@ -8,6 +8,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<BranchDishConfig?> GetByIdWithIncludeAsync(int id);
         Task AddRangeAsync(List<BranchDishConfig> configs);
         Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAsync(int restaurantId);
+        Task<List<BranchDishConfig>> GetAllDishesByRestaurantIdAsync(int restaurantId);
         Task<bool> ReserveDishAvailabilityAsync(int restaurantId, int dishId, int quantity);
         Task<bool> RefundDishAvailabilityAsync(int restaurantId, int dishId, int quantity);
         Task<bool> RefundDishAvailabilityBatchAsync(int restaurantId, Dictionary<int, int> dishQuantities);

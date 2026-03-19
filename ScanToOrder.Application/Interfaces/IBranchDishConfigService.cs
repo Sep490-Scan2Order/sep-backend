@@ -1,9 +1,4 @@
-﻿using ScanToOrder.Application.DTOs.Dishes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ScanToOrder.Application.DTOs.Dishes;
 
 namespace ScanToOrder.Application.Interfaces
 {
@@ -15,6 +10,8 @@ namespace ScanToOrder.Application.Interfaces
 
         Task<BranchDishConfigDto> ToggleSoldOutAsync(int branchDishConfigId, bool isSoldOut);
 
-        Task<string> UpdateIsSoldOutBranchDish(int restauurantId, int dishId, bool isSoldOut, int quantity);
+        Task<string> UpdateIsSoldOutBranchDish(int restaurantId, int dishId, bool isSoldOut, int quantity);
+        Task<string> UpdateIsSellingBranchDish(int restaurantId, int dishId, bool isSelling);
+        Task<string> SyncDishesToBranchDishConfigAsync(Guid tenantId);
     }
 }
