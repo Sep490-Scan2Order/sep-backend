@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +15,7 @@ namespace ScanToOrder.Application.Message
             public const string SHIFT_ALREADY_CLOSED = "Ca làm đã được đóng.";
             public const string OPENING_CASH_INVALID = "Tiền đầu ca không được thấp hơn mức tối thiểu.";
             public const string CASH_AMOUNT_INVALID = "Số tiền không được thấp hơn mức tối thiểu.";
+            public const string SHIFT_NOT_OPEN_YET = "Hiện chưa có ca làm đang mở. Vui lòng thử lại sau 1 phút.";
         }
 
         public class ShiftSuccess
