@@ -853,6 +853,7 @@ public class OrderService : IOrderService
             OrderCode = o.OrderCode,
             Status = o.Status,
             CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt ?? o.CreatedAt,
             FinalAmount = o.FinalAmount,
             QrCodeUrl = o.QrCodeUrl,
             OrderDetails = o.OrderDetails.Select(od => new CustomerOrderDetailDto
@@ -887,6 +888,7 @@ public class OrderService : IOrderService
             OrderCode = o.OrderCode,
             Status = o.Status,
             CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt ?? o.CreatedAt,
             FinalAmount = o.FinalAmount,
             QrCodeUrl = o.QrCodeUrl,
             OrderDetails = o.OrderDetails.Select(od => new CustomerOrderDetailDto
