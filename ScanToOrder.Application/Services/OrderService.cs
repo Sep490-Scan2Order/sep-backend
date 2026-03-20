@@ -728,6 +728,7 @@ public class OrderService : IOrderService
                 try
                 {
                     audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, transferAmount);
+                    Console.WriteLine($"Generated audio URL: {audioUrl}");
                 }
                 catch (Exception ex)
                 {
