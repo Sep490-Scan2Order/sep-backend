@@ -122,11 +122,8 @@ namespace ScanToOrder.Infrastructure.Repositories
 
         public async Task<List<Order>> GetCustomerActiveOrdersAsync(int restaurantId, string phone, int limit, int withinHours)
         {
-            // "Active" list logic:
-            // - Always include orders created within the last `withinHours`
-            // - Include all statuses, but hide Served/Cancelled after 15 minutes from UpdatedAt
             var cutoffCreatedUtc = DateTime.UtcNow.AddHours(-withinHours);
-            var hideServedCancelledAfterUtc = DateTime.UtcNow.AddMinutes(-15);
+            var hideServedCancelledAfterUtc = DateTime.UtcNow.AddHours(-1);
 
             return await _dbSet
                 .Include(o => o.OrderDetails)
@@ -136,9 +133,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                             && o.NumberPhone == phone
                             && o.CreatedAt >= cutoffCreatedUtc
                             && (
-                                // Keep non-served/non-cancelled always visible within 24h
                                 (o.Status != OrderStatus.Served && o.Status != OrderStatus.Cancelled)
-                                // Hide served/cancelled after 15 minutes
                                 || ((o.UpdatedAt ?? o.CreatedAt) >= hideServedCancelledAfterUtc)
                             ))
                 .OrderByDescending(o => o.CreatedAt)
