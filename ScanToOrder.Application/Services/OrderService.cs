@@ -661,6 +661,7 @@ public class OrderService : IOrderService
             Amount = o.TotalAmount,
             Phone = o.NumberPhone,
             Note = o.Note,
+            Type = o.Type,
             Items = o.OrderDetails.Select(od => new CashPendingOrderItem
             {
                 DishName = od.Dish?.DishName,
@@ -797,6 +798,7 @@ public class OrderService : IOrderService
             Amount = order.FinalAmount,
             Phone = order.NumberPhone,
             Status = (int)order.Status,
+            Type = order.Type,
 
             Items = order.OrderDetails.Select(od => new KdsItemResponse
             {

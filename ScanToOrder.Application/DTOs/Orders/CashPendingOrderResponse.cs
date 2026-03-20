@@ -13,6 +13,7 @@ namespace ScanToOrder.Application.DTOs.Orders
         public string Phone { get; set; } = null!;
         public string? Note { get; set; }
         public int Status { get; set; }
+        public string? Type { get; set; }
         public List<CashPendingOrderItem> Items { get; set; } = new();
     }
 }
