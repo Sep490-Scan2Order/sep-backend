@@ -117,14 +117,26 @@ public class OrderController : BaseController
         return Success(isValid);
     }
 
-    [HttpGet("customer/orders")]
+
+    [HttpGet("customer/orders/active")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<List<CustomerOrderSummaryDto>>>> GetCustomerOrders(
+    public async Task<ActionResult<ApiResponse<List<CustomerOrderSummaryDto>>>> GetCustomerActiveOrders(
         [FromQuery] int restaurantId,
         [FromQuery] string phone,
         [FromQuery] int limit = 20)
     {
-        var result = await _orderService.GetCustomerOrdersAsync(restaurantId, phone, limit);
+        var result = await _orderService.GetCustomerActiveOrdersAsync(restaurantId, phone, limit);
+        return Success(result);
+    }
+
+    [HttpGet("customer/orders/history")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<List<CustomerOrderSummaryDto>>>> GetCustomerOrderHistory(
+        [FromQuery] int restaurantId,
+        [FromQuery] string phone,
+        [FromQuery] int limit = 50)
+    {
+        var result = await _orderService.GetCustomerOrderHistoryAsync(restaurantId, phone, limit);
         return Success(result);
     }
 }
