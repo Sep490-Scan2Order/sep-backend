@@ -284,6 +284,12 @@ public class OrderService : IOrderService
         if (string.IsNullOrWhiteSpace(phone))
             throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
 
+        var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+            s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
+
+        if (activeShift == null)
+            throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
+
         var amount = Math.Round(cart.TotalAmount);
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
@@ -385,7 +391,8 @@ public class OrderService : IOrderService
             Status = OrderTransactionStatus.Pending,
             TotalAmount = amount,
             TransactionCode = paymentCode,
-            PaymentMethod = PaymentMethod.BankTransfer
+            PaymentMethod = PaymentMethod.BankTransfer,
+            ShiftId = activeShift.Id
         });
 
         await _unitOfWork.SaveAsync();
@@ -424,6 +431,12 @@ public class OrderService : IOrderService
         var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(cart.RestaurantId);
         if (restaurant == null)
             throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+        var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+            s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
+
+        if (activeShift == null)
+            throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
 
         var amount = Math.Round(cart.TotalAmount);
 
@@ -491,7 +504,8 @@ public class OrderService : IOrderService
                 Status = OrderTransactionStatus.Pending,
                 TotalAmount = amount,
                 TransactionCode = null,
-                PaymentMethod = PaymentMethod.Cash
+                PaymentMethod = PaymentMethod.Cash,
+                ShiftId = activeShift.Id
             });
          
             await _unitOfWork.SaveAsync();
@@ -562,15 +576,6 @@ public class OrderService : IOrderService
         if (staff.RestaurantId != order.RestaurantId)
             throw new DomainException(StaffMessage.StaffError.STAFF_NOT_IN_RESTAURANT);
 
-        var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-            s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
-
-        if (activeShift == null)
-            throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
-
-        if (activeShift.StaffId != staff.Id)
-            throw new DomainException(StaffMessage.StaffError.UNAUTHORIZED_ACCESS);
-
         var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(
             t => t.OrderId == orderId && t.PaymentMethod == PaymentMethod.Cash);
 
@@ -582,13 +587,27 @@ public class OrderService : IOrderService
             return;
         }
 
+        if (transaction.ShiftId.HasValue)
+        {
+            var savedShift = await _unitOfWork.Shifts.GetByIdAsync(transaction.ShiftId.Value);
+            if (savedShift != null && savedShift.StaffId != staff.Id)
+                throw new DomainException(StaffMessage.StaffError.UNAUTHORIZED_ACCESS);
+        }
+        else
+        {
+            var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+                s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
+
+            if (activeShift != null && activeShift.StaffId == staff.Id)
+                transaction.ShiftId = activeShift.Id;
+        }
+
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         try
         {
             order.Status = OrderStatus.Pending; 
             _unitOfWork.Orders.Update(order);
 
-            transaction.ShiftId = activeShift.Id;
             transaction.Status = OrderTransactionStatus.Success;
             _unitOfWork.Transactions.Update(transaction);
 
@@ -705,6 +724,25 @@ public class OrderService : IOrderService
         var expectedAmount = Math.Round(order.FinalAmount);
         if (Math.Round(transferAmount) < expectedAmount)
             throw new DomainException(OrderMessage.OrderError.PAYMENT_AMOUNT_MISMATCH);
+
+        // Prefer ShiftId saved during checkout. Only fallback to active shift if ShiftId is missing.
+        if (!transaction.ShiftId.HasValue)
+        {
+            var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+                s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
+
+            if (activeShift != null)
+            {
+                transaction.ShiftId = activeShift.Id;
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "ProcessOrderPaymentAsync: PaymentCode={PaymentCode} has no ShiftId and no active shift. RestaurantId={RestaurantId}",
+                    paymentCode,
+                    order.RestaurantId);
+            }
+        }
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         try
