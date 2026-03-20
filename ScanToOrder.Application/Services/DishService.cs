@@ -19,19 +19,22 @@ namespace ScanToOrder.Application.Services
         private readonly IStorageService _storageService;
         private readonly IBranchDishConfigService _branchDishConfigService;
         private readonly IValidator<UpdateDishRequest> _updateDishValidator;
+        private readonly IDishRedisService _dishRedisService;
 
         public DishService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IStorageService storageService,
             IBranchDishConfigService branchDishConfigService,
-            IValidator<UpdateDishRequest> updateDishValidator)
+            IValidator<UpdateDishRequest> updateDishValidator,
+            IDishRedisService dishRedisService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _storageService = storageService;
             _branchDishConfigService = branchDishConfigService;
             _updateDishValidator = updateDishValidator;
+            _dishRedisService = dishRedisService;
         }
 
 
@@ -282,9 +285,11 @@ namespace ScanToOrder.Application.Services
                 existingDish.DishName = dishDto.DishName.Trim();
             }
 
-            if (dishDto.Price.HasValue)
+            bool priceChanged = false;
+            if (dishDto.Price.HasValue && existingDish.Price != dishDto.Price.Value)
             {
                 existingDish.Price = dishDto.Price.Value;
+                priceChanged = true;
             }
 
             if (!string.IsNullOrWhiteSpace(dishDto.Description))
@@ -297,6 +302,17 @@ namespace ScanToOrder.Application.Services
             existingDish.CategoryId = categoryId;
 
             _unitOfWork.Dishes.Update(existingDish);
+
+            if (priceChanged)
+            {
+                var branchConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(c => c.DishId == dishId);
+                var distinctRestaurants = branchConfigs.Select(c => c.RestaurantId).Distinct();
+                foreach (var resId in distinctRestaurants)
+                {
+                    await _dishRedisService.SetDishPriceAsync(resId, existingDish.Id, existingDish.Price);
+                }
+            }
+
             await _unitOfWork.SaveAsync();
 
             return _mapper.Map<DishDto>(existingDish);

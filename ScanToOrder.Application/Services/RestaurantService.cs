@@ -22,10 +22,12 @@ namespace ScanToOrder.Application.Services
         private readonly IConfiguration _configuration;
         private readonly IStorageService _storageService;
         private readonly IDishRedisService _dishRedisService;
+        private readonly IPlanLimitationService _planLimitationService;
 
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
-            IStorageService storageService, IDishRedisService dishRedisService)
+            IStorageService storageService, IDishRedisService dishRedisService,
+            IPlanLimitationService planLimitationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -33,6 +35,7 @@ namespace ScanToOrder.Application.Services
             _configuration = configuration;
             _storageService = storageService;
             _dishRedisService = dishRedisService;
+            _planLimitationService = planLimitationService;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -243,7 +246,8 @@ namespace ScanToOrder.Application.Services
         {
             // 0. Use consistent time with UTC+7 offset for local business logic
             var now = TimeUtils.GetVietnamTimeNow();
-
+            var features = await _planLimitationService.GetRestaurantFeaturesAsync(restaurantId);
+            
             // 1. Verify restaurant and get TenantId
             var restaurantEntity = (await _unitOfWork.Restaurants.GetByIdAsync(restaurantId))
                 .OrThrow(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
@@ -262,7 +266,7 @@ namespace ScanToOrder.Application.Services
             );
 
             // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
-            List<BranchDishConfig> branchDishes = new List<BranchDishConfig>();
+            List<BranchDishConfig> branchDishes;
             if (isSellingOnly)
             {
                 branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAsync(restaurantId);
@@ -281,7 +285,13 @@ namespace ScanToOrder.Application.Services
                 }
             }
 
-            // 4. Build Menu structure
+            // 4. Plan Limitation: Filter out combos if the restaurant's active plan does NOT have CanUseCombo enabled
+            if (!features.CanUseCombo)
+            {
+                branchDishes = branchDishes.Where(bdc => bdc.Dish.Type != DishType.Combo).ToList();
+            }
+
+            // 5. Build Menu structure
             var menu = branchDishes
                 .GroupBy(bdc => new { bdc.Dish.Category.Id, bdc.Dish.Category.CategoryName })
                 .Select(group => new MenuCategoryDto
