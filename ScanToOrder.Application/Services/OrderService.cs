@@ -833,7 +833,7 @@ public class OrderService : IOrderService
         return true;
     }
 
-    public async Task<List<CustomerOrderSummaryDto>> GetCustomerOrdersAsync(int restaurantId, string phone, int limit = 20)
+    public async Task<List<CustomerOrderSummaryDto>> GetCustomerActiveOrdersAsync(int restaurantId, string phone, int limit = 20)
     {
         if (restaurantId <= 0)
             throw new DomainException("RestaurantId không hợp lệ.");
@@ -844,7 +844,41 @@ public class OrderService : IOrderService
         limit = Math.Clamp(limit, 1, 50);
         phone = phone.Trim();
 
-        var orders = await _unitOfWork.Orders.GetRecentByRestaurantAndPhoneAsync(restaurantId, phone, limit);
+        var orders = await _unitOfWork.Orders.GetCustomerActiveOrdersAsync(restaurantId, phone, limit, withinHours: 24);
+
+        return orders.Select(o => new CustomerOrderSummaryDto
+        {
+            OrderId = o.Id,
+            OrderCode = o.OrderCode,
+            Status = o.Status,
+            CreatedAt = o.CreatedAt,
+            FinalAmount = o.FinalAmount,
+            QrCodeUrl = o.QrCodeUrl,
+            OrderDetails = o.OrderDetails.Select(od => new CustomerOrderDetailDto
+            {
+                DishId = od.DishId,
+                DishName = od.Dish?.DishName ?? string.Empty,
+                ImageUrl = od.Dish?.ImageUrl ?? string.Empty,
+                Quantity = od.Quantity,
+                OriginalPrice = od.OriginalPrice,
+                DiscountedPrice = od.DiscountedPrice,
+                SubTotal = od.SubTotal
+            }).ToList()
+        }).ToList();
+    }
+
+    public async Task<List<CustomerOrderSummaryDto>> GetCustomerOrderHistoryAsync(int restaurantId, string phone, int limit = 50)
+    {
+        if (restaurantId <= 0)
+            throw new DomainException("RestaurantId không hợp lệ.");
+
+        if (string.IsNullOrWhiteSpace(phone))
+            throw new DomainException("Số điện thoại không được để trống.");
+
+        limit = Math.Clamp(limit, 1, 200);
+        phone = phone.Trim();
+
+        var orders = await _unitOfWork.Orders.GetCustomerOrderHistoryAsync(restaurantId, phone, limit);
 
         return orders.Select(o => new CustomerOrderSummaryDto
         {
