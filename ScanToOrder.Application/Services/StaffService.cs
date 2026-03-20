@@ -20,10 +20,13 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public StaffService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IPlanLimitationService _planLimitationService;
+
+        public StaffService(IUnitOfWork unitOfWork, IMapper mapper, IPlanLimitationService planLimitationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _planLimitationService = planLimitationService;
         }
 
         public async Task<StaffDto> CreateStaff(CreateStaffRequest staffDto)
@@ -39,6 +42,14 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             }
+
+            var features = await _planLimitationService.GetRestaurantFeaturesAsync(staffDto.RestaurantId);
+            var currentStaffs = await _unitOfWork.Staffs.FindAsync(s => s.RestaurantId == staffDto.RestaurantId);
+            if (currentStaffs.Count() >= features.MaxStaff)
+            {
+                throw new DomainException($"Gói dịch vụ (Plan) của cửa hàng hiện chỉ cho phép cấu hình tối đa {features.MaxStaff} nhân viên.");
+            }
+
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(staffDto.Password);
             var userEntity = _mapper.Map<AuthenticationUser>(staffDto);
             userEntity.Password = passwordHash;

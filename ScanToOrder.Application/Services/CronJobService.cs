@@ -85,4 +85,54 @@ public class CronJobService : ICronJobService
             
             _logger.LogInformation("Đã hoàn thành CronJob: SyncBranchDishSellingStatusAsync");
         }
+
+        public async Task SyncBranchDishPriceAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: SyncBranchDishPriceAsync vào lúc {Time}", DateTimeOffset.Now);
+            
+            try
+            {
+                var restaurantIds = await _dishRedisService.GetAllRestaurantsWithUnsyncedPricesAsync();
+                int totalUpdated = 0;
+
+                foreach (var restaurantId in restaurantIds)
+                {
+                    var dishPrices = await _dishRedisService.GetDishPricesAsync(restaurantId);
+                    if (!dishPrices.Any()) continue;
+
+                    var dishIds = dishPrices.Keys;
+                    
+                    var configsToUpdate = await _unitOfWork.BranchDishConfigs
+                        .FindAsync(x => x.RestaurantId == restaurantId && dishIds.Contains(x.DishId));
+
+                    var branchDishConfigs = configsToUpdate.ToList();
+                    if (!branchDishConfigs.Any()) continue;
+
+                    foreach (var config in branchDishConfigs)
+                    {
+                        if (dishPrices.TryGetValue(config.DishId, out decimal newPrice))
+                        {
+                            config.Price = newPrice;
+                        }
+                    }
+
+                    _unitOfWork.BranchDishConfigs.UpdateRange(branchDishConfigs);
+                    
+                    await _dishRedisService.ClearSyncedPricesAsync(restaurantId);
+                    totalUpdated += branchDishConfigs.Count();
+                }
+
+                if (totalUpdated > 0)
+                {
+                    await _unitOfWork.SaveAsync();
+                    _logger.LogInformation("Đã đồng bộ {Count} bản ghi BranchDishConfig Price từ Redis sang Database.", totalUpdated);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: SyncBranchDishPriceAsync");
+            }
+            
+            _logger.LogInformation("Đã hoàn thành CronJob: SyncBranchDishPriceAsync");
+        }
 }

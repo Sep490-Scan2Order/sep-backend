@@ -18,7 +18,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<bool>>> RefundOrder([FromBody] RefundRequest request)
+        public async Task<ActionResult<ApiResponse<bool>>> RefundOrder([FromForm] RefundRequest request)
         {
             var result = await _refundService.RefundOrderAsync(request);
 

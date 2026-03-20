@@ -139,20 +139,34 @@ namespace ScanToOrder.Application.Services
                 originalOrder.Status = OrderStatus.Cancelled;
                 _unitOfWork.Orders.Update(originalOrder);
 
-                if (request.RefundType == RefundType.SystemError)
+                if (request.RefundType == RefundType.Objective && (request.ImageFile == null || request.ImageFile.Length == 0))
                 {
-                    throw new DomainException(OrderMessage.OrderError.SYSTEM_ERROR_MANUAL_ONLY);
+                    throw new DomainException("Trường hợp khách quan bắt buộc phải có ảnh minh chứng chuyển khoản.");
                 }
 
-                var (startUtc, endUtc, dateInt) = GetVietnamDayRangeUtc();
-                int nextOrderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
-                    originalOrder.RestaurantId, startUtc, endUtc, dateInt);
+                string? paymentProofUrl = null;
+                if (request.ImageFile != null && request.ImageFile.Length > 0)
+                {
+                    try
+                    {
+                        using var ms = new MemoryStream();
+                        await request.ImageFile.CopyToAsync(ms);
+                        var fileBytes = ms.ToArray();
+                        string extension = Path.GetExtension(request.ImageFile.FileName);
+                        string fileName = $"refund_proof_{originalOrder.OrderCode}_{Guid.NewGuid()}{extension}";
+                        paymentProofUrl = await _storageService.UploadPaymentProofAsync(fileBytes, fileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new DomainException($"Lỗi khi tải ảnh minh chứng hoàn tiền lên: {ex.Message}");
+                    }
+                }
 
                 var refundOrder = new Order
                 {
                     Id = Guid.NewGuid(),
                     RestaurantId = originalOrder.RestaurantId,
-                    OrderCode = nextOrderCode,
+                    OrderCode = originalOrder.OrderCode,
                     RefundOrderId = originalOrder.Id,
                     RefundType = request.RefundType,
                     ResponsibleStaffId = request.ResponsibleStaffId,
@@ -166,12 +180,13 @@ namespace ScanToOrder.Application.Services
                     QrCodeUrl = "REFUND_LOG",
                     Type = originalOrder.Type,
                     IsPreOrder = false,
-                    IsScanned = true
+                    IsScanned = true,
+                    PaymentProofUrl = paymentProofUrl
                 };
 
                 await _unitOfWork.Orders.AddAsync(refundOrder);
 
-                if (request.RefundType == RefundType.Objective && originalOrder.Type == "Cash" )
+                if (request.RefundType == RefundType.Objective && originalOrder.Type == "Cash")
                 {
                     var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
                         s => s.RestaurantId == originalOrder.RestaurantId && s.Status == ShiftStatus.Open);
