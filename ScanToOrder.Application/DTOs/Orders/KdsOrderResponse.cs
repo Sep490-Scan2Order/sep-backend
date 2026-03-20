@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +17,7 @@ namespace ScanToOrder.Application.DTOs.Orders
         public decimal Amount { get; set; }
 
         public int Status { get; set; }
+        public string? Type { get; set; }
         public List<KdsItemResponse> Items { get; set; }
     }
 }
