@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "2929e003-d3eb-42cc-aa46-fe61791bfdb8",
-    "name": "Scan2Order_Automation",
+    "name": "MenuTemplate_Automation",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "38070954"
   },
@@ -14,7 +14,7 @@
           "script": {
             "exec": [
               "// 1. Kiểm tra Status Code phải là 200\r",
-              "pm.test(\"[SCRUM-10] Status code is 200\", function () {\r",
+              "pm.test(\"[SCRUM-11] Status code is 200\", function () {\r",
               "    pm.response.to.have.status(200);\r",
               "});\r",
               "\r",
@@ -44,7 +44,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"from\": \"lamtranmonkey@gmail.com\",\r\n  \"to\": \"administrator@scan2order.id.vn\",\r\n  \"subject\": \"heeee\",\r\n  \"htmlContent\": \"heeee\"\r\n}",
+          "raw": "",
           "options": {
             "raw": {
               "language": "json"
@@ -65,6 +65,14 @@
             "MenuTemplate"
           ]
         }
+      },
+      "response": []
+    },
+    {
+      "name": "[SCRUM-12] Get Menu Template By Id",
+      "request": {
+        "method": "GET",
+        "header": []
       },
       "response": []
     }

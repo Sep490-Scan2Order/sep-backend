@@ -1,31 +1,31 @@
 {
   "info": {
-    "_postman_id": "2929e003-d3eb-42cc-aa46-fe61791bfdb8",
-    "name": "Scan2Order_Automation",
+    "_postman_id": "c5e47b6e-8131-41d9-b5da-e029d1d69a14",
+    "name": "Auth_Automation",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "38070954"
   },
   "item": [
     {
-      "name": "[SCRUM-11] Get All Menu Template",
+      "name": "[SCRUM-13] Tenant Login",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
               "// 1. Kiểm tra Status Code phải là 200\r",
-              "pm.test(\"[SCRUM-10] Status code is 200\", function () {\r",
+              "pm.test(\"[SCRUM-13] Status code is 200\", function () {\r",
               "    pm.response.to.have.status(200);\r",
               "});\r",
               "\r",
               "// 2. Kiểm tra nội dung JSON trả về có isSuccess = true\r",
-              "pm.test(\"[SCRUM-11] API returned success true\", function () {\r",
+              "pm.test(\"[SCRUM-13] API returned success true\", function () {\r",
               "    var jsonData = pm.response.json();\r",
               "    pm.expect(jsonData.isSuccess).to.eql(true);\r",
               "});\r",
               "\r",
               "// 3. Kiểm tra message là \"Success\"\r",
-              "pm.test(\"[SCRUM-11] Message is correct\", function () {\r",
+              "pm.test(\"[SCRUM-13] Message is correct\", function () {\r",
               "    var jsonData = pm.response.json();\r",
               "    pm.expect(jsonData.message).to.eql(\"Success\");\r",
               "});"
@@ -36,15 +36,12 @@
           }
         }
       ],
-      "protocolProfileBehavior": {
-        "disableBodyPruning": true
-      },
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"from\": \"lamtranmonkey@gmail.com\",\r\n  \"to\": \"administrator@scan2order.id.vn\",\r\n  \"subject\": \"heeee\",\r\n  \"htmlContent\": \"heeee\"\r\n}",
+          "raw": "{\r\n  \"email\": \"lamtranmonkey@gmail.com\",\r\n  \"password\": \"123123\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -52,7 +49,7 @@
           }
         },
         "url": {
-          "raw": "https://api.scan2order.io.vn/api/MenuTemplate",
+          "raw": "https://api.scan2order.io.vn/api/Auth/tenant-login",
           "protocol": "https",
           "host": [
             "api",
@@ -62,7 +59,8 @@
           ],
           "path": [
             "api",
-            "MenuTemplate"
+            "Auth",
+            "tenant-login"
           ]
         }
       },
