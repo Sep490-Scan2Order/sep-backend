@@ -26,7 +26,6 @@ jobs:
         run: npm install -g newman
 
       # 4. Chạy Test Postman
-      # Đường dẫn trỏ chính xác vào thư mục ScanToOrder.Application.UnitTest/Postman/
       - name: Run Postman Collection
         run: |
           newman run "ScanToOrder.Application.UnitTest/Postman/Scan2Order_Automation.postman_collection.json" \
@@ -34,33 +33,49 @@ jobs:
           --reporter-json-export ScanToOrder.Application.UnitTest/Postman/test_results.json
         continue-on-error: true # Quan trọng: Để bước sau vẫn chạy kể cả khi test fail
 
-     # 5. Script thông minh: Tự động tìm Ticket ID và update
-- name: Dynamic Update Jira
-  shell: pwsh
-  run: |
-    $report = Get-Content "ScanToOrder.Application.UnitTest/Postman/test_results.json" | ConvertFrom-Json
-    
-    # Duyệt qua từng bài test đã chạy
-    foreach ($execution in $report.run.executions) {
-        $testName = $execution.item.name
-        
-        # Tìm mã SCRUM-xxx trong tên bài test (Ví dụ: [SCRUM-10] Verify Email)
-        if ($testName -match "\[(SCRUM-\d+)\]") {
-            $issueKey = $Matches[1] # Lấy ra chuỗi SCRUM-10
-            
-            $failed = $execution.assertions | Where-Object { $_.errorCount -gt 0 }
-            $status = if ($failed) { "❌ FAIL" } else { "✅ PASS" }
-            
-            $commentBody = "🤖 *Automation Update*`n*Test:* $testName`n*Kết quả:* $status"
-            $jsonPayload = @{ body = $commentBody } | ConvertTo-Json
-            
-            # Gọi API Jira cho đúng Ticket vừa tìm thấy
-            $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"))
-            Invoke-RestMethod -Method Post `
-              -Uri "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment" `
-              -Headers @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" } `
-              -Body $jsonPayload
-            
-            Write-Host "Đã cập nhật kết quả cho $issueKey"
-        }
-    }
+      # 5. Script thông minh: Tự động tìm Ticket ID từ tên bài test và update Jira
+      - name: Dynamic Update Jira
+        shell: pwsh
+        run: |
+          $reportFile = "ScanToOrder.Application.UnitTest/Postman/test_results.json"
+          
+          if (!(Test-Path $reportFile)) {
+              Write-Error "Không tìm thấy file kết quả test tại $reportFile"
+              exit 1
+          }
+
+          $report = Get-Content $reportFile | ConvertFrom-Json
+          
+          # Duyệt qua từng bài test đã chạy
+          foreach ($execution in $report.run.executions) {
+              $testName = $execution.item.name
+              
+              # Tìm mã SCRUM-xxx trong tên bài test (Ví dụ: [SCRUM-10] Verify Email)
+              if ($testName -match "\[(SCRUM-\d+)\]") {
+                  $issueKey = $Matches[1] # Lấy ra chuỗi SCRUM-xx
+                  
+                  # Kiểm tra xem có assertion nào fail không
+                  $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
+                  $status = if ($failedCount -eq 0) { "✅ PASS" } else { "❌ FAIL" }
+                  
+                  $commentBody = "🤖 *Automation Update*`n*Test:* $testName`n*Kết quả:* $status`n*Người chạy:* ${{ github.actor }}"
+                  $jsonPayload = @{ body = $commentBody } | ConvertTo-Json
+                  
+                  # Cấu hình Auth
+                  $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
+                  $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
+                  
+                  # Gọi API Jira
+                  $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
+                  
+                  try {
+                      Invoke-RestMethod -Method Post `
+                        -Uri $uri `
+                        -Headers @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" } `
+                        -Body $jsonPayload
+                      Write-Host "Đã cập nhật kết quả thành công cho $issueKey"
+                  } catch {
+                      Write-Error "Lỗi khi cập nhật Jira cho $issueKey : $_"
+                  }
+              }
+          }
