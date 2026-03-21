@@ -84,7 +84,7 @@ jobs:
             -e "VpsSettings__VpsBaseUrl=${{ secrets.VPS_BASEURL }}" \
             -e "VpsSettings__UploadApiUrl=${{ secrets.VPS_UPLOAD_API_URL }}" \
             -e "AiSettings__GeminiKey=${{ secrets.GEMINI_KEY }}" \
-            -e "AiSettings__GeminiModel=gemini-2.5-pro \
+            -e "AiSettings__GeminiModel=gemini-2.5-pro" \
             -e "AiSettings__HuggingFaceApiKey=${{ secrets.HUGGING_FACE_API_KEY }}" \
             ${{ secrets.DOCKER_USERNAME }}/s2o-api:latest
             
