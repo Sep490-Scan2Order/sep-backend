@@ -25,14 +25,13 @@ jobs:
       - name: Install Newman
         run: npm install -g newman
 
-      # 4. Chạy Test Postman trực tiếp tới API đã deploy
+     # 4. Chạy Test Postman
       - name: Run Postman Collection
         run: |
-          newman run "ScanToOrder.Application.UnitTest/Postman/Scan2Order_Automation.postman_collection.json" \
+          newman run "ScanToOrder.Application.UnitTest/Postman/Scan2Order_Automation.postman_collection" \
           --reporters cli,json \
           --reporter-json-export ScanToOrder.Application.UnitTest/Postman/test_results.json \
           --insecure
-        continue-on-error: true 
 
       # 5. Script Update Jira (Giữ nguyên như cũ nhưng bỏ phần kiểm tra File để tránh lỗi Exit 1)
       - name: Dynamic Update Jira
