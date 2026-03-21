@@ -7,7 +7,7 @@
   },
   "item": [
     {
-      "name": "[SCRUM-10] Verify Email Service Response",
+      "name": "[SCRUM-11] Get All Menu Template",
       "event": [
         {
           "listen": "test",
@@ -36,8 +36,11 @@
           }
         }
       ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
       "request": {
-        "method": "POST",
+        "method": "GET",
         "header": [],
         "body": {
           "mode": "raw",
@@ -49,16 +52,17 @@
           }
         },
         "url": {
-          "raw": "https://api.scan2order.io.vn/api/Email/send",
+          "raw": "https://api.scan2order.io.vn/api/MenuTemplate",
           "protocol": "https",
           "host": [
-            "localhost"
+            "api",
+            "scan2order",
+            "io",
+            "vn"
           ],
-          "port": "7102",
           "path": [
             "api",
-            "Email",
-            "send"
+            "MenuTemplate"
           ]
         }
       },
