@@ -1,0 +1,66 @@
+name: Postman API Test & Jira Update
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  api-testing:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout mã nguồn từ GitHub về máy ảo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Cài đặt Node.js để chạy Newman
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # 3. Cài đặt Newman (Postman CLI)
+      - name: Install Newman
+        run: npm install -g newman
+
+      # 4. Chạy Test Postman
+      # Đường dẫn trỏ chính xác vào thư mục ScanToOrder.Application.UnitTest/Postman/
+      - name: Run Postman Collection
+        run: |
+          newman run "ScanToOrder.Application.UnitTest/Postman/Scan2Order_Automation.postman_collection.json" \
+          --reporters cli,json \
+          --reporter-json-export ScanToOrder.Application.UnitTest/Postman/test_results.json
+        continue-on-error: true # Quan trọng: Để bước sau vẫn chạy kể cả khi test fail
+
+     # 5. Script thông minh: Tự động tìm Ticket ID và update
+- name: Dynamic Update Jira
+  shell: pwsh
+  run: |
+    $report = Get-Content "ScanToOrder.Application.UnitTest/Postman/test_results.json" | ConvertFrom-Json
+    
+    # Duyệt qua từng bài test đã chạy
+    foreach ($execution in $report.run.executions) {
+        $testName = $execution.item.name
+        
+        # Tìm mã SCRUM-xxx trong tên bài test (Ví dụ: [SCRUM-10] Verify Email)
+        if ($testName -match "\[(SCRUM-\d+)\]") {
+            $issueKey = $Matches[1] # Lấy ra chuỗi SCRUM-10
+            
+            $failed = $execution.assertions | Where-Object { $_.errorCount -gt 0 }
+            $status = if ($failed) { "❌ FAIL" } else { "✅ PASS" }
+            
+            $commentBody = "🤖 *Automation Update*`n*Test:* $testName`n*Kết quả:* $status"
+            $jsonPayload = @{ body = $commentBody } | ConvertTo-Json
+            
+            # Gọi API Jira cho đúng Ticket vừa tìm thấy
+            $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"))
+            Invoke-RestMethod -Method Post `
+              -Uri "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment" `
+              -Headers @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" } `
+              -Body $jsonPayload
+            
+            Write-Host "Đã cập nhật kết quả cho $issueKey"
+        }
+    }
