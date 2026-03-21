@@ -45,6 +45,11 @@ namespace ScanToOrder.Application.Services
 
         public async Task<string> RegisterTenantAsync(RegisterTenantRequest request)
         {
+            if (!ValidationUtils.IsValidPassword(request.Password))
+            {
+                throw new DomainException(StaffMessage.StaffError.INVALID_PASSWORD);
+            }
+
             var savedOtp = await _otpRedisService.GetOtpTenantAsync(request.Email, OtpMessage.OtpKeyword.OTP_REGISTER);
 
             if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
@@ -52,7 +57,7 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
             }
 
-            var existingUser = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Phone);
+            var existingUser = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(request.Email);
             if (existingUser != null)
             {
                 throw new DomainException(TenantMessage.TenantError.TENANT_ALREADY_EXISTS);
