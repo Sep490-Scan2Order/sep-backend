@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Shift;
 using ScanToOrder.Application.Interfaces;
@@ -42,6 +42,30 @@ namespace ScanToOrder.Api.Controllers
                 request.Note
             );
 
+            return Success(result);
+        }
+        [HttpGet("{shiftId}/report")]
+        public async Task<ActionResult<ApiResponse<ShiftReportDto>>> GetShiftReport([FromRoute] int shiftId)
+        {
+            var result = await _shiftService.GetShiftReportAsync(shiftId);
+            return Success(result);
+        }
+
+        [HttpGet("reports")]
+        public async Task<ActionResult<ApiResponse<List<ShiftReportDto>>>> GetAllShiftReports(
+            [FromQuery] int restaurantId,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
+        {
+            var result = await _shiftService.GetAllShiftReportsAsync(restaurantId, from, to);
+            return Success(result);
+        }
+
+        [HttpGet("reports/staff/{staffId}")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<List<ShiftReportDto>>>> GetShiftReportsByStaff([FromRoute] Guid staffId)
+        {
+            var result = await _shiftService.GetShiftReportsByStaffAsync(staffId);
             return Success(result);
         }
     }
