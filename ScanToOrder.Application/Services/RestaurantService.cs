@@ -116,6 +116,15 @@ namespace ScanToOrder.Application.Services
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
             if (tenant == null) throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
+            if (request.Latitude.HasValue || request.Longitude.HasValue)
+            {
+                if (!(request.Latitude.HasValue && request.Longitude.HasValue) ||
+                    !IsValidGeoCoordinate(request.Latitude.Value, request.Longitude.Value))
+                {
+                    throw new DomainException(RestaurantMessage.RestaurantError.INVALID_RESTAURANT_LOCATION);
+                }
+            }
+
             _ = true switch
             {
                 _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
@@ -192,6 +201,9 @@ namespace ScanToOrder.Application.Services
                 if (!(request.Latitude.HasValue && request.Longitude.HasValue))
                     throw new DomainException(RestaurantMessage.RestaurantError.INVALID_RESTAURANT_LOCATION);
 
+                if (!IsValidGeoCoordinate(request.Latitude.Value, request.Longitude.Value))
+                    throw new DomainException(RestaurantMessage.RestaurantError.INVALID_RESTAURANT_LOCATION);
+
                 restaurant.Location =
                     new NetTopologySuite.Geometries.Point(request.Longitude.Value, request.Latitude.Value)
                     {
@@ -218,6 +230,11 @@ namespace ScanToOrder.Application.Services
             await _menuCacheService.InvalidateMenuAsync(restaurantId);
 
             return _mapper.Map<RestaurantDto>(restaurant);
+        }
+
+        private static bool IsValidGeoCoordinate(double latitude, double longitude)
+        {
+            return latitude is >= -90 and <= 90 && longitude is >= -180 and <= 180;
         }
 
         public async Task<RestaurantDto> GetRestaurantBySlugAsync(string slug)
