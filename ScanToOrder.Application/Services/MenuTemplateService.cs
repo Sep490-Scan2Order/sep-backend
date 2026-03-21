@@ -13,17 +13,23 @@ namespace ScanToOrder.Application.Services
         private readonly IMapper _mapper;
         private readonly IStorageService _storageService;
         private readonly IRestaurantMenuService _restaurantMenuService;
+        private readonly IGeminiService _geminiService;
+        private readonly IHuggingFaceService _huggingFaceService;
 
         public MenuTemplateService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IStorageService storageService,
-            IRestaurantMenuService restaurantMenuService)
+            IRestaurantMenuService restaurantMenuService,
+            IGeminiService geminiService,
+            IHuggingFaceService huggingFaceService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _storageService = storageService;
             _restaurantMenuService = restaurantMenuService;
+            _geminiService = geminiService;
+            _huggingFaceService = huggingFaceService;
         }
 
         public async Task<CreateTemplateResponseDto> CreateTemplateAsync(CreateTemplateRequestDto request)
@@ -109,6 +115,40 @@ namespace ScanToOrder.Application.Services
                 FontFamily = template.FontFamily,
                 LayoutConfigJson = template.LayoutConfigJson,
                 MenuData = menuData
+            };
+        }
+
+        public async Task<AiHolidayTemplateResponseDto> GenerateHolidayThemeAsync(AiHolidayTemplateRequestDto request)
+        {
+            var visualConfig = await _geminiService.GenerateHolidayVisualConfigAsync(request.HolidayName);
+
+            string uploadedImageUrl = "";
+
+            if (!string.IsNullOrWhiteSpace(visualConfig.BackgroundImagePrompt))
+            {
+                try
+                {
+                    var imageBytes = await _huggingFaceService.GenerateImageBytesAsync(visualConfig.BackgroundImagePrompt);
+
+                    var fileName = $"bg_{Guid.NewGuid():N}.png";
+
+                    uploadedImageUrl = await _storageService.UploadFromBytesAsync(imageBytes, fileName, "templates");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AI Image Error]: {ex.Message}");
+                    uploadedImageUrl = "";
+                }
+            }
+
+            return new AiHolidayTemplateResponseDto
+            {
+                TemplateName = visualConfig.TemplateName,
+                ThemeColor = visualConfig.ThemeColor,
+                FontFamily = visualConfig.FontFamily,
+                BackgroundColor = visualConfig.BackgroundColor ?? "#FFFFFF",
+                BackgroundImageUrl = uploadedImageUrl,
+                LayoutConfigJson = visualConfig.LayoutConfigJson 
             };
         }
     }
