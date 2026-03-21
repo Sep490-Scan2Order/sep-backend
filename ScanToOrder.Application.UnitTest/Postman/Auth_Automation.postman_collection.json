@@ -65,6 +65,66 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "[SCRUM-14] [TEST] Administrator Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Kiểm tra Status Code phải là 200\r",
+              "pm.test(\"[SCRUM-14] Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "// 2. Kiểm tra nội dung JSON trả về có isSuccess = true\r",
+              "pm.test(\"[SCRUM-14] API returned success true\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.isSuccess).to.eql(true);\r",
+              "});\r",
+              "\r",
+              "// 3. Kiểm tra message là \"Success\"\r",
+              "pm.test(\"[SCRUM-14] Message is correct\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.message).to.eql(\"Success\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"administrator@scan2order.id.vn\",\r\n  \"password\": \"sep490\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.scan2order.io.vn/api/Auth/administrator-login",
+          "protocol": "https",
+          "host": [
+            "api",
+            "scan2order",
+            "io",
+            "vn"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "administrator-login"
+          ]
+        }
+      },
+      "response": []
     }
   ]
 }
