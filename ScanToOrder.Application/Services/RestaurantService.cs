@@ -23,11 +23,12 @@ namespace ScanToOrder.Application.Services
         private readonly IStorageService _storageService;
         private readonly IDishRedisService _dishRedisService;
         private readonly IPlanLimitationService _planLimitationService;
+        private readonly IMenuCacheService _menuCacheService;
 
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
             IStorageService storageService, IDishRedisService dishRedisService,
-            IPlanLimitationService planLimitationService)
+            IPlanLimitationService planLimitationService, IMenuCacheService menuCacheService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -36,6 +37,7 @@ namespace ScanToOrder.Application.Services
             _storageService = storageService;
             _dishRedisService = dishRedisService;
             _planLimitationService = planLimitationService;
+            _menuCacheService = menuCacheService;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -224,6 +226,9 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
 
+            // Invalidate menu cache because restaurant info (e.g. name) may embedded in FE display
+            await _menuCacheService.InvalidateMenuAsync(restaurantId);
+
             return _mapper.Map<RestaurantDto>(restaurant);
         }
 
@@ -264,7 +269,14 @@ namespace ScanToOrder.Application.Services
             // 0. Use consistent time with UTC+7 offset for local business logic
             var now = TimeUtils.GetVietnamTimeNow();
             var features = await _planLimitationService.GetRestaurantFeaturesAsync(restaurantId);
-            
+            // 0.1. Cache read-through: skip DB entirely if menu is cached (customer-facing view only)
+            if (isSellingOnly)
+            {
+                var cached = await _menuCacheService.GetMenuAsync(restaurantId);
+                if (cached != null)
+                    return cached;
+            }
+
             // 1. Verify restaurant and get TenantId
             var restaurantEntity = (await _unitOfWork.Restaurants.GetByIdAsync(restaurantId))
                 .OrThrow(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
@@ -374,6 +386,10 @@ namespace ScanToOrder.Application.Services
                     }).ToList()
                 })
                 .ToList();
+
+            // Cache the built menu for customer-facing GET (isSellingOnly)
+            if (isSellingOnly)
+                await _menuCacheService.SetMenuAsync(restaurantId, menu);
 
             return menu;
         }

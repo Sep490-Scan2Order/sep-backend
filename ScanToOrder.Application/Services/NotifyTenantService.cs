@@ -13,10 +13,12 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IRealtimeService _realtimeService;
-        public NotifyTenantService(IUnitOfWork unitOfWork, IRealtimeService realtimeService)
+        private readonly IEmailService _emailService;
+        public NotifyTenantService(IUnitOfWork unitOfWork, IRealtimeService realtimeService, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _realtimeService = realtimeService;
+            _emailService = emailService;
         }
         public async Task<List<CreateNotifyTenantDtoResponse>> CreateNotifyTenantAsync(CreateNotifyTenantDtoRequest request)
         {

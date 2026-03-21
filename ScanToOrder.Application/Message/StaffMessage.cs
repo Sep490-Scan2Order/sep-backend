@@ -18,6 +18,7 @@ namespace ScanToOrder.Application.Message
             public const string INVALID_RESTAURANT = "Nhà hàng được chọn không tồn tại hoặc không hợp lệ.";
             public const string UNAUTHORIZED_ACCESS = "Bạn không có quyền thực hiện thao tác này.";
             public const string STAFF_NOT_IN_RESTAURANT = "Nhân viên không thuộc nhà hàng này.";
+            public const string INVALID_PASSWORD = "Mật khẩu không hợp lệ. Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ in hoa, số và ký tự đặc biệt.";
         }
 
         public class StaffSuccess

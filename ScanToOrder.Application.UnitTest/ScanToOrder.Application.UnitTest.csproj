@@ -29,6 +29,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ScanToOrder.Application\ScanToOrder.Application.csproj" />
+    <ProjectReference Include="..\ScanToOrder.Infrastructure\ScanToOrder.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Postman\" />
   </ItemGroup>
 
 </Project>

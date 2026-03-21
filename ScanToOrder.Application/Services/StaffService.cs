@@ -3,6 +3,7 @@ using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
@@ -31,6 +32,11 @@ namespace ScanToOrder.Application.Services
 
         public async Task<StaffDto> CreateStaff(CreateStaffRequest staffDto)
         {
+            if (!ValidationUtils.IsValidPassword(staffDto.Password))
+            {
+                throw new DomainException(StaffMessage.StaffError.INVALID_PASSWORD);
+            }
+
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(staffDto.Phone);
             if (existingUser != null)
             {
