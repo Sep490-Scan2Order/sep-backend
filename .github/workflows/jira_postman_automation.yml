@@ -38,80 +38,58 @@ jobs:
         shell: pwsh
         run: |
           $reportFile = "ScanToOrder.Application.UnitTest/Postman/test_results.json"
-          
-          if (!(Test-Path $reportFile)) {
-              Write-Host "⚠️ Không tìm thấy file báo cáo test. Có thể Newman không chạy được bài test nào."
-              exit 0
-          }
+          if (!(Test-Path $reportFile)) { exit 0 }
 
-          $report = Get-Content $reportFile | ConvertFrom-Json
+          $report = Get-Content $reportFile -Raw | ConvertFrom-Json
           
           foreach ($execution in $report.run.executions) {
               $testName = $execution.item.name
-              
-              # Tìm mã [SCRUM-xxx] trong tên bài test
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
-                  Write-Host "🚀 Đang xử lý Ticket: $issueKey"
+                  Write-Host "🚀 Đang gửi kết quả cho Ticket: $issueKey"
 
-                  # Đếm số lỗi
                   $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
                   $status = if ($failedCount -eq 0) { "✅ PASS" } else { "❌ FAIL" }
                   
-                  # Cấu hình Auth cho Jira
-                  $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
-                  $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
-
-                  # Tạo Body theo chuẩn Atlassian Document Format (ADF) - BẮT BUỘC cho Jira API v3
-                  $commentObj = @{
+                  # Cấu hình nội dung comment chuẩn ADF
+                  $commentBody = @{
                       version = 1
                       type    = "doc"
                       content = @(
                           @{
                               type = "paragraph"
                               content = @(
-                                  @{
-                                      type = "text"
-                                      text = "🤖 POSTMAN AUTOMATION REPORT`n"
-                                      marks = @(@{ type = "strong" })
-                                  },
-                                  @{
-                                      type = "text"
-                                      text = "Bài test: $testName`n"
-                                  },
-                                  @{
-                                      type = "text"
-                                      text = "Kết quả: $status`n"
-                                      marks = @(@{ type = "em" })
-                                  },
-                                  @{
-                                      type = "text"
-                                      text = "API: https://api.scan2order.io.vn"
-                                  }
+                                  @{ type = "text"; text = "🤖 POSTMAN AUTOMATION REPORT`n"; marks = @(@{ type = "strong" }) },
+                                  @{ type = "text"; text = "Bài test: $testName`n" },
+                                  @{ type = "text"; text = "Kết quả: $status`nAPI: https://api.scan2order.io.vn" }
                               )
                           }
                       )
                   }
 
-                  $jsonPayload = $commentObj | ConvertTo-Json -Depth 10 -Compress
+                  # Chuyển đổi sang JSON chuỗi cẩn thận
+                  $jsonBody = $commentBody | ConvertTo-Json -Depth 10 -Compress
+                  # Ép kiểu UTF8 để đảm bảo không mất dữ liệu
+                  $utf8Body = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
 
-                  # Gọi API Jira
+                  $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
+                  $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
+
                   try {
-                      Invoke-RestMethod -Method Post `
-                        -Uri "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment" `
-                        -Headers @{ 
-                            Authorization = "Basic $auth"
-                            "Content-Type" = "application/json"
-                            "Accept" = "application/json"
-                        } `
-                        -Body $jsonPayload
-                      Write-Host "✅ Đã gửi comment thành công cho $issueKey"
+                      $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
+                      Invoke-RestMethod -Method Post -Uri $uri `
+                        -Headers @{ Authorization = "Basic $auth"; "Content-Type" = "application/json"; "Accept" = "application/json" } `
+                        -Body $utf8Body
+                      Write-Host "✅ Thành công: $issueKey"
                   } catch {
-                      Write-Host "❌ Lỗi khi gửi comment cho $issueKey : $_"
-                      $result = $_.Exception.Response.GetResponseStream()
-                      $reader = New-Object System.IO.StreamReader($result)
-                      $responseBody = $reader.ReadToEnd()
-                      Write-Host "Chi tiết lỗi từ Jira: $responseBody"
+                      Write-Host "❌ Thất bại tại $issueKey"
+                      # Debug lỗi nếu có
+                      if ($_.Exception.Response) {
+                          $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                          Write-Host "Chi tiết lỗi: $($reader.ReadToEnd())"
+                      } else {
+                          Write-Host "Lỗi: $($_.Exception.Message)"
+                      }
                   }
               }
           }
