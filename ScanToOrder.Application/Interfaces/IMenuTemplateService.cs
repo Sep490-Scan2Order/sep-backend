@@ -9,5 +9,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<MenuTemplateDto> GetTemplateByIdAsync(int templateId);
         Task<MenuTemplateDto> UpdateTemplateAsync(int templateId, UpdateMenuTemplateDto request);
         Task<MenuTemplateRenderDto> GetRestaurantMenuFromTemplateAsync(int restaurantId);
+        Task<AiHolidayTemplateResponseDto> GenerateHolidayThemeAsync(AiHolidayTemplateRequestDto request);
     }
 }

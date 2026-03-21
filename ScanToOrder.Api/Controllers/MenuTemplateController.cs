@@ -50,5 +50,27 @@ namespace ScanToOrder.Api.Controllers
             var result = await _menuTemplateService.GetRestaurantMenuFromTemplateAsync(restaurantId);
             return Success(result);
         }
+
+        [HttpPost("generate-holiday-ai")]
+        public async Task<IActionResult> GenerateHolidayThemeAi([FromBody] AiHolidayTemplateRequestDto request)
+        {
+            try
+            {
+                var result = await _menuTemplateService.GenerateHolidayThemeAsync(request);
+                return Ok(new ApiResponse<AiHolidayTemplateResponseDto>
+                {
+                    IsSuccess = true,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }
