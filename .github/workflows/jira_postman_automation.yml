@@ -46,13 +46,13 @@ jobs:
               $testName = $execution.item.name
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
-                  Write-Host "Send result to Ticket: $issueKey"
+                  Write-Host "Dang gui ket qua cho Ticket: $issueKey"
 
                   $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
                   $status = if ($failedCount -eq 0) { "PASS" } else { "FAIL" }
                   
                   # Body chuẩn ADF cho Jira API v3
-                  $jsonBody = @{
+                  $commentObj = @{
                       version = 1
                       type    = "doc"
                       content = @(
@@ -60,32 +60,34 @@ jobs:
                               type = "paragraph"
                               content = @(
                                   @{ type = "text"; text = "POSTMAN AUTOMATION REPORT`n"; marks = @(@{ type = "strong" }) },
-                                  @{ type = "text"; text = "testingName: $testName`n" },
-                                  @{ type = "text"; text = "Result: $status`nAPI: https://api.scan2order.io.vn" }
+                                  @{ type = "text"; text = "Bai test: $testName`n" },
+                                  @{ type = "text"; text = "Ket qua: $status`nAPI: https://api.scan2order.io.vn" }
                               )
                           }
                       )
-                  } | ConvertTo-Json -Depth 10 -Compress
-
+                  }
+                  
+                  # Tạo file JSON tạm
+                  $commentObj | ConvertTo-Json -Depth 10 -Compress | Out-File -FilePath "comment.json" -Encoding utf8
+                  
                   # Cấu hình Auth
                   $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                   $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
 
-                  # Sử dụng cURL để gửi - Đây là cách ổn định nhất trên GitHub Actions
+                  # URI Jira
                   $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
                   
-                  $jsonBody | Out-File -FilePath "comment.json" -Encoding utf8
-                  
+                  # QUAN TRỌNG: Bọc @comment.json trong nháy kép để tránh lỗi Splatting của PowerShell
                   curl -X POST $uri `
                     -H "Authorization: Basic $auth" `
                     -H "Content-Type: application/json" `
                     -H "Accept: application/json" `
-                    --data @comment.json
+                    --data "@comment.json"
                   
                   if ($LASTEXITCODE -eq 0) {
-                      Write-Host "✅ Đã xử lý xong $issueKey"
+                      Write-Host "Da xy ly xong $issueKey"
                   } else {
-                      Write-Host "❌ cURL thất bại tại $issueKey"
+                      Write-Host "cURL that bai tai $issueKey"
                   }
               }
           }
