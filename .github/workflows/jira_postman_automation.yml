@@ -44,6 +44,7 @@ jobs:
           
           foreach ($execution in $report.run.executions) {
               $testName = $execution.item.name
+              # Tìm mã ticket trong tên bài test hoặc tên request
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
                   Write-Host "Dang gui ket qua cho Ticket: $issueKey"
@@ -51,7 +52,7 @@ jobs:
                   $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
                   $status = if ($failedCount -eq 0) { "PASS" } else { "FAIL" }
                   
-                  # Body chuẩn ADF cho Jira API v3
+                  # Cấu trúc ADF chuẩn Jira v3
                   $commentObj = @{
                       version = 1
                       type    = "doc"
@@ -67,27 +68,21 @@ jobs:
                       )
                   }
                   
-                  # Tạo file JSON tạm
-                  $commentObj | ConvertTo-Json -Depth 10 -Compress | Out-File -FilePath "comment.json" -Encoding utf8
+                  # CHỈNH SỬA TẠI ĐÂY: Tạo JSON string và lưu file chuẩn UTF8 (No BOM)
+                  $jsonBody = $commentObj | ConvertTo-Json -Depth 10 -Compress
+                  [System.IO.File]::WriteAllLines("$(Get-Location)/comment.json", $jsonBody)
                   
-                  # Cấu hình Auth
                   $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                   $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
-
-                  # URI Jira
                   $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
                   
-                  # QUAN TRỌNG: Bọc @comment.json trong nháy kép để tránh lỗi Splatting của PowerShell
+                  # Sử dụng cURL với file đã được ghi chuẩn
                   curl -X POST $uri `
                     -H "Authorization: Basic $auth" `
                     -H "Content-Type: application/json" `
                     -H "Accept: application/json" `
                     --data "@comment.json"
                   
-                  if ($LASTEXITCODE -eq 0) {
-                      Write-Host "Da xy ly xong $issueKey"
-                  } else {
-                      Write-Host "cURL that bai tai $issueKey"
-                  }
+                  Write-Host "`n✅ Đã xử lý xong $issueKey"
               }
           }
