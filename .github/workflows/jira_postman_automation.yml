@@ -46,38 +46,25 @@ jobs:
               $testName = $execution.item.name
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
-                  Write-Host "🚀 Đang gửi kết quả cho Ticket: $issueKey"
+                  Write-Host "🚀 Đang gửi kết quả (Markdown) cho Ticket: $issueKey"
 
                   # Cấu hình Auth
                   $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                   $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
-                  $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
+                  
+                  # Nội dung cực kỳ đơn giản (Markdown)
+                  $plainText = "h1. 🤖 POSTMAN REPORT: $testName\n*Kết quả*: Đã hoàn thành kiểm thử.\n*API*: https://api.scan2order.io.vn"
+                  
+                  # Tạo JSON body bằng cách ghép chuỗi thủ công để tránh lỗi encoding
+                  $jsonBody = "{ `"body`": `"$plainText`" }"
 
-                  # Gửi HARD TEXT JSON - Định dạng ADF chuẩn nhất
-                  # Lưu ý: Nội dung test name được truyền trực tiếp vào chuỗi
+                  # Gọi API v2 (v2 dễ tính hơn v3 rất nhiều)
+                  $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/2/issue/$issueKey/comment"
+
                   curl -X POST $uri `
                     -H "Authorization: Basic $auth" `
                     -H "Content-Type: application/json" `
-                    -d "{
-                          `"version`": 1,
-                          `"type`": `"doc`",
-                          `"content`": [
-                            {
-                              `"type`": `"paragraph`",
-                              `"content`": [
-                                {
-                                  `"type`": `"text`",
-                                  `"text`": `"🤖 POSTMAN REPORT: $testName`",
-                                  `"marks`": [{ `"type`": `"strong`" }]
-                                },
-                                {
-                                  `"type`": `"text`",
-                                  `"text`": `"\nKết quả: Đã hoàn thành kiểm thử hệ thống.\nAPI: https://api.scan2order.io.vn`"
-                                }
-                              ]
-                            }
-                          ]
-                        }"
+                    -d $jsonBody
                   
                   Write-Host "`n------------------------------------"
               }
