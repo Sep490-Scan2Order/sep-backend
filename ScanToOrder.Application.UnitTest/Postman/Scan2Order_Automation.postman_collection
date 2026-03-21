@@ -49,7 +49,7 @@
           }
         },
         "url": {
-          "raw": "https://localhost:7102/api/Email/send",
+          "raw": "https://api.scan2order.io.vn/api/Email/send",
           "protocol": "https",
           "host": [
             "localhost"
