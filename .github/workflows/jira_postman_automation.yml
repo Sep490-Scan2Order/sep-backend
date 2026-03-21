@@ -46,57 +46,46 @@ jobs:
               $testName = $execution.item.name
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
-                  Write-Host "🚀 Đang xử lý Ticket: $issueKey"
+                  Write-Host "Send result to Ticket: $issueKey"
 
                   $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
-                  $status = if ($failedCount -eq 0) { "✅ PASS" } else { "❌ FAIL" }
+                  $status = if ($failedCount -eq 0) { "PASS" } else { "FAIL" }
                   
-                  # Body chuẩn ADF (Atlassian Document Format)
-                  $commentObj = @{
+                  # Body chuẩn ADF cho Jira API v3
+                  $jsonBody = @{
                       version = 1
                       type    = "doc"
                       content = @(
                           @{
                               type = "paragraph"
                               content = @(
-                                  @{ type = "text"; text = "🤖 POSTMAN AUTOMATION REPORT`n"; marks = @(@{ type = "strong" }) },
-                                  @{ type = "text"; text = "Bài test: $testName`n" },
-                                  @{ type = "text"; text = "Kết quả: $status`nAPI: https://api.scan2order.io.vn" }
+                                  @{ type = "text"; text = "POSTMAN AUTOMATION REPORT`n"; marks = @(@{ type = "strong" }) },
+                                  @{ type = "text"; text = "testingName: $testName`n" },
+                                  @{ type = "text"; text = "Result: $status`nAPI: https://api.scan2order.io.vn" }
                               )
                           }
                       )
-                  }
+                  } | ConvertTo-Json -Depth 10 -Compress
 
-                  # Chuyển Object sang JSON string
-                  $jsonBody = $commentObj | ConvertTo-Json -Depth 10 -Compress
-                  
                   # Cấu hình Auth
                   $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                   $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
 
-                  try {
-                      $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
-                      # Gửi trực tiếp bằng -Body $jsonBody, PowerShell Core sẽ tự xử lý UTF8
-                      Invoke-RestMethod -Method Post -Uri $uri `
-                        -Headers @{ 
-                            Authorization = "Basic $auth"
-                            "Content-Type" = "application/json"
-                            "Accept" = "application/json"
-                        } `
-                        -Body $jsonBody
-                      Write-Host "✅ Gửi thành công cho $issueKey"
-                  } catch {
-                      Write-Host "❌ Thất bại tại $issueKey"
-                      # Cách đọc lỗi chuẩn cho HttpResponseMessage
-                      if ($_.Exception.InnerException) {
-                          Write-Host "Lỗi chi tiết: $($_.Exception.InnerException.Message)"
-                      }
-                      # Thử đọc nội dung phản hồi lỗi từ Jira nếu có
-                      $response = $_.Exception.Response
-                      if ($null -ne $response) {
-                          $content = $response.Content.ReadAsStringAsync().Result
-                          Write-Host "Phản hồi từ Jira: $content"
-                      }
+                  # Sử dụng cURL để gửi - Đây là cách ổn định nhất trên GitHub Actions
+                  $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
+                  
+                  $jsonBody | Out-File -FilePath "comment.json" -Encoding utf8
+                  
+                  curl -X POST $uri `
+                    -H "Authorization: Basic $auth" `
+                    -H "Content-Type: application/json" `
+                    -H "Accept: application/json" `
+                    --data @comment.json
+                  
+                  if ($LASTEXITCODE -eq 0) {
+                      Write-Host "✅ Đã xử lý xong $issueKey"
+                  } else {
+                      Write-Host "❌ cURL thất bại tại $issueKey"
                   }
               }
           }
