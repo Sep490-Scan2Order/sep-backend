@@ -46,13 +46,13 @@ jobs:
               $testName = $execution.item.name
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
-                  Write-Host "🚀 Đang gửi kết quả cho Ticket: $issueKey"
+                  Write-Host "🚀 Đang xử lý Ticket: $issueKey"
 
                   $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
                   $status = if ($failedCount -eq 0) { "✅ PASS" } else { "❌ FAIL" }
                   
-                  # Cấu hình nội dung comment chuẩn ADF
-                  $commentBody = @{
+                  # Body chuẩn ADF (Atlassian Document Format)
+                  $commentObj = @{
                       version = 1
                       type    = "doc"
                       content = @(
@@ -67,28 +67,35 @@ jobs:
                       )
                   }
 
-                  # Chuyển đổi sang JSON chuỗi cẩn thận
-                  $jsonBody = $commentBody | ConvertTo-Json -Depth 10 -Compress
-                  # Ép kiểu UTF8 để đảm bảo không mất dữ liệu
-                  $utf8Body = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
-
+                  # Chuyển Object sang JSON string
+                  $jsonBody = $commentObj | ConvertTo-Json -Depth 10 -Compress
+                  
+                  # Cấu hình Auth
                   $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                   $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
 
                   try {
                       $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
+                      # Gửi trực tiếp bằng -Body $jsonBody, PowerShell Core sẽ tự xử lý UTF8
                       Invoke-RestMethod -Method Post -Uri $uri `
-                        -Headers @{ Authorization = "Basic $auth"; "Content-Type" = "application/json"; "Accept" = "application/json" } `
-                        -Body $utf8Body
-                      Write-Host "✅ Thành công: $issueKey"
+                        -Headers @{ 
+                            Authorization = "Basic $auth"
+                            "Content-Type" = "application/json"
+                            "Accept" = "application/json"
+                        } `
+                        -Body $jsonBody
+                      Write-Host "✅ Gửi thành công cho $issueKey"
                   } catch {
                       Write-Host "❌ Thất bại tại $issueKey"
-                      # Debug lỗi nếu có
-                      if ($_.Exception.Response) {
-                          $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-                          Write-Host "Chi tiết lỗi: $($reader.ReadToEnd())"
-                      } else {
-                          Write-Host "Lỗi: $($_.Exception.Message)"
+                      # Cách đọc lỗi chuẩn cho HttpResponseMessage
+                      if ($_.Exception.InnerException) {
+                          Write-Host "Lỗi chi tiết: $($_.Exception.InnerException.Message)"
+                      }
+                      # Thử đọc nội dung phản hồi lỗi từ Jira nếu có
+                      $response = $_.Exception.Response
+                      if ($null -ne $response) {
+                          $content = $response.Content.ReadAsStringAsync().Result
+                          Write-Host "Phản hồi từ Jira: $content"
                       }
                   }
               }
