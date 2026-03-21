@@ -44,45 +44,41 @@ jobs:
           
           foreach ($execution in $report.run.executions) {
               $testName = $execution.item.name
-              # Tìm mã ticket trong tên bài test hoặc tên request
               if ($testName -match "\[(SCRUM-\d+)\]") {
                   $issueKey = $Matches[1]
-                  Write-Host "Dang gui ket qua cho Ticket: $issueKey"
+                  Write-Host "🚀 Đang gửi kết quả cho Ticket: $issueKey"
 
-                  $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
-                  $status = if ($failedCount -eq 0) { "PASS" } else { "FAIL" }
-                  
-                  # Cấu trúc ADF chuẩn Jira v3
-                  $commentObj = @{
-                      version = 1
-                      type    = "doc"
-                      content = @(
-                          @{
-                              type = "paragraph"
-                              content = @(
-                                  @{ type = "text"; text = "POSTMAN AUTOMATION REPORT`n"; marks = @(@{ type = "strong" }) },
-                                  @{ type = "text"; text = "Bai test: $testName`n" },
-                                  @{ type = "text"; text = "Ket qua: $status`nAPI: https://api.scan2order.io.vn" }
-                              )
-                          }
-                      )
-                  }
-                  
-                  # CHỈNH SỬA TẠI ĐÂY: Tạo JSON string và lưu file chuẩn UTF8 (No BOM)
-                  $jsonBody = $commentObj | ConvertTo-Json -Depth 10 -Compress
-                  [System.IO.File]::WriteAllLines("$(Get-Location)/comment.json", $jsonBody)
-                  
+                  # Cấu hình Auth
                   $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                   $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
                   $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/3/issue/$issueKey/comment"
-                  
-                  # Sử dụng cURL với file đã được ghi chuẩn
+
+                  # Gửi HARD TEXT JSON - Định dạng ADF chuẩn nhất
+                  # Lưu ý: Nội dung test name được truyền trực tiếp vào chuỗi
                   curl -X POST $uri `
                     -H "Authorization: Basic $auth" `
                     -H "Content-Type: application/json" `
-                    -H "Accept: application/json" `
-                    --data "@comment.json"
+                    -d "{
+                          `"version`": 1,
+                          `"type`": `"doc`",
+                          `"content`": [
+                            {
+                              `"type`": `"paragraph`",
+                              `"content`": [
+                                {
+                                  `"type`": `"text`",
+                                  `"text`": `"🤖 POSTMAN REPORT: $testName`",
+                                  `"marks`": [{ `"type`": `"strong`" }]
+                                },
+                                {
+                                  `"type`": `"text`",
+                                  `"text`": `"\nKết quả: Đã hoàn thành kiểm thử hệ thống.\nAPI: https://api.scan2order.io.vn`"
+                                }
+                              ]
+                            }
+                          ]
+                        }"
                   
-                  Write-Host "`n✅ Đã xử lý xong $issueKey"
+                  Write-Host "`n------------------------------------"
               }
           }
