@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -14,9 +15,11 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321105922_AddFieldShiftReport")]
+    partial class AddFieldShiftReport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -939,6 +942,9 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<decimal>("ExpectedCashAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("HandoverCashAmount")
                         .HasColumnType("numeric");
 
                     b.Property<bool>("IsDeleted")

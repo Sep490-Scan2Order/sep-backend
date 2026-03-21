@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Entities.Restaurants;
 using System;

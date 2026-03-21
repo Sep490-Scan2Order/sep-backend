@@ -16,6 +16,7 @@ namespace ScanToOrder.Application.Message
             public const string OPENING_CASH_INVALID = "Tiền đầu ca không được thấp hơn mức tối thiểu.";
             public const string CASH_AMOUNT_INVALID = "Số tiền không được thấp hơn mức tối thiểu.";
             public const string SHIFT_NOT_OPEN_YET = "Hiện chưa có ca làm đang mở. Vui lòng thử lại sau 1 phút.";
+            public const string SHIFT_REPORT_NOT_FOUND = "Không tìm thấy báo cáo ca làm này.";
         }
 
         public class ShiftSuccess
