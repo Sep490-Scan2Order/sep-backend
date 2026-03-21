@@ -19,11 +19,11 @@ jobs:
         with:
           node-version: '18'
 
-      # 3. Cài đặt Newman và Reporter HTML chuyên nghiệp
-      - name: Install Newman & htmlextra
-        run: npm install -g newman newman-reporter-htmlextra
+      # 3. Cài đặt Newman và các bộ xuất báo cáo (HTML + CSV cho Excel)
+      - name: Install Newman & Reporters
+        run: npm install -g newman newman-reporter-htmlextra newman-reporter-csv
 
-      # 4. Chạy Collection và Xuất 2 loại file: JSON (cho Jira) và HTML (cho người xem)
+      # 4. Chạy Collection và Xuất 3 loại file: JSON, HTML và CSV (Excel)
       - name: Run All Postman Collections
         run: |
           mkdir -p TestResults
@@ -31,10 +31,10 @@ jobs:
             filename=$(basename "$file")
             echo "Running $filename ..."
             newman run "$file" \
-              --reporters cli,json,htmlextra \
+              --reporters cli,json,htmlextra,csv \
               --reporter-json-export "TestResults/${filename}_results.json" \
               --reporter-htmlextra-export "TestResults/${filename}_report.html" \
-              --reporter-htmlextra-title "Scan2Order Professional Test Report" \
+              --reporter-csv-export "TestResults/${filename}_excel_report.csv" \
               --insecure || true
           done
 
@@ -67,11 +67,12 @@ jobs:
               }
           }
 
-      # 6. XUẤT FILE BÁO CÁO (ARTIFACT)
-      # Bước này giúp bạn có thể tải file HTML về máy sau khi chạy xong
-      - name: Upload Professional HTML Report
+      # 6. XUẤT TẤT CẢ FILE BÁO CÁO (HTML + EXCEL)
+      - name: Upload All Test Reports
         uses: actions/upload-artifact@v4
         with:
           name: Professional-API-Test-Reports
-          path: TestResults/*.html
+          path: |
+            TestResults/*.html
+            TestResults/*.csv
           retention-days: 14
