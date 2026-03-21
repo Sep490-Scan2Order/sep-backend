@@ -1,4 +1,4 @@
-name: Postman API Test & Jira Update
+name: Postman API Test & Professional Report
 
 on:
   push:
@@ -11,82 +11,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout mã nguồn từ GitHub về máy ảo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Cài đặt Node.js để chạy Newman
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # 3. Cài đặt Newman (Postman CLI)
-      - name: Install Newman
-        run: npm install -g newman
+      # 3. Cài đặt Newman và các bộ xuất báo cáo (HTML + CSV cho Excel)
+      - name: Install Newman & Reporters
+        run: npm install -g newman newman-reporter-htmlextra newman-reporter-csv
 
-     # 4. Chạy TẤT CẢ Collection trong thư mục Postman
+      # 4. Chạy Collection và Xuất 3 loại file: JSON, HTML và CSV (Excel)
       - name: Run All Postman Collections
         run: |
           mkdir -p TestResults
-          # Quét tất cả file có chứa '.postman_collection' trong tên
           for file in ScanToOrder.Application.UnitTest/Postman/*.postman_collection*; do
             filename=$(basename "$file")
             echo "Running $filename ..."
             newman run "$file" \
-              --reporters cli,json \
+              --reporters cli,json,htmlextra,csv \
               --reporter-json-export "TestResults/${filename}_results.json" \
+              --reporter-htmlextra-export "TestResults/${filename}_report.html" \
+              --reporter-csv-export "TestResults/${filename}_excel_report.csv" \
               --insecure || true
           done
 
-      # 5. Script Update Jira (Đã sửa lỗi cú pháp vòng lặp)
+      # 5. Script Update Jira (Giữ nguyên logic của bạn)
       - name: Dynamic Update Jira
         shell: pwsh
         run: |
-          # 1. Lấy danh sách tất cả file kết quả
           $results = Get-ChildItem "TestResults/*_results.json"
-          
-          if ($null -eq $results) {
-              Write-Host "⚠️ Không tìm thấy file kết quả nào trong thư mục TestResults."
-              exit 0
-          }
+          if ($null -eq $results) { exit 0 }
 
           foreach ($file in $results) {
-              Write-Host "📂 Đang đọc file: $($file.Name)"
               $report = Get-Content $file.FullName -Raw | ConvertFrom-Json
-              
-              # Vòng lặp duyệt từng Request trong mỗi file Collection
               foreach ($execution in $report.run.executions) {
                   $testName = $execution.item.name
-                  
                   if ($testName -match "\[(SCRUM-\d+)\]") {
                       $issueKey = $Matches[1]
-                      Write-Host "🚀 Đang gửi kết quả cho Ticket: $issueKey"
-
-                      # Tính toán trạng thái Pass/Fail
                       $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
                       $status = if ($failedCount -eq 0) { "✅ PASS" } else { "❌ FAIL" }
-
-                      # Cấu hình Auth
+                      
                       $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                       $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
                       
-                      # Nội dung Markdown cho API v2
-                      $plainText = "h1. 🤖 POSTMAN REPORT: $testName`n*Kết quả*: $status`n*API*: https://api.scan2order.io.vn"
+                      $runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                      $plainText = "h1. 🤖 POSTMAN REPORT: $testName`n*Kết quả*: $status`n*Chi tiết báo cáo*: [Xem tại GitHub Actions|$runUrl]`n*API*: https://api.scan2order.io.vn"
                       
-                      # Tạo JSON Body an toàn bằng ConvertTo-Json
-                      $bodyObj = @{ body = $plainText }
-                      $jsonBody = $bodyObj | ConvertTo-Json -Compress
-
-                      # Gọi API v2
-                      $uri = "https://fpt-team-cijvpo93.atlassian.net/rest/api/2/issue/$issueKey/comment"
-
-                      curl -X POST $uri `
-                        -H "Authorization: Basic $auth" `
-                        -H "Content-Type: application/json" `
-                        -d $jsonBody
-                      
-                      Write-Host "`n------------------------------------"
+                      $jsonBody = @{ body = $plainText } | ConvertTo-Json -Compress
+                      curl -X POST "https://fpt-team-cijvpo93.atlassian.net/rest/api/2/issue/$issueKey/comment" `
+                        -H "Authorization: Basic $auth" -H "Content-Type: application/json" -d $jsonBody
                   }
-              } # Kết thúc vòng lặp executions
-          } # Kết thúc vòng lặp file results
+              }
+          }
+
+      # 6. XUẤT TẤT CẢ FILE BÁO CÁO (HTML + EXCEL)
+      - name: Upload All Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: Professional-API-Test-Reports
+          path: |
+            TestResults/*.html
+            TestResults/*.csv
+          retention-days: 14

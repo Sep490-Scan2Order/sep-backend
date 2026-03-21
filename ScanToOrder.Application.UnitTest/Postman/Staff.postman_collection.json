@@ -1,0 +1,42 @@
+{
+  "info": {
+    "_postman_id": "f5779eed-35fa-4b2c-a9f7-25fd08e70b70",
+    "name": "Staff",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "37998807"
+  },
+  "item": [
+    {
+      "name": "[TEST] Staff Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"minhnqse182368@fpt.edu.vn\",\r\n  \"password\": \"555555555\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.scan2order.io.vn/api/Auth/staff-login",
+          "protocol": "https",
+          "host": [
+            "api",
+            "scan2order",
+            "io",
+            "vn"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "staff-login"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
