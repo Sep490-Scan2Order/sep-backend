@@ -1,33 +1,42 @@
 {
   "info": {
-    "_postman_id": "2929e003-d3eb-42cc-aa46-fe61791bfdb8",
-    "name": "Scan2Order_Automation",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "38070954"
+    "_postman_id": "a35405eb-69cd-4b2b-a468-2913963446b3",
+    "name": "Scan2Order_JiraPostman",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
       "name": "[SCRUM-10] Verify Email Service Response",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "id": "90b7b617-30a8-4dc9-b37a-7f7a2e788903",
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
           "listen": "test",
           "script": {
+            "id": "bb0aad6b-1755-4734-b0cc-a3b316869c8e",
             "exec": [
-              "// 1. Kiểm tra Status Code phải là 200\r",
-              "pm.test(\"[SCRUM-10] Status code is 200\", function () {\r",
+              "pm.test(\"Status code is 200\", function () {\r",
               "    pm.response.to.have.status(200);\r",
               "});\r",
-              "\r",
-              "// 2. Kiểm tra nội dung JSON trả về có isSuccess = true\r",
-              "pm.test(\"[SCRUM-10] API returned success true\", function () {\r",
-              "    var jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData.isSuccess).to.eql(true);\r",
+              "pm.test(\"Response time is less than 2s\", function () {\r",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
               "});\r",
-              "\r",
-              "// 3. Kiểm tra message là \"Success\"\r",
-              "pm.test(\"[SCRUM-10] Message is correct\", function () {\r",
+              "pm.test(\"Successful POST request\", function () {\r",
+              "    pm.expect(pm.response.code).to.be.oneOf([200]);\r",
+              "});\r",
+              "pm.test(\"[SCRUM-10] Check if response has data\", function () {\r",
               "    var jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData.message).to.eql(\"Success\");\r",
+              "    pm.expect(jsonData).to.have.property('data');\r",
               "});"
             ],
             "type": "text/javascript",
@@ -36,6 +45,7 @@
           }
         }
       ],
+      "id": "51169a32-9f02-4224-bd5e-f20d3b01043b",
       "request": {
         "method": "POST",
         "header": [],

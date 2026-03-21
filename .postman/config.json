@@ -1,0 +1,15 @@
+{
+  "workspace": {
+    "id": "5f8f6ecc-e393-4f68-865b-20b1444fbe46"
+  },
+  "entities": {
+    "environments": [],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [
+      "..\\ScanToOrder.Api\\obj\\Debug\\net8.0\\EndpointInfo\\ScanToOrder.Api.json"
+    ],
+    "collections": []
+  }
+}
