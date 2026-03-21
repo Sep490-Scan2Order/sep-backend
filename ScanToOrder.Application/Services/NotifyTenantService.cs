@@ -22,6 +22,7 @@ namespace ScanToOrder.Application.Services
         }
         public async Task<List<CreateNotifyTenantDtoResponse>> CreateNotifyTenantAsync(CreateNotifyTenantDtoRequest request)
         {
+            var notification = await _unitOfWork.Notifications.GetByIdAsync(request.NotificationId);
             var notifyTenants = request.TenantIds.Select(tenantId => new NotifyTenant
             {
                 NotificationId = request.NotificationId,
@@ -35,10 +36,65 @@ namespace ScanToOrder.Application.Services
                 await _realtimeService.SendNotificationToTenant(tenantId.ToString(), new
                 {
                     Message = RealtimeMessage.RealtimeSuccess.YOU_HAVE_NEW_NOTIFICATION,
-                    request.NotificationId
+                    request.NotificationId,
+                    Url = notification!.SystemBlogUrl
                 });
 
+                var currentTenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(
+                    t => t.AccountId == tenantId || t.Id == tenantId,
+                        t => t.Account);
+
+                if (currentTenant?.Account?.Email != null)
+                {
+                    try
+                    {
+                        string htmlContent = $@"
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>
+            <div style='background-color: #2D3E50; padding: 20px; text-align: center;'>
+                <h1 style='color: #ffffff; margin: 0; font-size: 24px;'>Scan2Order</h1>
+            </div>
+            
+            <div style='padding: 30px; line-height: 1.6; color: #333333;'>
+                <h2 style='color: #2D3E50;'>Chào {currentTenant.Name ?? "Đối tác"},</h2>
+                <p>Bạn vừa nhận được một thông báo mới quan trọng từ hệ thống quản lý <b>Scan2Order</b>.</p>
+                
+                <div style='background-color: #f9f9f9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0;'>
+                    <p style='margin: 0; font-weight: bold; color: #555;'>{notification.NotifyTitle}</p>
+                    <p style='margin: 5px 0 0; font-size: 0.9em; color: #777;'>{notification.NotifySub}</p>
+                </div>
+
+                <p>Vui lòng nhấn vào nút bên dưới để xem chi tiết nội dung và thực hiện các thao tác cần thiết:</p>
+                
+                <div style='text-align: center; margin: 30px 0;'>
+                    <a href='{notification.SystemBlogUrl}' 
+                       style='background-color: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;'>
+                       XEM CHI TIẾT THÔNG BÁO
+                    </a>
+                </div>
+
+                <p style='font-size: 0.85em; color: #888;'>Nếu nút trên không hoạt động, bạn có thể sao chép liên kết này vào trình duyệt:<br/>
+                <a href='{notification.SystemBlogUrl}' style='color: #4CAF50;'>{notification.SystemBlogUrl}</a></p>
+            </div>
+
+            <div style='background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #999;'>
+                <p>© 2026 Scan2Order Team. All rights reserved.<br/>
+                Đây là email tự động, vui lòng không trả lời email này.</p>
+            </div>
+        </div>";
+
+                        await _emailService.SendEmailViaIdDomainAsync(
+                            to: currentTenant.Account.Email,
+                            subject: $"[Scan2Order] {notification.NotifyTitle}",
+                            htmlContent: htmlContent);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Email Error: {ex.Message}");
+                    }
+                }
+
                 var unreadCount = await CountTotalNotifyByTenantId(tenantId, NotifyTenantStatus.Unread);
+
                 await _realtimeService.NotifyCountChanged(tenantId.ToString(), unreadCount);
 
                 await _realtimeService.NotifyListChanged(tenantId.ToString());
