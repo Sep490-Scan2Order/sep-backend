@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -15,18 +16,18 @@ using ScanToOrder.Infrastructure.Context;
 namespace ScanToOrder.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322071712_AddSearchVectorProperties")]
+    partial class AddSearchVectorProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Authentication.AuthenticationUser", b =>
@@ -340,7 +341,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<Vector>("SearchVector")
-                        .HasColumnType("vector(1536)");
+                        .HasColumnType("vector");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
@@ -351,21 +352,6 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
-
-                    b.HasIndex("Description");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Description"), "gin");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Description"), new[] { "gin_trgm_ops" });
-
-                    b.HasIndex("DishName");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("DishName"), "gin");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("DishName"), new[] { "gin_trgm_ops" });
-
-                    b.HasIndex("SearchVector");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "hnsw");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchVector"), new[] { "vector_cosine_ops" });
 
                     b.ToTable("Dishes");
                 });
@@ -867,7 +853,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<Vector>("SearchVector")
-                        .HasColumnType("vector(1536)");
+                        .HasColumnType("vector");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -884,24 +870,9 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Description");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Description"), "gin");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Description"), new[] { "gin_trgm_ops" });
-
                     b.HasIndex("Location");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Location"), "gist");
-
-                    b.HasIndex("RestaurantName");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("RestaurantName"), "gin");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("RestaurantName"), new[] { "gin_trgm_ops" });
-
-                    b.HasIndex("SearchVector");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "hnsw");
-                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchVector"), new[] { "vector_cosine_ops" });
 
                     b.HasIndex("TenantId");
 

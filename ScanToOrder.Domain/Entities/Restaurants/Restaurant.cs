@@ -1,4 +1,4 @@
-﻿using NetTopologySuite.Geometries;
+using NetTopologySuite.Geometries;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Shifts;
@@ -40,6 +40,8 @@ public class Restaurant : BaseEntity<int>
     public bool IsAvailableShift { get; set; }
 
     public Guid? PresentCashierId { get; set; }
+
+    public Pgvector.Vector? SearchVector { get; set; }
 
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 

@@ -24,11 +24,13 @@ namespace ScanToOrder.Application.Services
         private readonly IDishRedisService _dishRedisService;
         private readonly IPlanLimitationService _planLimitationService;
         private readonly IMenuCacheService _menuCacheService;
+        private readonly IBackgroundJobService _backgroundJobService;
 
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
             IStorageService storageService, IDishRedisService dishRedisService,
-            IPlanLimitationService planLimitationService, IMenuCacheService menuCacheService)
+            IPlanLimitationService planLimitationService, IMenuCacheService menuCacheService,
+            IBackgroundJobService backgroundJobService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -38,6 +40,7 @@ namespace ScanToOrder.Application.Services
             _dishRedisService = dishRedisService;
             _planLimitationService = planLimitationService;
             _menuCacheService = menuCacheService;
+            _backgroundJobService = backgroundJobService;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -178,6 +181,8 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
 
+            _backgroundJobService.EnqueueSearchIndexRestaurant(restaurant.Id);
+
             return _mapper.Map<RestaurantDto>(restaurant);
         }
 
@@ -228,6 +233,8 @@ namespace ScanToOrder.Application.Services
 
             // Invalidate menu cache because restaurant info (e.g. name) may embedded in FE display
             await _menuCacheService.InvalidateMenuAsync(restaurantId);
+
+            _backgroundJobService.EnqueueSearchIndexRestaurant(restaurantId);
 
             return _mapper.Map<RestaurantDto>(restaurant);
         }

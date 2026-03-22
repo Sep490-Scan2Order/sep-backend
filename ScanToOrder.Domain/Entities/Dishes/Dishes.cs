@@ -18,6 +18,8 @@ namespace ScanToOrder.Domain.Entities.Dishes
 
         public bool IsAvailable { get; set; }
 
+        public Pgvector.Vector? SearchVector { get; set; }
+
         public virtual Category Category { get; set; } = null!;
         public virtual ICollection<BranchDishConfig> BranchDishConfigs { get; set; } = new List<BranchDishConfig>();
         public virtual ICollection<PromotionDish> PromotionDishes { get; set; } = new List<PromotionDish>();

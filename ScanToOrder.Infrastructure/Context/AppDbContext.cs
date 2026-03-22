@@ -63,6 +63,8 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
+        modelBuilder.HasPostgresExtension("vector");
+        modelBuilder.HasPostgresExtension("pg_trgm");
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
@@ -78,6 +80,44 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Restaurant>()
             .HasIndex(r => r.TotalOrder)
             .IsDescending();
+
+        modelBuilder.Entity<Restaurant>()
+            .Property(r => r.SearchVector)
+            .HasColumnType("vector(1536)");
+
+        modelBuilder.Entity<Restaurant>()
+            .HasIndex(r => r.SearchVector)
+            .HasMethod("hnsw")
+            .HasOperators("vector_cosine_ops");
+
+        modelBuilder.Entity<Restaurant>()
+            .HasIndex(r => r.RestaurantName)
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
+
+        modelBuilder.Entity<Restaurant>()
+            .HasIndex(r => r.Description)
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
+
+        modelBuilder.Entity<Dish>()
+            .Property(d => d.SearchVector)
+            .HasColumnType("vector(1536)");
+
+        modelBuilder.Entity<Dish>()
+            .HasIndex(d => d.SearchVector)
+            .HasMethod("hnsw")
+            .HasOperators("vector_cosine_ops");
+
+        modelBuilder.Entity<Dish>()
+            .HasIndex(d => d.DishName)
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
+            
+        modelBuilder.Entity<Dish>()
+            .HasIndex(d => d.Description)
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
 
         modelBuilder.Entity<AuthenticationUser>()
             .Property(u => u.Role)

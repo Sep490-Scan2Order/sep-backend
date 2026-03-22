@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
+using OpenAI;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Mappings;
 using ScanToOrder.Infrastructure.Configuration;
@@ -37,6 +39,7 @@ namespace ScanToOrder.Api.Extensions
                 options.UseNpgsql(dataSource, o =>
                 {
                     o.UseNetTopologySuite();
+                    o.UseVector();
                     o.CommandTimeout(120);
                 });
             });
@@ -62,10 +65,18 @@ namespace ScanToOrder.Api.Extensions
             services.AddHttpClient<ISmsSender, EsmsSender>();
             services.AddHttpClient<IGeminiService, GeminiService>();
             services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
-
+            
+            // OpenAI setting
+            services.AddScoped<OpenAIClient>(op =>
+            {
+                var settings = op.GetRequiredService<IOptions<OpenAiSettings>>().Value;
+                return new OpenAIClient(settings.ApiKey);
+            });
+            
             services.AddMemoryCache();
             services.AddHttpContextAccessor();
             services.AddAutoMapper(typeof(GeneralProfile).Assembly);
+            
             return services;
         }
     }

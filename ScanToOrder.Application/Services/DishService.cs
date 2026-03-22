@@ -20,6 +20,7 @@ namespace ScanToOrder.Application.Services
         private readonly IBranchDishConfigService _branchDishConfigService;
         private readonly IValidator<UpdateDishRequest> _updateDishValidator;
         private readonly IDishRedisService _dishRedisService;
+        private readonly IBackgroundJobService _backgroundJobService;
 
         public DishService(
             IUnitOfWork unitOfWork,
@@ -27,7 +28,8 @@ namespace ScanToOrder.Application.Services
             IStorageService storageService,
             IBranchDishConfigService branchDishConfigService,
             IValidator<UpdateDishRequest> updateDishValidator,
-            IDishRedisService dishRedisService)
+            IDishRedisService dishRedisService,
+            IBackgroundJobService backgroundJobService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -35,6 +37,7 @@ namespace ScanToOrder.Application.Services
             _branchDishConfigService = branchDishConfigService;
             _updateDishValidator = updateDishValidator;
             _dishRedisService = dishRedisService;
+            _backgroundJobService = backgroundJobService;
         }
 
 
@@ -105,6 +108,9 @@ namespace ScanToOrder.Application.Services
 
             await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigs);
             await _unitOfWork.SaveAsync();
+            
+            _backgroundJobService.EnqueueSearchIndexDish(dishEntity.Id);
+            
             return _mapper.Map<DishDto>(dishEntity);
         }
 
@@ -207,6 +213,8 @@ namespace ScanToOrder.Application.Services
                 await _unitOfWork.SaveAsync();
 
                 await transaction.CommitAsync();
+
+                _backgroundJobService.EnqueueSearchIndexDish(comboEntity.Id);
 
                 return _mapper.Map<DishDto>(comboEntity);
             }
@@ -314,6 +322,8 @@ namespace ScanToOrder.Application.Services
             }
 
             await _unitOfWork.SaveAsync();
+
+            _backgroundJobService.EnqueueSearchIndexDish(existingDish.Id);
 
             return _mapper.Map<DishDto>(existingDish);
         }
