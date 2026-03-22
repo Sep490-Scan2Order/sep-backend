@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Infrastructure.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,12 @@ namespace ScanToOrder.Infrastructure.Services
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
 
-        public HuggingFaceService(HttpClient httpClient, IConfiguration config)
+        public HuggingFaceService(HttpClient httpClient, IOptions<AiSettings> aiSettings)
         {
             _httpClient = httpClient;
-            _apiKey = config["AiSettings:HuggingFaceApiKey"] ?? throw new ArgumentNullException("HuggingFaceApiKey is missing in configuration.");
+            var settings = aiSettings.Value;
+            _apiKey = settings.HuggingFaceApiKey
+                ?? throw new ArgumentNullException(nameof(settings.HuggingFaceApiKey), "HuggingFaceApiKey is missing in configuration.");
         }
 
         public async Task<byte[]> GenerateImageBytesAsync(string prompt, int width = 512, int height = 1024)

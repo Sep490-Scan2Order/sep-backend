@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Infrastructure.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,14 +17,18 @@ namespace ScanToOrder.Infrastructure.Services
         private readonly string _apiKey;
         private readonly string _model;
 
-        public GeminiService(HttpClient httpClient, IConfiguration config)
+        public GeminiService(HttpClient httpClient, IOptions<AiSettings> aiSettings)
         {
             _httpClient = httpClient;
 
-            _apiKey = config["AiSettings:GeminiKey"]
-                ?? throw new ArgumentNullException("GeminiKey is missing in configuration.");
+            var settings = aiSettings.Value;
+            if (string.IsNullOrWhiteSpace(settings.GeminiKey))
+                throw new ArgumentNullException(nameof(settings.GeminiKey), "GeminiKey is missing in configuration.");
+            _apiKey = settings.GeminiKey;
 
-            _model = config["AiSettings:GeminiModel"] ?? throw new ArgumentNullException("Gemini Model is missing in configuration.");
+            if (string.IsNullOrWhiteSpace(settings.GeminiModel))
+                throw new ArgumentNullException(nameof(settings.GeminiModel), "Gemini Model is missing in configuration.");
+            _model = settings.GeminiModel;
         }
         public async Task<AiHolidayVisualDto> GenerateHolidayVisualConfigAsync(string holidayName)
         {

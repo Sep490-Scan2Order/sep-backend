@@ -61,6 +61,7 @@ namespace ScanToOrder.Api.Extensions
             services.Configure<EsmsSettings>(configuration.GetSection("EsmsSettings"));
             services.Configure<VpsSettings>(configuration.GetSection("VpsSettings"));
             services.Configure<OpenAiSettings>(configuration.GetSection("OpenAiSettings"));
+            services.Configure<AiSettings>(configuration.GetSection("AiSettings"));
             services.Configure<SupabaseSettings>(configuration.GetSection("Supabase"));
             services.AddHttpClient<ISmsSender, EsmsSender>();
             services.AddHttpClient<IGeminiService, GeminiService>();
