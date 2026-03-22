@@ -7,6 +7,7 @@ using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Menu;
+using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
@@ -100,6 +101,19 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<CartModel, CartDto>();
             CreateMap<CartItemModel, CartItemModel>();
+
+            CreateMap<OrderDetail, CustomerOrderDetailDto>()
+                .ForMember(dest => dest.DishName,
+                    opt => opt.MapFrom(src => src.Dish != null ? src.Dish.DishName : string.Empty))
+                .ForMember(dest => dest.ImageUrl,
+                    opt => opt.MapFrom(src => src.Dish != null ? src.Dish.ImageUrl : string.Empty));
+
+            CreateMap<Order, CustomerOrderSummaryDto>()
+                .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.UpdatedAt,
+                    opt => opt.MapFrom(src => src.UpdatedAt ?? src.CreatedAt))
+                .ForMember(dest => dest.IsRefundLog,
+                    opt => opt.MapFrom(src => src.typeOrder == TypeOrder.Refund));
         }
     }
 }

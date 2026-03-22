@@ -120,45 +120,27 @@ namespace ScanToOrder.Infrastructure.Repositories
             ).ToList();
         }
 
-        public async Task<List<Order>> GetCustomerActiveOrdersAsync(int restaurantId, string phone, int limit, int withinHours)
+        public async Task<List<Order>> GetCustomerActiveOrdersAsync(int restaurantId, string phone)
         {
-            var cutoffCreatedUtc = DateTime.UtcNow.AddHours(-withinHours);
-            var hideServedCancelledAfterUtc = DateTime.UtcNow.AddHours(-1);
-
             return await _dbSet
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
                 .Where(o => o.RestaurantId == restaurantId
                             && !o.IsDeleted
-                            && o.NumberPhone == phone
-                            && o.CreatedAt >= cutoffCreatedUtc
-                            && (
-                                (o.Status != OrderStatus.Served && o.Status != OrderStatus.Cancelled)
-                                || ((o.UpdatedAt ?? o.CreatedAt) >= hideServedCancelledAfterUtc)
-                            ))
+                            && o.NumberPhone == phone)
                 .OrderByDescending(o => o.CreatedAt)
-                .Take(limit)
                 .AsNoTracking()
                 .ToListAsync();
         }
 
-        public async Task<List<Order>> GetCustomerOrderHistoryAsync(int restaurantId, string phone, int limit)
+        public async Task<List<Order>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone)
         {
-            var historyStatuses = new[]
-            {
-                OrderStatus.Served,
-                OrderStatus.Cancelled
-            };
-
             return await _dbSet
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
-                .Where(o => o.RestaurantId == restaurantId
-                            && !o.IsDeleted
-                            && o.NumberPhone == phone
-                            && historyStatuses.Contains(o.Status))
+                .Where(o => !o.IsDeleted
+                            && o.NumberPhone == phone)
                 .OrderByDescending(o => o.CreatedAt)
-                .Take(limit)
                 .AsNoTracking()
                 .ToListAsync();
         }

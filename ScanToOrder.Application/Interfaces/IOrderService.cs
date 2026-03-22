@@ -17,8 +17,8 @@ public interface IOrderService
     Task ProcessOrderPaymentAsync(string paymentCode, decimal transferAmount);
     Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds);
     Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId);
-    Task<List<CustomerOrderSummaryDto>> GetCustomerActiveOrdersAsync(int restaurantId, string phone, int limit = 20);
-    Task<List<CustomerOrderSummaryDto>> GetCustomerOrderHistoryAsync(int restaurantId, string phone, int limit = 50);
+    Task<List<CustomerOrderSummaryDto>> GetCustomerActiveOrdersAsync(int restaurantId, string phone);
+    Task<List<CustomerOrderSummaryDto>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone);
     Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
 
     Task<bool> ValidateQrCodeAsync(string qrContent);
