@@ -318,10 +318,67 @@ namespace ScanToOrder.Application.Services
             return TenantMessage.TenantSuccess.TENANT_RESET_PASSWORD;
         }
 
-        public async Task<string>ResetPasswordStaff(CompleteResetPasswordRequest request)
+        public async Task<string> ResetPasswordStaff(ResetPasswordStaffRequest request)
         {
+            var staff = await _unitOfWork.Staffs.GetByFieldsIncludeAsync(
+                s => s.Account.Email == request.Email,
+                s => s.Account
+            );
 
-           
+            if (staff == null) throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+            if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, staff.Account.Password))
+            {
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+            }
+
+            staff.Account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            _unitOfWork.Staffs.Update(staff);
+            await _unitOfWork.SaveAsync();
+
+            return StaffMessage.StaffSuccess.STAFF_RESET_PASSWORD;
+        }
+
+        public async Task<string> SendForgotPasswordStaffOtpAsync(string email)
+        {
+            var staff = await _unitOfWork.Staffs.GetByFieldsIncludeAsync(
+                s => s.Account.Email == email,
+                s => s.Account
+            );
+
+            if (staff == null) throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+            return await _otpRedisService.GenerateAndSaveStaffForgotOtpAsync(email);
+        }
+
+        public async Task<string> VerifyForgotPasswordStaffOtpAsync(string email, string otp)
+        {
+            var savedOtp = await _otpRedisService.GetOtpTenantAsync(email, OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD_STAFF);
+
+            if (string.IsNullOrEmpty(savedOtp) || savedOtp != otp)
+            {
+                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
+            }
+
+            string resetToken = Guid.NewGuid().ToString();
+            var tokenKey = $"reset_token:{email}";
+
+            await _redisDb.StringSetAsync(tokenKey, resetToken, TimeSpan.FromMinutes(10));
+
+            await _otpRedisService.DeleteOtpTenantAsync(email, OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD_STAFF);
+
+            return resetToken;
+        }
+
+        public async Task<string> CompleteForgotPasswordStaffAsync(CompleteResetPasswordRequest request)
+        {
+            var tokenKey = $"reset_token:{request.Email}";
+            var savedToken = await _redisDb.StringGetAsync(tokenKey);
+
+            if (string.IsNullOrEmpty(savedToken) || savedToken != request.ResetToken)
+            {
+                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
+            }
 
             var staff = await _unitOfWork.Staffs.GetByFieldsIncludeAsync(
                 s => s.Account.Email == request.Email,
@@ -334,9 +391,9 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Staffs.Update(staff);
             await _unitOfWork.SaveAsync();
 
+            await _redisDb.KeyDeleteAsync(tokenKey);
+
             return StaffMessage.StaffSuccess.STAFF_RESET_PASSWORD;
-
-
         }
     }
 }

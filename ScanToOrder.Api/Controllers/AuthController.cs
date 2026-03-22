@@ -107,11 +107,33 @@ public class AuthController : BaseController
     }
     //
 
+    [Authorize]
     [HttpPost("reset-password-staff")]
     public async Task<ActionResult<ApiResponse<string>>> ResetPasswordStaff(
-        [FromBody] CompleteResetPasswordRequest request)
+        [FromBody] ResetPasswordStaffRequest request)
     {
         var result = await _authService.ResetPasswordStaff(request);
+        return Success(result);
+    }
+
+    [HttpPost("send-forgot-password-staff-otp")]
+    public async Task<ActionResult<ApiResponse<string>>> SendForgotPasswordStaffOtp([FromQuery] string email)
+    {
+        var result = await _authService.SendForgotPasswordStaffOtpAsync(email);
+        return Success(result);
+    }
+
+    [HttpPost("verify-forgot-password-staff-otp")]
+    public async Task<ActionResult<ApiResponse<string>>> VerifyForgotPasswordStaffOtp([FromQuery] string email, [FromQuery] string otp)
+    {
+        var result = await _authService.VerifyForgotPasswordStaffOtpAsync(email, otp);
+        return Success(result);
+    }
+
+    [HttpPost("complete-forgot-password-staff")]
+    public async Task<ActionResult<ApiResponse<string>>> CompleteForgotPasswordStaff([FromBody] CompleteResetPasswordRequest request)
+    {
+        var result = await _authService.CompleteForgotPasswordStaffAsync(request);
         return Success(result);
     }
 }

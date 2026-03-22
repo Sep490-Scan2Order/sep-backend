@@ -7,5 +7,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<string?> GetOtpTenantAsync(string email, string purpose);
         Task DeleteOtpTenantAsync(string email, string purpose);
         Task<string> GenerateAndSaveOtpTenantAsync(string email, string purpose);
+        Task<string> GenerateAndSaveStaffForgotOtpAsync(string email);
     }
 }

@@ -94,4 +94,28 @@ public class OtpRedisService : IOtpRedisService
 
         return otpCode;
     }
+
+    public async Task<string> GenerateAndSaveStaffForgotOtpAsync(string email)
+    {
+        Random generator = new Random();
+        string otpCode = generator.Next(100000, 999999).ToString();
+
+        var purpose = OtpMessage.OtpKeyword.OTP_FORGOT_PASSWORD_STAFF;
+        await SaveOtpTenantAsync(email, otpCode, purpose);
+
+        var templateParams = new
+        {
+            OTP = otpCode,
+            ExpiryTime = DateTime.UtcNow.AddMinutes(5).ToString("HH:mm:ss")
+        };
+
+        await _emailService.SendEmailWithTemplateIdDomainAsync(
+            email,
+            EmailMessage.EmailSubject.FORGOT_PASSWORD_SUBJECT,
+            ResendTemplate.FORGOT_PASSWORD_STAFF_TEMPLATE_ID,
+            templateParams
+        );
+
+        return otpCode;
+    }
 }

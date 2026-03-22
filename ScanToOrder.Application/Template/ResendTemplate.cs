@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Template
+namespace ScanToOrder.Application.Template
 {
     public class ResendTemplate
     {
@@ -9,5 +9,8 @@
         public const string REGISTER_TENANT_TEMPLATE_ID = "c93ec7d0-e977-40f3-b9ca-5f7eb1b1d6ac";
         public const string FORGOT_PASSWORD_TENANT_TEMPLATE_ID = "c2af222c-0e62-4a5a-95dc-e299611d8400";
         public const string RESET_PASSWORD_TENANT_TEMPLATE_ID = "240ada20-090f-48e9-9384-6262a4ecec40";
+
+        public const string RESET_PASSWORD_STAFF_TEMPLATE_ID = "585dfb93-0db9-45cf-a6d5-585dfb93-0db9-45cf-a6d5-f59c76278404";
+        public const string FORGOT_PASSWORD_STAFF_TEMPLATE_ID = "585dfb93-0db9-45cf-a6d5-f59c76278404";
     }
 }

@@ -14,6 +14,8 @@ namespace ScanToOrder.Application.Message
             public const string OTP_REGISTER_PHONE = "RegisterPhone";
             public const string OTP_RESET_PASSWORD = "ResetPassword";
             public const string OTP_FORGOT_PASSWORD = "ForgotPassword";
+            public const string OTP_RESET_PASSWORD_STAFF = "ResetPasswordStaff";
+            public const string OTP_FORGOT_PASSWORD_STAFF = "ForgotPasswordStaff";
         }
 
         public class OtpError
