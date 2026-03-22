@@ -13,7 +13,10 @@ on:
         required: true
         default: 'all'
         type: string
-
+      test_folder:
+        description: 'Tên Folder cụ thể (ví dụ: Staff_Forgot_Pw_Flow). Để "all" nếu muốn chạy hết file.'
+        required: true
+        default: 'all'
 jobs:
   api-testing:
     runs-on: ubuntu-latest
@@ -33,33 +36,24 @@ jobs:
       # BƯỚC THÔNG MINH: Tự động quét và chạy
       - name: Execute Postman Collections
         run: |
-          mkdir -p TestResults
           COLLECTION_DIR="ScanToOrder.Application.UnitTest/Postman"
-          SPECIFIC_FILE="${{ github.event.inputs.test_scope }}"
-
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "$SPECIFIC_FILE" != "all" ]]; then
-            # Kiểm tra xem file có tồn tại không trước khi chạy
-            if [ -f "$COLLECTION_DIR/$SPECIFIC_FILE" ]; then
-              echo "🚀 Running specific collection: $SPECIFIC_FILE"
-              newman run "$COLLECTION_DIR/$SPECIFIC_FILE" --reporters cli,json,htmlextra,csv \
-                --reporter-json-export "TestResults/manual_results.json" \
-                --reporter-htmlextra-export "TestResults/manual_report.html" \
-                --insecure || true
-            else
-              echo "❌ Error: File $SPECIFIC_FILE not found in $COLLECTION_DIR"
-              exit 1
-            fi
+          FILE="${{ github.event.inputs.test_scope }}"
+          FOLDER="${{ github.event.inputs.test_folder }}"
+      
+          if [[ "$FILE" != "all" ]]; then
+             # Nếu có chỉ định Folder
+             if [[ "$FOLDER" != "all" ]]; then
+                echo "🚀 Chạy Folder [$FOLDER] trong file [$FILE]"
+                newman run "$COLLECTION_DIR/$FILE" --folder "$FOLDER" --reporters cli,json,htmlextra,csv --insecure || true
+             else
+                echo "📂 Chạy toàn bộ file [$FILE]"
+                newman run "$COLLECTION_DIR/$FILE" --reporters cli,json,htmlextra,csv --insecure || true
+             fi
           else
-            echo "📂 Running all collections in folder..."
-            for file in "$COLLECTION_DIR"/*.postman_collection*; do
-              [ -e "$file" ] || continue
-              filename=$(basename "$file")
-              echo "Testing: $filename"
-              newman run "$file" --reporters cli,json,htmlextra,csv \
-                --reporter-json-export "TestResults/${filename}_results.json" \
-                --reporter-htmlextra-export "TestResults/${filename}_report.html" \
-                --insecure || true
-            done
+             # Chạy tất cả nếu là Push hoặc chọn 'all'
+             for f in "$COLLECTION_DIR"/*.json; do
+                newman run "$f" --reporters cli,json,htmlextra,csv --insecure || true
+             done
           fi
 
       # 5. Script Update Jira (Giữ nguyên logic PowerShell của bạn)
