@@ -1,10 +1,18 @@
-name: Postman API Test & Professional Report
+name: Postman API Smart Testing
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    paths:
+      - 'ScanToOrder.Application.UnitTest/Postman/**'
+  
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Nhập tên file muốn test (Ví dụ: Auth_Automation.postman_collection.json). Nhập "all" để chạy tất cả.'
+        required: true
+        default: 'all'
+        type: string
 
 jobs:
   api-testing:
@@ -19,32 +27,47 @@ jobs:
         with:
           node-version: '18'
 
-      # 3. Cài đặt Newman và các bộ xuất báo cáo (HTML + CSV cho Excel)
       - name: Install Newman & Reporters
         run: npm install -g newman newman-reporter-htmlextra newman-reporter-csv
 
-      # 4. Chạy Collection và Xuất 3 loại file: JSON, HTML và CSV (Excel)
-      - name: Run All Postman Collections
+      # BƯỚC THÔNG MINH: Tự động quét và chạy
+      - name: Execute Postman Collections
         run: |
           mkdir -p TestResults
-          for file in ScanToOrder.Application.UnitTest/Postman/*.postman_collection*; do
-            filename=$(basename "$file")
-            echo "Running $filename ..."
-            newman run "$file" \
-              --reporters cli,json,htmlextra,csv \
-              --reporter-json-export "TestResults/${filename}_results.json" \
-              --reporter-htmlextra-export "TestResults/${filename}_report.html" \
-              --reporter-csv-export "TestResults/${filename}_excel_report.csv" \
-              --insecure || true
-          done
+          COLLECTION_DIR="ScanToOrder.Application.UnitTest/Postman"
+          SPECIFIC_FILE="${{ github.event.inputs.test_scope }}"
 
-      # 5. Script Update Jira (Giữ nguyên logic của bạn)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "$SPECIFIC_FILE" != "all" ]]; then
+            # Kiểm tra xem file có tồn tại không trước khi chạy
+            if [ -f "$COLLECTION_DIR/$SPECIFIC_FILE" ]; then
+              echo "🚀 Running specific collection: $SPECIFIC_FILE"
+              newman run "$COLLECTION_DIR/$SPECIFIC_FILE" --reporters cli,json,htmlextra,csv \
+                --reporter-json-export "TestResults/manual_results.json" \
+                --reporter-htmlextra-export "TestResults/manual_report.html" \
+                --insecure || true
+            else
+              echo "❌ Error: File $SPECIFIC_FILE not found in $COLLECTION_DIR"
+              exit 1
+            fi
+          else
+            echo "📂 Running all collections in folder..."
+            for file in "$COLLECTION_DIR"/*.postman_collection*; do
+              [ -e "$file" ] || continue
+              filename=$(basename "$file")
+              echo "Testing: $filename"
+              newman run "$file" --reporters cli,json,htmlextra,csv \
+                --reporter-json-export "TestResults/${filename}_results.json" \
+                --reporter-htmlextra-export "TestResults/${filename}_report.html" \
+                --insecure || true
+            done
+          fi
+
+      # 5. Script Update Jira (Giữ nguyên logic PowerShell của bạn)
       - name: Dynamic Update Jira
         shell: pwsh
         run: |
           $results = Get-ChildItem "TestResults/*_results.json"
           if ($null -eq $results) { exit 0 }
-
           foreach ($file in $results) {
               $report = Get-Content $file.FullName -Raw | ConvertFrom-Json
               foreach ($execution in $report.run.executions) {
@@ -53,13 +76,10 @@ jobs:
                       $issueKey = $Matches[1]
                       $failedCount = ($execution.assertions | Where-Object { $_.errorCount -gt 0 }).Count
                       $status = if ($failedCount -eq 0) { "✅ PASS" } else { "❌ FAIL" }
-                      
                       $pair = "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}"
                       $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
-                      
                       $runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                      $plainText = "h1. 🤖 POSTMAN REPORT: $testName`n*Kết quả*: $status`n*Chi tiết báo cáo*: [Xem tại GitHub Actions|$runUrl]`n*API*: https://api.scan2order.io.vn"
-                      
+                      $plainText = "h1. 🤖 POSTMAN REPORT: $testName`n*Kết quả*: $status`n*Chi tiết*: [Xem tại GitHub|$runUrl]`n*API*: https://api.scan2order.io.vn"
                       $jsonBody = @{ body = $plainText } | ConvertTo-Json -Compress
                       curl -X POST "https://fpt-team-cijvpo93.atlassian.net/rest/api/2/issue/$issueKey/comment" `
                         -H "Authorization: Basic $auth" -H "Content-Type: application/json" -d $jsonBody
@@ -67,12 +87,8 @@ jobs:
               }
           }
 
-      # 6. XUẤT TẤT CẢ FILE BÁO CÁO (HTML + EXCEL)
-      - name: Upload All Test Reports
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Professional-API-Test-Reports
-          path: |
-            TestResults/*.html
-            TestResults/*.csv
-          retention-days: 14
+          name: Professional-Reports
+          path: TestResults/
