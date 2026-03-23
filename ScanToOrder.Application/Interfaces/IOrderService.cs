@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Domain.Enums;
@@ -9,7 +10,7 @@ public interface IOrderService
 {
     Task<CartDto> AddToCartAsync(AddToCartRequest request);
     Task<CartDto> GetCartAsync(string cartId);
-    Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone);
+    Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt);
     Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request);
     Task ConfirmCashPaymentAsync(Guid orderId);
     Task<List<CashPendingOrderResponse>> GetCashOrdersPendingConfirmAsync();

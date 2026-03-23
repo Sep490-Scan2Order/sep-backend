@@ -17,6 +17,8 @@ namespace ScanToOrder.Domain.Entities.Orders
         public int OrderCode { get; set; }
         public string QrCodeUrl { get; set; } = null!;
         public bool IsPreOrder { get; set; }
+        public DateTime? RequestedPickupAt { get; set; }
+        public DateTime? ConfirmedPickupAt { get; set; }
         public string? Note { get; set; } 
 
         public decimal TotalAmount { get; set; }

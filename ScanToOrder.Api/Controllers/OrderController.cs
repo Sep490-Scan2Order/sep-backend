@@ -38,7 +38,11 @@ public class OrderController : BaseController
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromBody] PaymentQrRequest request)
     {
-        var result = await _orderService.GetPaymentQrAsync(request.CartId, request.Phone);
+        var result = await _orderService.GetPaymentQrAsync(
+            request.CartId,
+            request.Phone,
+            request.IsPreOrder,
+            request.RequestedPickupAt);
         return Success(result);
     }
 

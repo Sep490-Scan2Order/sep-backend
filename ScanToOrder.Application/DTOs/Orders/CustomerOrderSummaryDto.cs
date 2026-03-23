@@ -17,6 +17,9 @@ namespace ScanToOrder.Application.DTOs.Orders
         public RefundType? RefundType { get; set; }
         public Guid? RefundOrderId { get; set; }
 
+        public bool IsPreOrder { get; set; }
+        public DateTime? RequestedPickupAt { get; set; }
+
         public bool IsRefundLog { get; set; }
 
         public List<CustomerOrderDetailDto> OrderDetails { get; set; } = new();

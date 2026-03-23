@@ -255,7 +255,7 @@ public class OrderService : IOrderService
         return cart;
     }
 
-    public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone)
+    public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt)
     {
         if (string.IsNullOrWhiteSpace(cartId))
             throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
@@ -283,6 +283,9 @@ public class OrderService : IOrderService
 
         if (string.IsNullOrWhiteSpace(phone))
             throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
+
+        if (isPreOrder && requestedPickupAt == null)
+            throw new DomainException("RequestedPickupAt is required for preorder.");
 
         var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
             s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
@@ -322,7 +325,8 @@ public class OrderService : IOrderService
                 Id = orderId,
                 RestaurantId = cart.RestaurantId,
                 OrderCode = orderCode,
-                IsPreOrder = false,
+                IsPreOrder = isPreOrder,
+                RequestedPickupAt = isPreOrder ? requestedPickupAt : null,
                 Note = cart.Note,
                 TotalAmount = cart.TotalAmount,
                 PromotionDiscount = 0,
