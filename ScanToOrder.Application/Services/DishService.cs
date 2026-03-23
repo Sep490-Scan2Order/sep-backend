@@ -427,8 +427,7 @@ namespace ScanToOrder.Application.Services
                         itemDishName = catDishSplit[1].Trim();
                     }
                     else
-                    {
-                        // Component viết dạng "DishName:Qty" thì categoryName = null (backend sẽ resolve theo dishName).
+                    {                       
                         itemDishName = left;
                     }
 
@@ -496,15 +495,19 @@ namespace ScanToOrder.Application.Services
                         dish.IsDeleted ||
                         dish.Type != DishType.Single;
 
-                    dish.DishName = r.dishName;
-                    dish.Price = r.price;
-                    dish.Description = r.description;
-                    dish.IsAvailable = true;
-                    dish.IsDeleted = false;
-                    dish.Type = DishType.Single;
+                    var nameChangedIgnoringCase =
+                        !dish.DishName.Trim().Equals(r.dishName.Trim(), StringComparison.OrdinalIgnoreCase);
 
                     if (updated)
                     {
+                        dish.Price = r.price;
+                        dish.Description = r.description;
+                        dish.IsAvailable = true;
+                        dish.IsDeleted = false;
+                        dish.Type = DishType.Single;
+                        if (nameChangedIgnoringCase)
+                            dish.DishName = r.dishName;
+
                         _unitOfWork.Dishes.Update(dish);
                         await _unitOfWork.SaveAsync();
                         _backgroundJobService.EnqueueSearchIndexDish(dish.Id);
@@ -604,15 +607,19 @@ namespace ScanToOrder.Application.Services
                         comboDish.IsDeleted ||
                         comboDish.Type != DishType.Combo;
 
-                    comboDish.DishName = r.dishName;
-                    comboDish.Price = r.price;
-                    comboDish.Description = r.description;
-                    comboDish.IsAvailable = true;
-                    comboDish.IsDeleted = false;
-                    comboDish.Type = DishType.Combo;
+                    var nameChangedIgnoringCase =
+                        !comboDish.DishName.Trim().Equals(r.dishName.Trim(), StringComparison.OrdinalIgnoreCase);
 
                     if (updated)
                     {
+                        comboDish.Price = r.price;
+                        comboDish.Description = r.description;
+                        comboDish.IsAvailable = true;
+                        comboDish.IsDeleted = false;
+                        comboDish.Type = DishType.Combo;
+                        if (nameChangedIgnoringCase)
+                            comboDish.DishName = r.dishName;
+
                         _unitOfWork.Dishes.Update(comboDish);
                         await _unitOfWork.SaveAsync();
                         _backgroundJobService.EnqueueSearchIndexDish(comboDish.Id);
