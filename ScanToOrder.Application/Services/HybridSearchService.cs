@@ -26,37 +26,44 @@ public class HybridSearchService : IHybridSearchService
     {
         // 1. Get embedding for the keyword
         float[]? rawVector = null;
-        try 
+        try
         {
             rawVector = await _openAiService.GetEmbeddingAsync(request.Keyword);
         }
-        catch { /* Fallback to keyword-only if API fails */ }
+        catch
+        {
+            /* Fallback to keyword-only if API fails */
+        }
 
         // 2. Execute searches in parallel using scoped DbContexts for maximum performance
-        var keywordResTask = Task.Run(async () => {
+        var keywordResTask = Task.Run(async () =>
+        {
             using var scope = _scopeFactory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<ISearchRepository>();
             return await repo.SearchRestaurantsByKeywordAsync(request.Keyword, request.TopK);
         });
 
-        var keywordDishTask = Task.Run(async () => {
+        var keywordDishTask = Task.Run(async () =>
+        {
             using var scope = _scopeFactory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<ISearchRepository>();
             return await repo.SearchDishesByKeywordAsync(request.Keyword, request.TopK);
         });
-        
+
         Task<List<(Restaurant, double)>> vectorResTask = Task.FromResult(new List<(Restaurant, double)>());
         Task<List<(Dish, double)>> vectorDishTask = Task.FromResult(new List<(Dish, double)>());
 
         if (rawVector != null)
         {
             var vector = new Vector(rawVector);
-            vectorResTask = Task.Run(async () => {
+            vectorResTask = Task.Run(async () =>
+            {
                 using var scope = _scopeFactory.CreateScope();
                 var repo = scope.ServiceProvider.GetRequiredService<ISearchRepository>();
                 return await repo.SearchRestaurantsByVectorAsync(vector, request.TopK);
             });
-            vectorDishTask = Task.Run(async () => {
+            vectorDishTask = Task.Run(async () =>
+            {
                 using var scope = _scopeFactory.CreateScope();
                 var repo = scope.ServiceProvider.GetRequiredService<ISearchRepository>();
                 return await repo.SearchDishesByVectorAsync(vector, request.TopK);
@@ -89,36 +96,43 @@ public class HybridSearchService : IHybridSearchService
                         FinalScore = 0
                     };
                 }
-                
+
                 double relevance = (2.0 - item.Dist) * weight;
                 if (relevance > allRestaurants[item.R.Id].FinalScore)
                     allRestaurants[item.R.Id].FinalScore = relevance;
             }
         }
 
+        double maxAllowedDistance = 0.75;
+
         ProcessRestaurants(keywordResResult, 1.2); // Keyword exact matches get priority
-        ProcessRestaurants(vectorResResult, 1.0);
+        ProcessRestaurants(vectorResResult.Where(x => x.Item2 < maxAllowedDistance), 1.0);
 
         // 4. Merge Dishes, find parent restaurants
         var allDishes = keywordDishResult.Select(x => (x.Item1, x.Item2, Weight: 1.2))
-                        .Concat(vectorDishResult.Select(x => (x.Item1, x.Item2, Weight: 1.0)))
-                        .GroupBy(x => x.Item1.Id)
-                        .Select(g => g.OrderByDescending(x => (2.0 - x.Item2) * x.Weight).First())
-                        .ToList();
+            .Concat(vectorDishResult
+                .Where(x => x.Item2 < maxAllowedDistance)
+                .Select(x => (x.Item1, x.Item2, Weight: 1.0)))
+            .GroupBy(x => x.Item1.Id)
+            .Select(g => g.OrderByDescending(x => (2.0 - x.Item2) * x.Weight).First())
+            .ToList();
 
         var tenantIds = allDishes.Select(x => x.Item1.Category.TenantId).Distinct().ToList();
-        var tenantRestaurants = await _unitOfWork.Restaurants.GetAllAsync(r => tenantIds.Contains(r.TenantId) && r.IsActive == true);
-        var tenantToRestaurantMap = tenantRestaurants.GroupBy(r => r.TenantId).ToDictionary(g => g.Key, g => g.ToList());
+        var tenantRestaurants =
+            await _unitOfWork.Restaurants.GetAllAsync(r => tenantIds.Contains(r.TenantId) && r.IsActive == true);
+        var tenantToRestaurantMap =
+            tenantRestaurants.GroupBy(r => r.TenantId).ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var dishItem in allDishes)
         {
             var dish = dishItem.Item1;
             double relevance = (2.0 - dishItem.Item2) * dishItem.Weight;
-            
+
             if (tenantToRestaurantMap.TryGetValue(dish.Category.TenantId, out var restaurantsForDish))
             {
                 foreach (var r in restaurantsForDish)
                 {
+                    double restaurantRelevanceFromDish = relevance * 0.8;
                     if (!allRestaurants.TryGetValue(r.Id, out var resDto))
                     {
                         resDto = new HybridSearchResponse
@@ -128,13 +142,13 @@ public class HybridSearchService : IHybridSearchService
                             Description = r.Description ?? string.Empty,
                             ImageUrl = r.Image,
                             BackgroundImageUrl = r.ProfileUrl,
-                            FinalScore = relevance * 0.8 // penalty for matching via dish instead of direct
+                            FinalScore = restaurantRelevanceFromDish // penalty for matching via dish instead of direct
                         };
                         allRestaurants[r.Id] = resDto;
                     }
 
-                    if (resDto.FinalScore < relevance)
-                        resDto.FinalScore = relevance;
+                    if (resDto.FinalScore < restaurantRelevanceFromDish)
+                        resDto.FinalScore = restaurantRelevanceFromDish;
 
                     if (!resDto.SuggestedDishes.Any(d => d.DishId == dish.Id))
                     {
@@ -154,13 +168,13 @@ public class HybridSearchService : IHybridSearchService
         }
 
         var finalResults = allRestaurants.Values.ToList();
-        
+
         // 5. Compute GPS Distance and Rerank
         if (request.Latitude.HasValue && request.Longitude.HasValue)
         {
             var resIds = finalResults.Select(x => x.RestaurantId).ToList();
             var resLocations = await _unitOfWork.Restaurants.GetAllAsync(r => resIds.Contains(r.Id));
-            
+
             foreach (var fr in finalResults)
             {
                 var locRes = resLocations.FirstOrDefault(r => r.Id == fr.RestaurantId);
@@ -169,7 +183,7 @@ public class HybridSearchService : IHybridSearchService
                     double rLat = locRes.Location.Coordinate.Y;
                     double rLon = locRes.Location.Coordinate.X;
                     fr.GpsDistanceKm = CalculateDistanceKm(request.Latitude.Value, request.Longitude.Value, rLat, rLon);
-                    
+
                     if (fr.GpsDistanceKm.Value > request.RadiusKm)
                         fr.FinalScore *= 0.1;
                     else
@@ -192,14 +206,14 @@ public class HybridSearchService : IHybridSearchService
 
     private double CalculateDistanceKm(double lat1, double lon1, double lat2, double lon2)
     {
-        var R = 6371; 
+        var R = 6371;
         var dLat = (lat2 - lat1) * Math.PI / 180;
         var dLon = (lon2 - lon1) * Math.PI / 180;
-        var a = 
+        var a =
             Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-            Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) * 
-            Math.Sin(dLon / 2) * Math.Sin(dLon / 2); 
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a)); 
-        return R * c; 
+            Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
+            Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
     }
-}
+}   

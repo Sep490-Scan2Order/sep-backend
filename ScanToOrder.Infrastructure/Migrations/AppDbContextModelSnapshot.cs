@@ -69,7 +69,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuthenticationUsers");
+                    b.ToTable("AuthenticationUsers", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Bank.Banks", b =>
@@ -119,7 +119,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Banks");
+                    b.ToTable("Banks", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Blogs.SystemBlog", b =>
@@ -170,7 +170,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("SystemBlogId");
 
-                    b.ToTable("SystemBlog");
+                    b.ToTable("SystemBlog", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Configuration.Configurations", b =>
@@ -187,7 +187,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.Property<int>("RedeemRate")
                         .HasColumnType("integer");
 
-                    b.ToTable("Configurations");
+                    b.ToTable("Configurations", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.BranchDishConfig", b =>
@@ -231,7 +231,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("BranchDishConfigs");
+                    b.ToTable("BranchDishConfigs", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.Category", b =>
@@ -266,7 +266,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.ComboDetail", b =>
@@ -301,7 +301,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("ItemDishId");
 
-                    b.ToTable("ComboDetails");
+                    b.ToTable("ComboDetails", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.Dish", b =>
@@ -367,7 +367,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "hnsw");
                     NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("SearchVector"), new[] { "vector_cosine_ops" });
 
-                    b.ToTable("Dishes");
+                    b.ToTable("Dishes", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuRestaurant", b =>
@@ -399,7 +399,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("MenuRestaurants");
+                    b.ToTable("MenuRestaurants", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Menu.MenuTemplate", b =>
@@ -437,7 +437,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MenuTemplates");
+                    b.ToTable("MenuTemplates", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Notifications.Notification", b =>
@@ -468,7 +468,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("NotificationId");
 
-                    b.ToTable("Notification");
+                    b.ToTable("Notification", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Notifications.NotifyTenant", b =>
@@ -586,7 +586,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.OrderDetail", b =>
@@ -633,7 +633,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderDetails");
+                    b.ToTable("OrderDetails", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Orders.Transaction", b =>
@@ -677,7 +677,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("ShiftId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.Promotion", b =>
@@ -748,7 +748,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Promotions");
+                    b.ToTable("Promotions", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.PromotionDish", b =>
@@ -780,7 +780,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("PromotionId");
 
-                    b.ToTable("PromotionDishes");
+                    b.ToTable("PromotionDishes", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Promotions.RestaurantPromotion", b =>
@@ -812,7 +812,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("RestaurantPromotions");
+                    b.ToTable("RestaurantPromotions", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Restaurants.Restaurant", b =>
@@ -914,7 +914,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("TotalOrder")
                         .IsDescending();
 
-                    b.ToTable("Restaurants");
+                    b.ToTable("Restaurants", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Shifts.Shift", b =>
@@ -963,7 +963,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("StaffId");
 
-                    b.ToTable("Shifts");
+                    b.ToTable("Shifts", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Shifts.ShiftReport", b =>
@@ -1015,7 +1015,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("ShiftId");
 
-                    b.ToTable("ShiftReports");
+                    b.ToTable("ShiftReports", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.SubscriptionPlan.PaymentTransaction", b =>
@@ -1060,7 +1060,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("PaymentTransactions");
+                    b.ToTable("PaymentTransactions", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.SubscriptionPlan.Plan", b =>
@@ -1112,7 +1112,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Plans");
+                    b.ToTable("Plans", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.SubscriptionPlan.Subscription", b =>
@@ -1155,7 +1155,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("RestaurantId")
                         .IsUnique();
 
-                    b.ToTable("Subscriptions");
+                    b.ToTable("Subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.SubscriptionPlan.SubscriptionLog", b =>
@@ -1216,7 +1216,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("SubscriptionLogs");
+                    b.ToTable("SubscriptionLogs", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.User.Customer", b =>
@@ -1240,7 +1240,7 @@ namespace ScanToOrder.Infrastructure.Migrations
                     b.HasIndex("AccountId")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.User.Staff", b =>
@@ -1275,7 +1275,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("Staffs");
+                    b.ToTable("Staffs", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.User.Tenant", b =>
@@ -1339,7 +1339,7 @@ namespace ScanToOrder.Infrastructure.Migrations
 
                     b.HasIndex("BankId");
 
-                    b.ToTable("Tenants");
+                    b.ToTable("Tenants", (string)null);
                 });
 
             modelBuilder.Entity("ScanToOrder.Domain.Entities.Dishes.BranchDishConfig", b =>

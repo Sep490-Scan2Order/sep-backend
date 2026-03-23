@@ -53,7 +53,6 @@ public class SearchRepository : ISearchRepository
         var results = await query.ToListAsync();
         return results.Select(x => (x.Dish, x.Distance)).ToList();
     }
-
     public async Task<List<(Dish Dish, double Distance)>> SearchDishesByKeywordAsync(string keyword, int topK = 10)
     {
         var pattern = $"%{keyword}%";
