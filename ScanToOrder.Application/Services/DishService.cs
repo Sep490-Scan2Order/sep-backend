@@ -18,6 +18,7 @@ namespace ScanToOrder.Application.Services
         private readonly IMapper _mapper;
         private readonly IStorageService _storageService;
         private readonly IBranchDishConfigService _branchDishConfigService;
+        private readonly IMenuCacheService _menuCacheService;
         private readonly IValidator<UpdateDishRequest> _updateDishValidator;
         private readonly IDishRedisService _dishRedisService;
         private readonly IBackgroundJobService _backgroundJobService;
@@ -27,6 +28,7 @@ namespace ScanToOrder.Application.Services
             IMapper mapper,
             IStorageService storageService,
             IBranchDishConfigService branchDishConfigService,
+            IMenuCacheService menuCacheService,
             IValidator<UpdateDishRequest> updateDishValidator,
             IDishRedisService dishRedisService,
             IBackgroundJobService backgroundJobService)
@@ -35,6 +37,7 @@ namespace ScanToOrder.Application.Services
             _mapper = mapper;
             _storageService = storageService;
             _branchDishConfigService = branchDishConfigService;
+            _menuCacheService = menuCacheService;
             _updateDishValidator = updateDishValidator;
             _dishRedisService = dishRedisService;
             _backgroundJobService = backgroundJobService;
@@ -343,7 +346,17 @@ namespace ScanToOrder.Application.Services
             }
 
             var categories = await _unitOfWork.Categories.GetAllCategoriesByTenant(tenantId);
-            var categoryDict = categories.ToDictionary(c => c.CategoryName.Trim(), c => c.Id);
+            var categoryDict = categories.ToDictionary(
+                c => c.CategoryName.Trim().ToLowerInvariant(),
+                c => c.Id
+            );
+
+            var restaurantsIds = restaurants.Select(r => r.Id).ToList();
+
+            var existingDishes = await _unitOfWork.Dishes.GetAllDishesByTenant(tenantId, includeDeleted: true);
+            var dishDict = existingDishes
+                .GroupBy(d => $"{d.CategoryId}:{d.DishName.Trim().ToLowerInvariant()}")
+                .ToDictionary(g => g.Key, g => g.First());
 
             var createdCount = 0;
 
@@ -361,23 +374,81 @@ namespace ScanToOrder.Application.Services
 
             var lastRow = lastUsedRow.RowNumber();
 
+            var rows = new List<(string categoryName, string dishName, decimal price, string description, bool isCombo, string comboItems)>();
+
             for (var row = 2; row <= lastRow; row++)
             {
                 var categoryName = worksheet.Cell(row, 1).GetString().Trim();
                 var dishName = worksheet.Cell(row, 2).GetString().Trim();
                 if (string.IsNullOrWhiteSpace(categoryName) || string.IsNullOrWhiteSpace(dishName))
-                {
                     continue;
-                }
 
                 var price = worksheet.Cell(row, 3).GetValue<decimal>();
                 var description = worksheet.Cell(row, 4).GetString();
 
-                if (!categoryDict.TryGetValue(categoryName, out var categoryId))
+                var dishTypeRaw = worksheet.Cell(row, 5).GetString()?.Trim();
+                var isCombo = !string.IsNullOrWhiteSpace(dishTypeRaw)
+                              && dishTypeRaw.Equals("Combo", StringComparison.OrdinalIgnoreCase);
+
+                var comboItems = worksheet.Cell(row, 6).GetString()?.Trim() ?? string.Empty;
+
+                rows.Add((categoryName, dishName, price, description, isCombo, comboItems));
+            }
+
+            static List<(string? categoryName, string dishName, int quantity)> ParseComboItems(
+                string comboItems)
+            {
+                var result = new List<(string? categoryName, string dishName, int quantity)>();
+                if (string.IsNullOrWhiteSpace(comboItems))
+                    return result;
+
+                var parts = comboItems.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var part in parts)
+                {
+                    var p = part.Trim();
+                    if (string.IsNullOrWhiteSpace(p))
+                        continue;
+
+                    var qtySplit = p.Split(':', 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (qtySplit.Length != 2)
+                        throw new DomainException($"ComboItems invalid format. Missing ':' in part: {p}");
+
+                    var left = qtySplit[0].Trim();
+                    var qtyStr = qtySplit[1].Trim();
+                    if (!int.TryParse(qtyStr, out var qty) || qty <= 0)
+                        throw new DomainException($"ComboItems invalid quantity. Part: {p}");
+
+                    string? itemCategoryName = null;
+                    string itemDishName;
+                    var catDishSplit = left.Split('|', 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (catDishSplit.Length == 2)
+                    {
+                        itemCategoryName = catDishSplit[0].Trim();
+                        itemDishName = catDishSplit[1].Trim();
+                    }
+                    else
+                    {
+                        // Component viết dạng "DishName:Qty" thì categoryName = null (backend sẽ resolve theo dishName).
+                        itemDishName = left;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(itemDishName))
+                        throw new DomainException($"ComboItems invalid item. Part: {p}");
+
+                    result.Add((itemCategoryName, itemDishName, qty));
+                }
+
+                return result;
+            }
+
+            foreach (var r in rows.Where(x => !x.isCombo))
+            {
+                var normalizedCategoryName = r.categoryName.ToLowerInvariant();
+                if (!categoryDict.TryGetValue(normalizedCategoryName, out var categoryId))
                 {
                     var category = new Category
                     {
-                        CategoryName = categoryName,
+                        CategoryName = r.categoryName,
                         TenantId = tenantId,
                         IsActive = true,
                         IsDeleted = false,
@@ -388,46 +459,292 @@ namespace ScanToOrder.Application.Services
                     await _unitOfWork.SaveAsync();
 
                     categoryId = category.Id;
-                    categoryDict[categoryName] = categoryId;
+                    categoryDict[normalizedCategoryName] = categoryId;
                 }
 
-                var dish = new Dish
+                var normalizedDishName = r.dishName.ToLowerInvariant();
+                var dishKey = $"{categoryId}:{normalizedDishName}";
+
+                if (!dishDict.TryGetValue(dishKey, out var dish))
                 {
-                    CategoryId = categoryId,
-                    DishName = dishName,
-                    Price = price,
-                    Description = description,
-                    ImageUrl = string.Empty,
-                    IsAvailable = true,
-                    CreatedAt = DateTime.UtcNow,
-                    IsDeleted = false
-                };
+                    dish = new Dish
+                    {
+                        CategoryId = categoryId,
+                        DishName = r.dishName,
+                        Price = r.price,
+                        Description = r.description,
+                        ImageUrl = string.Empty,
+                        IsAvailable = true,
+                        CreatedAt = DateTime.UtcNow,
+                        IsDeleted = false,
+                        Type = DishType.Single
+                    };
 
-                await _unitOfWork.Dishes.AddAsync(dish);
-                await _unitOfWork.SaveAsync();
+                    await _unitOfWork.Dishes.AddAsync(dish);
+                    await _unitOfWork.SaveAsync();
 
-                var branchConfigs = new List<BranchDishConfig>();
+                    dishDict[dishKey] = dish;
+                    createdCount++;
+                    _backgroundJobService.EnqueueSearchIndexDish(dish.Id);
+                }
+                else
+                {
+                    bool updated =
+                        dish.Price != r.price ||
+                        dish.Description != r.description ||
+                        !dish.IsAvailable ||
+                        dish.IsDeleted ||
+                        dish.Type != DishType.Single;
 
+                    dish.DishName = r.dishName;
+                    dish.Price = r.price;
+                    dish.Description = r.description;
+                    dish.IsAvailable = true;
+                    dish.IsDeleted = false;
+                    dish.Type = DishType.Single;
+
+                    if (updated)
+                    {
+                        _unitOfWork.Dishes.Update(dish);
+                        await _unitOfWork.SaveAsync();
+                        _backgroundJobService.EnqueueSearchIndexDish(dish.Id);
+                    }
+                }
+
+                var existingBranchConfigs = await _unitOfWork.BranchDishConfigs
+                    .FindAsync(bdc => bdc.DishId == dish.Id && restaurantsIds.Contains(bdc.RestaurantId));
+
+                var branchByRestaurantId = existingBranchConfigs
+                    .GroupBy(b => b.RestaurantId)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                var branchConfigsToAdd = new List<BranchDishConfig>();
                 foreach (var restaurant in restaurants)
                 {
-                    branchConfigs.Add(new BranchDishConfig
+                    if (branchByRestaurantId.TryGetValue(restaurant.Id, out var existingConfig))
                     {
-                        RestaurantId = restaurant.Id,
-                        DishId = dish.Id,
-                        Price = dish.Price,
-                        IsSelling = true,
-                        IsSoldOut = false
-                    });
+                        existingConfig.Price = dish.Price;
+                        existingConfig.IsSelling = true;
+                        existingConfig.IsSoldOut = false;
+                        existingConfig.IsDeleted = false;
+                        _unitOfWork.BranchDishConfigs.Update(existingConfig);
+                    }
+                    else
+                    {
+                        branchConfigsToAdd.Add(new BranchDishConfig
+                        {
+                            RestaurantId = restaurant.Id,
+                            DishId = dish.Id,
+                            Price = dish.Price,
+                            IsSelling = true,
+                            IsSoldOut = false,
+                            IsDeleted = false
+                        });
+                    }
                 }
 
-                if (branchConfigs.Count > 0)
+                if (branchConfigsToAdd.Count > 0)
+                    await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigsToAdd);
+
+                await _unitOfWork.SaveAsync();
+            }
+
+            foreach (var r in rows.Where(x => x.isCombo))
+            {
+                var normalizedCategoryName = r.categoryName.ToLowerInvariant();
+                if (!categoryDict.TryGetValue(normalizedCategoryName, out var categoryId))
                 {
-                    await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigs);
+                    var category = new Category
+                    {
+                        CategoryName = r.categoryName,
+                        TenantId = tenantId,
+                        IsActive = true,
+                        IsDeleted = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _unitOfWork.Categories.AddAsync(category);
+                    await _unitOfWork.SaveAsync();
+
+                    categoryId = category.Id;
+                    categoryDict[normalizedCategoryName] = categoryId;
+                }
+
+                var normalizedDishName = r.dishName.ToLowerInvariant();
+                var dishKey = $"{categoryId}:{normalizedDishName}";
+
+                if (!dishDict.TryGetValue(dishKey, out var comboDish))
+                {
+                    comboDish = new Dish
+                    {
+                        CategoryId = categoryId,
+                        DishName = r.dishName,
+                        Price = r.price,
+                        Description = r.description,
+                        ImageUrl = string.Empty,
+                        IsAvailable = true,
+                        CreatedAt = DateTime.UtcNow,
+                        IsDeleted = false,
+                        Type = DishType.Combo
+                    };
+
+                    await _unitOfWork.Dishes.AddAsync(comboDish);
+                    await _unitOfWork.SaveAsync();
+
+                    dishDict[dishKey] = comboDish;
+                    createdCount++;
+                    _backgroundJobService.EnqueueSearchIndexDish(comboDish.Id);
+                }
+                else
+                {
+                    bool updated =
+                        comboDish.Price != r.price ||
+                        comboDish.Description != r.description ||
+                        !comboDish.IsAvailable ||
+                        comboDish.IsDeleted ||
+                        comboDish.Type != DishType.Combo;
+
+                    comboDish.DishName = r.dishName;
+                    comboDish.Price = r.price;
+                    comboDish.Description = r.description;
+                    comboDish.IsAvailable = true;
+                    comboDish.IsDeleted = false;
+                    comboDish.Type = DishType.Combo;
+
+                    if (updated)
+                    {
+                        _unitOfWork.Dishes.Update(comboDish);
+                        await _unitOfWork.SaveAsync();
+                        _backgroundJobService.EnqueueSearchIndexDish(comboDish.Id);
+                    }
+                }
+
+                var parsedComponents = ParseComboItems(r.comboItems);
+                if (parsedComponents.Count == 0)
+                    throw new DomainException($"Combo '{r.dishName}' thiếu ComboItems (cột 6).");
+
+                var componentDishIds = new List<(int dishId, int quantity)>();
+                var dishNameToDishes = dishDict
+                    .Values
+                    .GroupBy(d => d.DishName.Trim().ToLowerInvariant())
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                foreach (var item in parsedComponents)
+                {
+                    int componentDishId;
+
+                    if (!string.IsNullOrWhiteSpace(item.categoryName))
+                    {
+                        var compCategoryKey = item.categoryName.ToLowerInvariant();
+                        if (!categoryDict.TryGetValue(compCategoryKey, out var compCategoryId))
+                        {
+                            var category = new Category
+                            {
+                                CategoryName = item.categoryName,
+                                TenantId = tenantId,
+                                IsActive = true,
+                                IsDeleted = false,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            await _unitOfWork.Categories.AddAsync(category);
+                            await _unitOfWork.SaveAsync();
+
+                            compCategoryId = category.Id;
+                            categoryDict[compCategoryKey] = compCategoryId;
+                        }
+
+                        var compDishKey = $"{compCategoryId}:{item.dishName.Trim().ToLowerInvariant()}";
+                        if (!dishDict.TryGetValue(compDishKey, out var componentDish))
+                            throw new DomainException(
+                                $"Combo '{r.dishName}' component '{item.dishName}' không tìm thấy. " +
+                                "Hãy đảm bảo component dish được import như dòng Single trước.");
+
+                        if (componentDish.Type != DishType.Single)
+                            throw new DomainException(
+                                $"Combo '{r.dishName}' chỉ được bao gồm Single dishes. '{item.dishName}' hiện là Combo.");
+
+                        componentDishId = componentDish.Id;
+                    }
+                    else
+                    {
+                        var dishNameKey = item.dishName.Trim().ToLowerInvariant();
+                        if (!dishNameToDishes.TryGetValue(dishNameKey, out var matches) || matches.Count == 0)
+                            throw new DomainException(
+                                $"Combo '{r.dishName}' component '{item.dishName}' không tìm thấy. " +
+                                "Hãy đảm bảo component dish được import như dòng Single trước.");
+
+                        if (matches.Count > 1)
+                            throw new DomainException(
+                                $"Combo '{r.dishName}' component '{item.dishName}' bị trùng nhiều dish trong các category. " +
+                                "Vui lòng ghi thêm category theo format 'CategoryName|DishName:Qty' để phân biệt.");
+
+                        componentDishId = matches[0].Id;
+                    }
+
+                    componentDishIds.Add((componentDishId, item.quantity));
+                }
+
+                var existingComboDetails = await _unitOfWork.ComboDetails.FindAsync(cd => cd.DishId == comboDish.Id);
+                if (existingComboDetails.Any())
+                {
+                    _unitOfWork.ComboDetails.RemoveRange(existingComboDetails);
                     await _unitOfWork.SaveAsync();
                 }
 
-                createdCount++;
+                var newComboDetails = componentDishIds.Select(ci => new ComboDetail
+                {
+                    DishId = comboDish.Id,
+                    ItemDishId = ci.dishId,
+                    Quantity = ci.quantity
+                }).ToList();
+
+                if (newComboDetails.Count > 0)
+                {
+                    await _unitOfWork.ComboDetails.AddRangeAsync(newComboDetails);
+                    await _unitOfWork.SaveAsync();
+                }
+
+                var existingBranchConfigs = await _unitOfWork.BranchDishConfigs
+                    .FindAsync(bdc => bdc.DishId == comboDish.Id && restaurantsIds.Contains(bdc.RestaurantId));
+
+                var branchByRestaurantId = existingBranchConfigs
+                    .GroupBy(b => b.RestaurantId)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                var branchConfigsToAdd = new List<BranchDishConfig>();
+                foreach (var restaurant in restaurants)
+                {
+                    if (branchByRestaurantId.TryGetValue(restaurant.Id, out var existingConfig))
+                    {
+                        existingConfig.Price = comboDish.Price;
+                        existingConfig.IsSelling = true;
+                        existingConfig.IsSoldOut = false;
+                        existingConfig.IsDeleted = false;
+                        _unitOfWork.BranchDishConfigs.Update(existingConfig);
+                    }
+                    else
+                    {
+                        branchConfigsToAdd.Add(new BranchDishConfig
+                        {
+                            RestaurantId = restaurant.Id,
+                            DishId = comboDish.Id,
+                            Price = comboDish.Price,
+                            IsSelling = true,
+                            IsSoldOut = false,
+                            IsDeleted = false
+                        });
+                    }
+                }
+
+                if (branchConfigsToAdd.Count > 0)
+                    await _unitOfWork.BranchDishConfigs.AddRangeAsync(branchConfigsToAdd);
+
+                await _unitOfWork.SaveAsync();
             }
+
+            foreach (var restaurantId in restaurantsIds.Distinct())
+                await _menuCacheService.InvalidateMenuAsync(restaurantId);
 
             return createdCount;
         }
