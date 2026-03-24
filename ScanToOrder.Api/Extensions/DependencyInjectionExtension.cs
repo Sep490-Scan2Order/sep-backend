@@ -63,6 +63,7 @@ namespace ScanToOrder.Api.Extensions
             services.Configure<OpenAiSettings>(configuration.GetSection("OpenAiSettings"));
             services.Configure<AiSettings>(configuration.GetSection("AiSettings"));
             services.Configure<SupabaseSettings>(configuration.GetSection("Supabase"));
+            
             services.AddHttpClient<ISmsSender, EsmsSender>();
             services.AddHttpClient<IGeminiService, GeminiService>();
             services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
