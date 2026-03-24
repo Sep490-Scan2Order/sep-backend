@@ -23,7 +23,7 @@ namespace ScanToOrder.Application.Services
         {
             var existingCategory =
                 await _unitOfWork.Categories.GetByFieldsIncludeAsync(x =>
-                    x.CategoryName.Equals(categoryDto.CategoryName));
+                    x.CategoryName.Equals(categoryDto.CategoryName) && x.TenantId == tenantId && !x.IsDeleted);
             if (existingCategory != null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_ALREADY_EXISTS);
@@ -93,18 +93,29 @@ namespace ScanToOrder.Application.Services
             var dishes = await _unitOfWork.Dishes.FindAsync(d => d.CategoryId == categoryId);
             var dishIds = dishes.Select(d => d.Id).ToList();
 
-            // 3. Nếu có món ăn, tìm và xóa các cấu hình chi nhánh (BranchDishConfig) liên quan
+            // 3. Nếu có món ăn, cập nhật trạng thái xóa và xóa các cấu hình liên quan
             if (dishIds.Any())
             {
+                // Dùng foreach để sửa trạng thái từng món ăn
+                foreach (var dish in dishes)
+                {
+                    dish.IsDeleted = true;
+                    // Nếu bảng Dish của bạn có cột IsActive, bạn cũng nên set nó thành false ở đây
+                    // dish.IsActive = false; 
+                }
+
+                // Gọi UpdateRange 1 lần cho toàn bộ danh sách
+                _unitOfWork.Dishes.UpdateRange(dishes);
+
+                // Xử lý nhánh BranchDishConfig
                 var branchConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(b => dishIds.Contains(b.DishId));
                 if (branchConfigs.Any())
                 {
-                    // Giả sử UnitOfWork/Repository của bạn có hàm RemoveRange. 
-                    // Nếu không, bạn có thể lặp qua từng phần tử và gọi _unitOfWork.BranchDishConfigs.Remove(config)
                     _unitOfWork.BranchDishConfigs.RemoveRange(branchConfigs);
                 }
             }
 
+            // 4. Lưu tất cả thay đổi vào database
             await _unitOfWork.SaveAsync();
             return true;
         }

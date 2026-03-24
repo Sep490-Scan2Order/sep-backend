@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities;
@@ -6,6 +6,7 @@ using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
+using ScanToOrder.Application.Utils;
 
 namespace ScanToOrder.Application.Services;
 
@@ -254,5 +255,35 @@ public class PromotionService : IPromotionService
         });
 
         foreach (var item in toAdd) promotion.RestaurantPromotions.Add(item);
+    }
+
+    public async Task<List<PromotionResponseDto>> GetAvailablePromotionsByOrderAsync(Guid tenantId, int restaurantId, decimal orderTotal)
+    {
+        var now = TimeUtils.GetVietnamTimeNow();
+
+        var promotions = await _unitOfWork.Promotions.GetAllAsync(p =>
+            p.TenantId == tenantId &&
+            p.IsActive &&
+            !p.IsDeleted &&
+            p.Scope == PromotionScope.Order &&
+            p.MinOrderValue <= orderTotal &&
+            (p.IsGlobal || p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)),
+            p => p.RestaurantPromotions
+        );
+
+        var validPromotions = promotions
+            .Where(p => p.IsValidAt(now))
+            .OrderByDescending(p => p.Priority)
+            .ToList();
+
+        var dtos = _mapper.Map<List<PromotionResponseDto>>(validPromotions);
+
+        // Map RestaurantIds manually from loaded navigation property
+        for (int i = 0; i < dtos.Count; i++)
+        {
+            dtos[i].RestaurantIds = validPromotions[i].RestaurantPromotions?.Select(rp => rp.RestaurantId).ToList() ?? new List<int>();
+        }
+        
+        return dtos;
     }
 }

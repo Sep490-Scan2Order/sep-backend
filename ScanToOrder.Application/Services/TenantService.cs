@@ -67,6 +67,7 @@ namespace ScanToOrder.Application.Services
 
             userEntity.Password = passwordHash;
             userEntity.Verified = true;
+            userEntity.Avatar = "https://ysafyqmiutvhohvsthnt.supabase.co/storage/v1/object/public/logo/logo_default.png";
 
             var tenantEntity = _mapper.Map<Tenant>(request);
             tenantEntity.AccountId = userEntity.Id;

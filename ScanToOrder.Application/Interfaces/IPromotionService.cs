@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Application.DTOs.Promotion;
+using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Domain.Entities;
 
 namespace ScanToOrder.Application.Interfaces;
@@ -10,4 +10,5 @@ public interface IPromotionService
     Task<PagedResult<PromotionResponseDto>> GetPromotionsByTenantAsync(Guid tenantId, int pageNumber = 1, int pageSize = 10);
     Task UpdatePromotionAsync(UpdatePromotionDto dto);
     Task DeletePromotionAsync(int id);
+    Task<List<PromotionResponseDto>> GetAvailablePromotionsByOrderAsync(Guid tenantId, int restaurantId, decimal orderTotal);
 }
