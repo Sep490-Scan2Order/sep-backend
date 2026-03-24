@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.Message
+namespace ScanToOrder.Application.Message
 {
     public partial class EmailMessage
     {
@@ -21,6 +21,7 @@
             public const string FORGOT_PASSWORD_SUBJECT = "Khôi phục mật khẩu Scan2Order";
             public const string DEFAULT_SUBJECT = "Thông báo từ Scan2Order";
             public const string RESET_PASSWORD_SUBJECT = "Đặt lại mật khẩu Scan2Order";
+            public const string CREATE_STAFF_SUBJECT = "Tài khoản nhân viên Scan2Order";
         }
 
         public class EmailDomain

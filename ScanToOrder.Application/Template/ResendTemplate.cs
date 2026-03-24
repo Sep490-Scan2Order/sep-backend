@@ -12,5 +12,6 @@ namespace ScanToOrder.Application.Template
 
         public const string RESET_PASSWORD_STAFF_TEMPLATE_ID = "585dfb93-0db9-45cf-a6d5-585dfb93-0db9-45cf-a6d5-f59c76278404";
         public const string FORGOT_PASSWORD_STAFF_TEMPLATE_ID = "585dfb93-0db9-45cf-a6d5-f59c76278404";
+        public const string CREATE_STAFF_TEMPLATE_ID = "e35680cf-3b89-4221-9967-0db43f3f2136";
     }
 }

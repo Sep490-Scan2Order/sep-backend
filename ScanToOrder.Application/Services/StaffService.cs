@@ -4,6 +4,7 @@ using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Utils;
+using ScanToOrder.Application.Template;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Enums;
@@ -22,21 +23,18 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IPlanLimitationService _planLimitationService;
+        private readonly IEmailService _emailService;
 
-        public StaffService(IUnitOfWork unitOfWork, IMapper mapper, IPlanLimitationService planLimitationService)
+        public StaffService(IUnitOfWork unitOfWork, IMapper mapper, IPlanLimitationService planLimitationService, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _planLimitationService = planLimitationService;
+            _emailService = emailService;
         }
 
         public async Task<StaffDto> CreateStaff(CreateStaffRequest staffDto)
         {
-            if (!ValidationUtils.IsValidPassword(staffDto.Password))
-            {
-                throw new DomainException(StaffMessage.StaffError.INVALID_PASSWORD);
-            }
-
             var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(staffDto.Phone);
             if (existingUser != null)
             {
@@ -56,9 +54,11 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException($"Gói dịch vụ (Plan) của cửa hàng hiện chỉ cho phép cấu hình tối đa {features.MaxStaff} nhân viên.");
             }
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(staffDto.Password);
+            var generatedPassword = Guid.NewGuid().ToString("N").Substring(0, 8);
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(generatedPassword);
             var userEntity = _mapper.Map<AuthenticationUser>(staffDto);
             userEntity.Password = passwordHash;
+            userEntity.Verified = false;
 
             var staffEntity = _mapper.Map<Staff>(staffDto);
             staffEntity.AccountId = userEntity.Id;
@@ -67,6 +67,20 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.AuthenticationUsers.AddAsync(userEntity);
             await _unitOfWork.Staffs.AddAsync(staffEntity);
             await _unitOfWork.SaveAsync();
+
+            var templateParams = new
+            {
+                name = staffDto.Name,
+                email = staffDto.Email,
+                password = generatedPassword
+            };
+
+            await _emailService.SendEmailWithTemplateIdDomainAsync(
+                staffDto.Email,
+                EmailMessage.EmailSubject.CREATE_STAFF_SUBJECT,
+                ResendTemplate.CREATE_STAFF_TEMPLATE_ID,
+                templateParams
+            );
 
             return _mapper.Map<StaffDto>(staffEntity);
         }

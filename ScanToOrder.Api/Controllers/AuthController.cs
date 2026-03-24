@@ -108,7 +108,7 @@ public class AuthController : BaseController
     //
 
     [Authorize]
-    [HttpPost("reset-password-staff")]
+    [HttpPost("change-password-staff")]
     public async Task<ActionResult<ApiResponse<string>>> ResetPasswordStaff(
         [FromBody] ResetPasswordStaffRequest request)
     {

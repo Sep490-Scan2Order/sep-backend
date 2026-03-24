@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,8 +17,6 @@ namespace ScanToOrder.Application.DTOs.User
         public required string Name { get; set; }
 
         public required string Phone { get; set; }
-
-        public required string Password { get; set; }
 
     }
 }

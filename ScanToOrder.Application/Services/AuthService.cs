@@ -150,6 +150,13 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
             }
 
+            if (!user.Verified)
+            {
+                user.Verified = true;
+                _unitOfWork.AuthenticationUsers.Update(user);
+                await _unitOfWork.SaveAsync();
+            }
+
             var staff = await _unitOfWork.Staffs.GetStaffAccountIdAsync(user.Id);
 
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(staff.RestaurantId);

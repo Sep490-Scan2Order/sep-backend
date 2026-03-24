@@ -15,7 +15,7 @@ namespace ScanToOrder.Api.Controllers
             _staffService = staffService;
         }
 
-        [HttpPost]
+        [HttpPost("create-staff")]
         public async Task<ActionResult<ApiResponse<StaffDto>>> AddStaff([FromBody] CreateStaffRequest request)
         {
             var result = await _staffService.CreateStaff(request);
