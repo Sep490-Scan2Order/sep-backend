@@ -23,7 +23,7 @@ namespace ScanToOrder.Application.Services
         {
             var existingCategory =
                 await _unitOfWork.Categories.GetByFieldsIncludeAsync(x =>
-                    x.CategoryName.Equals(categoryDto.CategoryName));
+                    x.CategoryName.Equals(categoryDto.CategoryName) && x.TenantId == tenantId && !x.IsDeleted);
             if (existingCategory != null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_ALREADY_EXISTS);
