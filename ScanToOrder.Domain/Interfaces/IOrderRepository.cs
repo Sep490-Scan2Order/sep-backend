@@ -19,5 +19,8 @@ namespace ScanToOrder.Domain.Interfaces
             GetTopRestaurantsFullDataAsync(int top);
         Task<List<Order>> GetCustomerActiveOrdersAsync(int restaurantId, string phone);
         Task<List<Order>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone);
+
+        Task<(int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount, int RegularCount, decimal RegularRevenue, int RefundCount, decimal RefundRevenue)> GetRevenueMetricsAsync(int restaurantId, DateTime startDate, DateTime endDate);
+        Task<List<(int DishId, string DishName, int QuantitySold, decimal Revenue)>> GetTopSellingDishesAsync(int restaurantId, DateTime startDate, DateTime endDate, int top);
     }
 }

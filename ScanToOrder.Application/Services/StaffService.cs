@@ -92,8 +92,13 @@ namespace ScanToOrder.Application.Services
                 .GetStaffByRestaurantAsync(restaurantId, page, pageSize);
 
             var staffDtos = _mapper.Map<List<StaffDto>>(data);
-         
 
+            foreach (var staff in staffDtos)
+            {   if (staff != null)
+                {
+                    staff.IsActive = true;
+                }
+            }
             return new PagedResult<StaffDto>
             {
                 Items = staffDtos,

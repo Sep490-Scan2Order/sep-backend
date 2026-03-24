@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.DTOs.Restaurant;
+using ScanToOrder.Application.DTOs.Restaurant.Report;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Utils;
@@ -520,6 +521,54 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             return Message.RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED;
+        }
+
+        public async Task<RevenueSummaryDto> GetRevenueSummaryAsync(int restaurantId, DateTime startDate, DateTime endDate)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+            if (restaurant == null)
+            {
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            }
+
+            var metrics = await _unitOfWork.Orders.GetRevenueMetricsAsync(restaurantId, startDate, endDate);
+            var paymentMetrics = await _unitOfWork.ShiftReports.GetPaymentMetricsAsync(restaurantId, startDate, endDate);
+            var topDishes = await _unitOfWork.Orders.GetTopSellingDishesAsync(restaurantId, startDate, endDate, 10);
+
+            var result = new RevenueSummaryDto
+            {
+                Period = new PeriodDto
+                {
+                    StartDate = startDate,
+                    EndDate = endDate
+                }
+            };
+
+            result.Summary.TotalOrders = metrics.TotalOrders;
+            result.Summary.GrossRevenue = metrics.GrossRevenue;
+            result.Summary.NetRevenue = metrics.NetRevenue;
+            result.Summary.TotalDiscount = metrics.TotalDiscount;
+            result.Summary.AverageOrderValue = metrics.TotalOrders > 0 ? (metrics.NetRevenue / metrics.TotalOrders) : 0;
+            result.Summary.TotalRefund = paymentMetrics.TotalRefund;
+
+            result.OrderTypes.Regular.Count = metrics.RegularCount;
+            result.OrderTypes.Regular.Revenue = metrics.RegularRevenue;
+            
+            result.OrderTypes.Refund.Count = metrics.RefundCount;
+            result.OrderTypes.Refund.Revenue = metrics.RefundRevenue;
+
+            result.PaymentMethods.Cash = paymentMetrics.TotalCash;
+            result.PaymentMethods.Transfer = paymentMetrics.TotalTransfer;
+
+            result.TopSellingDishes = topDishes.Select(d => new TopSellingDishDto
+            {
+                DishId = d.DishId,
+                DishName = d.DishName,
+                QuantitySold = d.QuantitySold,
+                Revenue = d.Revenue
+            }).ToList();
+
+            return result;
         }
     }
 }

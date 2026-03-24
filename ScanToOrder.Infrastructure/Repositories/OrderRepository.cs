@@ -144,6 +144,64 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task<(int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount, int RegularCount, decimal RegularRevenue, int RefundCount, decimal RefundRevenue)> GetRevenueMetricsAsync(int restaurantId, DateTime startDate, DateTime endDate)
+        {
+            var query = _dbSet.AsNoTracking()
+                .Where(o => o.RestaurantId == restaurantId
+                         && o.Status == OrderStatus.Served
+                         && o.CreatedAt >= startDate
+                         && o.CreatedAt <= endDate);
+
+            var metrics = await query
+                .GroupBy(o => 1)
+                .Select(g => new
+                {
+                    TotalOrders = g.Count(),
+                    GrossRevenue = g.Sum(o => o.TotalAmount),
+                    NetRevenue = g.Sum(o => o.FinalAmount),
+                    TotalDiscount = g.Sum(o => o.PromotionDiscount),
+                    RegularCount = g.Count(o => o.typeOrder == TypeOrder.Regular),
+                    RegularRevenue = g.Where(o => o.typeOrder == TypeOrder.Regular).Sum(o => o.FinalAmount),
+                    RefundCount = g.Count(o => o.typeOrder == TypeOrder.Refund),
+                    RefundRevenue = g.Where(o => o.typeOrder == TypeOrder.Refund).Sum(o => o.FinalAmount)
+                })
+                .FirstOrDefaultAsync();
+
+            if (metrics == null) return (0, 0, 0, 0, 0, 0, 0, 0);
+
+            return (
+                metrics.TotalOrders, 
+                metrics.GrossRevenue, 
+                metrics.NetRevenue, 
+                metrics.TotalDiscount, 
+                metrics.RegularCount, 
+                metrics.RegularRevenue, 
+                metrics.RefundCount, 
+                metrics.RefundRevenue
+            );
+        }
+
+        public async Task<List<(int DishId, string DishName, int QuantitySold, decimal Revenue)>> GetTopSellingDishesAsync(int restaurantId, DateTime startDate, DateTime endDate, int top)
+        {
+            return await _context.OrderDetails.AsNoTracking()
+                .Where(od => od.Order.RestaurantId == restaurantId 
+                          && od.Order.Status == OrderStatus.Served 
+                          && od.Order.CreatedAt >= startDate 
+                          && od.Order.CreatedAt <= endDate)
+                .GroupBy(od => new { od.DishId, od.Dish.DishName })
+                .Select(g => new
+                {
+                    g.Key.DishId,
+                    g.Key.DishName,
+                    QuantitySold = g.Sum(x => x.Quantity),
+                    Revenue = g.Sum(x => x.SubTotal)
+                })
+                .OrderByDescending(x => x.QuantitySold)
+                .Take(top)
+                .Select(x => new ValueTuple<int, string, int, decimal>(x.DishId, x.DishName, x.QuantitySold, x.Revenue))
+                .ToListAsync();
+        }
     }
 }
 

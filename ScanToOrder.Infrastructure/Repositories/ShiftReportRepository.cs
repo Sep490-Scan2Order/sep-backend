@@ -57,5 +57,25 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Select(x => (x.Report, x.OpeningCashAmount))
                 .ToList();
         }
+
+        public async Task<(decimal TotalCash, decimal TotalTransfer, decimal TotalRefund)> GetPaymentMetricsAsync(int restaurantId, DateTime startDate, DateTime endDate)
+        {
+            var metrics = await _context.ShiftReports.AsNoTracking()
+                .Where(s => s.Shift.RestaurantId == restaurantId 
+                         && s.ReportDate >= startDate 
+                         && s.ReportDate <= endDate)
+                .GroupBy(s => 1)
+                .Select(g => new
+                {
+                    TotalCash = g.Sum(x => x.TotalCashOrder),
+                    TotalTransfer = g.Sum(x => x.TotalTransferOrder),
+                    TotalRefund = g.Sum(x => x.TotalRefundAmount)
+                })
+                .FirstOrDefaultAsync();
+
+            if (metrics == null) return (0, 0, 0);
+            
+            return (metrics.TotalCash, metrics.TotalTransfer, metrics.TotalRefund);
+        }
     }
 }

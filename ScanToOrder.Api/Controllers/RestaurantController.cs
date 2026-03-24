@@ -172,5 +172,19 @@ namespace ScanToOrder.Api.Controllers
 
             return Success(result);
         }
+
+        [HttpGet("{id:int}/revenue-summary")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<ScanToOrder.Application.DTOs.Restaurant.Report.RevenueSummaryDto>>> GetRevenueSummary(
+            int id, 
+            [FromQuery] DateTime? startDate, 
+            [FromQuery] DateTime? endDate)
+        {
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+
+            var result = await _restaurantService.GetRevenueSummaryAsync(id, start, end);
+            return Success(result);
+        }
     }
 }
