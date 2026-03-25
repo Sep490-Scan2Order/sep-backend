@@ -57,5 +57,17 @@ namespace ScanToOrder.Api.Controllers
             var result = await _dashboardService.GetTopTenantsByRevenueAsync(top);
             return Success(result);
         }
+
+        [HttpGet("tenants/{tenantId}/detail")]
+        public async Task<ActionResult<ApiResponse<TenantDetailDto>>> GetTenantDetail(
+            Guid tenantId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate)
+        {
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
+            var end   = endDate   ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var result = await _dashboardService.GetTenantDetailAsync(tenantId, start, end);
+            return Success(result);
+        }
     }
 }

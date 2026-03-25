@@ -2,6 +2,7 @@ using ScanToOrder.Application.DTOs.Dashboard;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -139,6 +140,50 @@ namespace ScanToOrder.Application.Services
                 TotalOrders      = x.TotalOrders,
                 TotalRevenue     = x.TotalRevenue
             }).ToList();
+        }
+
+        public async Task<TenantDetailDto> GetTenantDetailAsync(Guid tenantId, DateTime startDate, DateTime endDate)
+        {
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId)
+                ?? throw new DomainException($"Tenant {tenantId} not found.");
+
+            var restaurants = await _unitOfWork.Restaurants
+                .GetRestaurantsWithSubscriptionsByTenantIdAsync(tenantId);
+
+            var revenueMap = (await _unitOfWork.Orders
+                .GetRevenueByTenantAsync(tenantId, startDate, endDate))
+                .ToDictionary(r => r.RestaurantId);
+
+            var restaurantDtos = restaurants.Select(r =>
+            {
+                revenueMap.TryGetValue(r.Id, out var rev);
+                return new RestaurantRevenueDto
+                {
+                    RestaurantId   = r.Id,
+                    RestaurantName = r.RestaurantName,
+                    Image          = r.Image,
+                    Address        = r.Address,
+                    CurrentPlan    = GetPlanName(r.Subscription?.Plan?.Name, r.Subscription?.Status),
+                    IsActive       = r.IsActive ?? false,
+                    TotalOrders    = rev.TotalOrders,
+                    GrossRevenue   = rev.GrossRevenue,
+                    NetRevenue     = rev.NetRevenue,
+                    TotalDiscount  = rev.TotalDiscount
+                };
+            }).ToList();
+
+            return new TenantDetailDto
+            {
+                TenantId   = tenant.Id,
+                TenantName = tenant.Name ?? string.Empty,
+                IsSuspended = tenant.IsSuspended,
+                Period = new ScanToOrder.Application.DTOs.Restaurant.Report.PeriodDto
+                {
+                    StartDate = startDate,
+                    EndDate   = endDate
+                },
+                Restaurants = restaurantDtos
+            };
         }
     }
 }
