@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Application.DTOs.Dashboard;
+using ScanToOrder.Application.DTOs.Dashboard;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
@@ -127,6 +127,18 @@ namespace ScanToOrder.Application.Services
             return (expirationDate.Date - now.Date).Days;
         }
 
+        public async Task<List<TopTenantDto>> GetTopTenantsByRevenueAsync(int top = 10)
+        {
+            var data = await _unitOfWork.Orders.GetTopTenantsByRevenueAsync(top);
 
+            return data.Select(x => new TopTenantDto
+            {
+                TenantId         = x.TenantId,
+                TenantName       = x.TenantName,
+                TotalRestaurants = x.TotalRestaurants,
+                TotalOrders      = x.TotalOrders,
+                TotalRevenue     = x.TotalRevenue
+            }).ToList();
+        }
     }
 }

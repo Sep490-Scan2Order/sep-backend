@@ -202,6 +202,30 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Select(x => new ValueTuple<int, string, int, decimal>(x.DishId, x.DishName, x.QuantitySold, x.Revenue))
                 .ToListAsync();
         }
+
+        public async Task<List<(Guid TenantId, string TenantName, int TotalRestaurants, int TotalOrders, decimal TotalRevenue)>>
+            GetTopTenantsByRevenueAsync(int top)
+        {
+            var result = await _dbSet
+                .AsNoTracking()
+                .Where(o => o.Status == OrderStatus.Served)
+                .GroupBy(o => new { o.Restaurant.TenantId, o.Restaurant.Tenant.Name })
+                .Select(g => new
+                {
+                    TenantId       = g.Key.TenantId,
+                    TenantName     = g.Key.Name ?? string.Empty,
+                    TotalRestaurants = g.Select(o => o.RestaurantId).Distinct().Count(),
+                    TotalOrders    = g.Count(),
+                    TotalRevenue   = g.Sum(o => o.FinalAmount)
+                })
+                .OrderByDescending(x => x.TotalRevenue)
+                .Take(top)
+                .ToListAsync();
+
+            return result
+                .Select(x => (x.TenantId, x.TenantName, x.TotalRestaurants, x.TotalOrders, x.TotalRevenue))
+                .ToList();
+        }
     }
 }
 

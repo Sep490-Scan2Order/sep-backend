@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Application.DTOs.Dashboard;
+using ScanToOrder.Application.DTOs.Dashboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +17,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<TopPerformingRestaurantDto>> GetTopPerformingRestaurantsAsync(int top = 5);
 
         Task<List<ExpiringSubscriptionDto>> GetExpiringSubscriptionsAsync(int daysThreshold = 30);
+
+        Task<List<TopTenantDto>> GetTopTenantsByRevenueAsync(int top = 10);
     }
 }
