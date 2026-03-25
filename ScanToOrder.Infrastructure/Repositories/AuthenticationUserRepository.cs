@@ -16,7 +16,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await _dbSet
                 .Include(u => u.Tenant)
                 .Include(u => u.Staff)
-                .Include(u => u.Customer)
                 .FirstOrDefaultAsync(u => u.Phone == phone);
         }
 
@@ -25,7 +24,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             return await _dbSet
                 .Include(u => u.Tenant)
                 .Include(u => u.Staff)
-                .Include(u => u.Customer)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
     }

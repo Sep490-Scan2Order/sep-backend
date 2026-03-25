@@ -24,7 +24,6 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<AuthenticationUser> AuthenticationUsers { get; set; } = null!;
-    public DbSet<Customer> Customers { get; set; } = null!;
     public DbSet<Restaurant> Restaurants { get; set; } = null!;
     public DbSet<Staff> Staffs { get; set; } = null!;
     public DbSet<Tenant> Tenants { get; set; } = null!;
@@ -67,11 +66,6 @@ public class AppDbContext : DbContext
         modelBuilder.HasPostgresExtension("pg_trgm");
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-        modelBuilder.Entity<Customer>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-        });
 
         modelBuilder.Entity<Restaurant>()
             .HasIndex(r => r.Location)

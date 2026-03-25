@@ -11,7 +11,6 @@ namespace ScanToOrder.Infrastructure.Repositories
         public ITenantRepository Tenants { get; }
         public IStaffRepository Staffs { get; }
         public IRestaurantRepository Restaurants { get; }
-        public ICustomerRepository Customers { get; }
         public IConfigurationRepository Configurations { get; }
         public ISystemBlogRepository SystemBlogs { get; }
         public INotifyTenantRepository NotifyTenants { get; }
@@ -42,7 +41,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             ITenantRepository tenants,
             IStaffRepository staffs,
             IRestaurantRepository restaurants,
-            ICustomerRepository customers,
             IConfigurationRepository configurations,
             ISystemBlogRepository systemBlogs,
             INotifyTenantRepository notifyTenants,
@@ -72,7 +70,6 @@ namespace ScanToOrder.Infrastructure.Repositories
             Tenants = tenants;
             Staffs = staffs;
             Restaurants = restaurants;
-            Customers = customers;
             Configurations = configurations;
             SystemBlogs = systemBlogs;
             NotifyTenants = notifyTenants;

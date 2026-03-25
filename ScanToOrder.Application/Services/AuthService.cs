@@ -51,39 +51,7 @@ namespace ScanToOrder.Application.Services
             // await _smsSender.SendAsync(phone, otpCode);
 
             return otpCode;
-        }
-
-        public async Task<AuthResponse<CustomerDto>> VerifyAndLoginAsync(LoginRequest request)
-        {
-            var user = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
-
-            if (user == null)
-            {
-                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NOT_FOUND);
-            }
-
-            if (user.IsActive == false)
-            {
-                throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
-            }
-
-            if (string.IsNullOrEmpty(user.Password))
-            {
-                throw new DomainException(AuthMessage.AuthError.ACCOUNT_NO_PASSWORD);
-            }
-
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-            {
-                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
-            }
-
-            return new AuthResponse<CustomerDto>
-            {
-                AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),
-                RefreshToken = _jwtService.GenerateRefreshToken(user),
-                UserInfo = _mapper.Map<CustomerDto>(user.Customer)
-            };
-        }
+        }    
 
         public async Task<AuthResponse<TenantDto>> TenantLoginAsync(TenantLoginRequest request)
         {
@@ -215,65 +183,9 @@ namespace ScanToOrder.Application.Services
                 Domain.Enums.Role.Tenant => user.Tenant?.Id,
                 Domain.Enums.Role.Staff => user.Staff?.Id,
                 Domain.Enums.Role.Cashier => user.Staff?.Id,
-                Domain.Enums.Role.Customer => user.Customer?.Id,
                 _ => null
             };
-        }
-
-        public async Task<AuthResponse<CustomerDto>> RegisterAsync(RegisterRequest request)
-        {
-            await ValidateOtpOrThrowAsync(request.Phone, request.Otp);
-
-            var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
-            if (existingUser != null)
-            {
-                throw new DomainException(AuthMessage.AuthError.PHONE_REGISTERED);
-            }
-
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
-            var user = new AuthenticationUser
-            {
-                Id = Guid.NewGuid(),
-                Phone = request.Phone,
-                Password = passwordHash,
-                Email = string.Empty,
-                Role = Domain.Enums.Role.Customer,
-                CreatedAt = DateTime.UtcNow,
-                Verified = true
-            };
-
-            await _unitOfWork.AuthenticationUsers.AddAsync(user);
-
-            var customer = new Customer
-            {
-                Id = Guid.NewGuid(),
-                AccountId = user.Id,
-                Name = string.Empty,
-                Dob = null
-            };
-
-            await _unitOfWork.Customers.AddAsync(customer);
-
-            await _unitOfWork.SaveAsync();
-
-            return new AuthResponse<CustomerDto>
-            {
-                AccessToken = _jwtService.GenerateAccessToken(user),
-                RefreshToken = _jwtService.GenerateRefreshToken(user)
-            };
-        }
-
-        private async Task ValidateOtpOrThrowAsync(string phone, string otp)
-        {
-            var savedOtp = await _otpRedisService.GetOtpTenantAsync(phone, OtpMessage.OtpKeyword.OTP_REGISTER_PHONE);
-            if (string.IsNullOrEmpty(savedOtp) || savedOtp != otp)
-            {
-                throw new DomainException(OtpMessage.OtpError.OTP_INVALID);
-            }
-
-            await _otpRedisService.DeleteOtpTenantAsync(phone, OtpMessage.OtpKeyword.OTP_REGISTER_PHONE);
-        }
+        }  
 
         public async Task<string> VerifyForgotPasswordOtpAsync(string email, string otpCode)
         {

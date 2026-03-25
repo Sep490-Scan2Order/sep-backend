@@ -7,10 +7,6 @@ namespace ScanToOrder.Application.Interfaces
     {
         Task<string> SendOtpAsync(string phone);
 
-        Task<AuthResponse<CustomerDto>> VerifyAndLoginAsync(LoginRequest request);
-
-        Task<AuthResponse<CustomerDto>> RegisterAsync(RegisterRequest request);
-
         Task<AuthResponse<TenantDto>> TenantLoginAsync(TenantLoginRequest request);
         Task<AuthResponse<StaffDto>> StaffLoginAsync(StaffLoginRequest request);
 

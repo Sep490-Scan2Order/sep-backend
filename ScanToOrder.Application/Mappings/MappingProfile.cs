@@ -86,18 +86,7 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.Latitude,
                     opt => opt.MapFrom(src => src.Location != null ? (decimal?)src.Location.Y : null));
             CreateMap<MenuTemplate, MenuTemplateDto>();
-            CreateMap<MenuRestaurant, MenuRestaurantDto>();
-
-            CreateMap<Customer, CustomerDto>()
-                .ForMember(dest => dest.AccountId, opt => opt.MapFrom(src => src.AccountId))
-                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-                .ForMember(dest => dest.Dob, opt => opt.MapFrom(src => src.Dob))
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id));
-
-            CreateMap<UpdateCustomerRequestDto, Customer>()
-    .ForMember(dest => dest.Id, opt => opt.Ignore())
-    .ForMember(dest => dest.AccountId, opt => opt.Ignore())
-    .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<MenuRestaurant, MenuRestaurantDto>();      
 
             CreateMap<CartModel, CartDto>();
             CreateMap<CartItemModel, CartItemModel>();

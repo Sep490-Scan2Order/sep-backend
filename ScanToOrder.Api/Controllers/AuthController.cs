@@ -27,15 +27,7 @@ public class AuthController : BaseController
     {
         var otp = await _authService.SendOtpAsync(request.Phone);
         return Success(otp);
-    }
-
-    [HttpPost("login-phone")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerLogin(
-        [FromBody] LoginRequest request)
-    {
-        var result = await _authService.VerifyAndLoginAsync(request);
-        return Success(result);
-    }
+    }  
 
     [HttpPost("tenant-login")]
     public async Task<ActionResult<ApiResponse<AuthResponse<TenantDto>>>> TenantLogin(
@@ -58,14 +50,6 @@ public class AuthController : BaseController
         [FromBody] AdminLoginRequest request)
     {
         var result = await _authService.AdministratorLoginAsync(request);
-        return Success(result);
-    }
-
-    [HttpPost("register-phone")]
-    public async Task<ActionResult<ApiResponse<AuthResponse<CustomerDto>>>> CustomerRegister(
-        [FromBody] RegisterRequest request)
-    {
-        var result = await _authService.RegisterAsync(request);
         return Success(result);
     }
 

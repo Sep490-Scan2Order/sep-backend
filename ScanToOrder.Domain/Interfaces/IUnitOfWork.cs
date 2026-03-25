@@ -17,7 +17,6 @@ namespace ScanToOrder.Domain.Interfaces
         ITenantRepository Tenants { get; }
         IStaffRepository Staffs { get; }
         IRestaurantRepository Restaurants { get; }
-        ICustomerRepository Customers { get; }
         IPlanRepository Plans { get; }
         IConfigurationRepository Configurations { get; }
         ISystemBlogRepository SystemBlogs { get; }
