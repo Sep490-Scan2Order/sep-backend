@@ -799,9 +799,12 @@ public class OrderService : IOrderService
             Id = order.Id.ToString(),
             OrderCode = order.OrderCode,
             CreatedAt = order.CreatedAt,
+            RequestedPickupAt = order.RequestedPickupAt,
+            ConfirmedPickupAt = order.ConfirmedPickupAt,
             Amount = order.FinalAmount,
             Phone = order.NumberPhone,
             Status = (int)order.Status,
+            IsPreOrder = order.IsPreOrder,
             Type = order.Type,
 
             Items = order.OrderDetails.Select(od => new KdsItemResponse
@@ -820,7 +823,23 @@ public class OrderService : IOrderService
     public async Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-        if (order == null) return false;
+        if (order == null) throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
+
+        if (newStatus != OrderStatus.Cancelled && (int)newStatus <= (int)order.Status)
+        {
+            throw new DomainException($"Không thể cập nhật trạng thái từ {order.Status} sang {newStatus}. Trạng thái chỉ có thể được cập nhật tiến trình.");
+        }
+
+        if (order.IsPreOrder && order.Status == OrderStatus.Pending && 
+            newStatus >= OrderStatus.Preparing && order.ConfirmedPickupAt == null)
+        {
+            throw new DomainException("Đơn hàng đặt trước cần được xác nhận thời gian nhận hàng trước khi chế biến.");
+        }
+
+        if (order.Status == OrderStatus.Served)
+        {
+            throw new DomainException("Đơn hàng đã hoàn thành (Served), không thể cập nhật thêm.");
+        }
 
         order.Status = newStatus;
         order.UpdatedAt = DateTime.UtcNow;
@@ -866,7 +885,8 @@ public class OrderService : IOrderService
 
         return _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
     }
-    
+
+
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
         if (dishIds == null || !dishIds.Any())
@@ -1098,6 +1118,38 @@ public class OrderService : IOrderService
                 _logger.LogError(ex, "Lỗi khi hủy đơn hàng chưa thanh toán quá hạn: {OrderId}", order.Id);
             }
         }
+    }
+
+    public async Task<bool> ConfirmPickupTimeAsync(ConfirmPickupTimeRequest request)
+    {
+        if (request.OrderId == Guid.Empty)
+            throw new DomainException(OrderMessage.OrderError.INVALID_ORDER_ID);
+
+        var order = await _unitOfWork.Orders.GetByIdAsync(request.OrderId);
+        if (order == null)
+            throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
+
+        if (!order.IsPreOrder)
+            throw new DomainException("Chỉ đơn hàng đặt trước (Pre-order) mới cần xác nhận thời gian nhận hàng.");
+
+        if (request.ConfirmedPickupAt <= DateTime.UtcNow)
+            throw new DomainException("Thời gian xác nhận phải sau thời điểm hiện tại.");
+
+        order.ConfirmedPickupAt = request.ConfirmedPickupAt;
+        _unitOfWork.Orders.Update(order);
+
+        await _unitOfWork.SaveAsync();
+
+        if (_realtimeService != null)
+        {
+            await _realtimeService.NotifyOrderStatusChanged(
+                order.RestaurantId.ToString(),
+                order.Id.ToString(),
+                (int)order.Status
+            );
+        }
+
+        return true;
     }
 }
 

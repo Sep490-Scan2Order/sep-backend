@@ -139,5 +139,13 @@ public class OrderController : BaseController
         var result = await _orderService.GetCustomerActiveOrdersAllRestaurantsAsync(phone);
         return Success(result);
     }
+
+    [HttpPut("confirm-pickup-time")]
+    [Authorize(Roles = "Staff, Cashier")]
+    public async Task<ActionResult<ApiResponse<bool>>> ConfirmPickupTime([FromBody] ConfirmPickupTimeRequest request)
+    {
+        var result = await _orderService.ConfirmPickupTimeAsync(request);
+        return Success(result, "Xác nhận thời gian nhận hàng thành công.");
+    }
 }
 

@@ -176,7 +176,6 @@ namespace ScanToOrder.Application.Services
                     TotalAmount = 0,
                     PromotionDiscount = 0,
                     Note = request.Note,
-                    NumberPhone = originalOrder.NumberPhone,
                     QrCodeUrl = "REFUND_LOG",
                     Type = originalOrder.Type,
                     IsPreOrder = false,

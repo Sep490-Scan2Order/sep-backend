@@ -24,5 +24,6 @@ public interface IOrderService
 
     Task<bool> ValidateQrCodeAsync(string qrContent);
     Task CancelExpiredUnpaidOrdersAsync();
+    Task<bool> ConfirmPickupTimeAsync(ConfirmPickupTimeRequest request);
 }
 

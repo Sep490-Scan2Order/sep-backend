@@ -9,12 +9,15 @@ namespace ScanToOrder.Application.DTOs.Orders
     public class KdsOrderResponse
     {
         public string Id { get; set; }
-        public string Phone { get; set; } // Lấy từ User hoặc Note
+        public string Phone { get; set; }
         public int OrderCode { get; set; }
 
         public int RestaurantId { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? RequestedPickupAt { get; set; }
+        public DateTime? ConfirmedPickupAt { get; set; }
         public decimal Amount { get; set; }
+        public bool IsPreOrder { get; set; }
 
         public int Status { get; set; }
         public string? Type { get; set; }
