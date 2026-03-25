@@ -27,6 +27,6 @@ namespace ScanToOrder.Domain.Interfaces
             GetTopTenantsByRevenueAsync(int top);
 
         Task<List<(int RestaurantId, int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount)>>
-            GetRevenueByTenantAsync(Guid tenantId, DateTime startDate, DateTime endDate);
+            GetRevenueByTenantAsync(Guid tenantId, DateTime? startDate, DateTime? endDate);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using ScanToOrder.Application.DTOs.External;
+using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -254,6 +255,130 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
             return _mapper.Map<TenantDto>(tenant);
+        }
+
+        public async Task<TotalRevenueByTenantDto> GetTotalRevenueByTenantAsync(
+            Guid? tenantId,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? preset)
+        {
+            var filter = ResolveFilter(startDate, endDate, preset);
+
+            var resolvedTenantId = tenantId.HasValue && tenantId.Value != Guid.Empty
+                ? tenantId.Value
+                : _authenticatedUserService.ProfileId ?? throw new DomainException("Không xác định được tenant hiện tại.");
+
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(resolvedTenantId);
+            if (tenant == null)
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+            var restaurants = await _unitOfWork.Restaurants
+                .GetRestaurantsWithSubscriptionsByTenantIdAsync(resolvedTenantId);
+
+            var revenueByRestaurant = await _unitOfWork.Orders
+                .GetRevenueByTenantAsync(resolvedTenantId, filter.StartDate, filter.EndDate);
+
+            var revenueMap = revenueByRestaurant.ToDictionary(x => x.RestaurantId);
+
+            var restaurantDtos = _mapper.Map<List<TenantRestaurantRevenueDto>>(restaurants);
+            foreach (var restaurantDto in restaurantDtos)
+            {
+                if (revenueMap.TryGetValue(restaurantDto.RestaurantId, out var revenue))
+                {
+                    restaurantDto.TotalOrders = revenue.TotalOrders;
+                    restaurantDto.GrossRevenue = revenue.GrossRevenue;
+                    restaurantDto.NetRevenue = revenue.NetRevenue;
+                    restaurantDto.TotalDiscount = revenue.TotalDiscount;
+                    restaurantDto.AverageOrderValue = revenue.TotalOrders > 0
+                        ? revenue.NetRevenue / revenue.TotalOrders
+                        : 0;
+                }
+            }
+
+            var totalOrders = restaurantDtos.Sum(x => x.TotalOrders);
+            var grossRevenue = restaurantDtos.Sum(x => x.GrossRevenue);
+            var netRevenue = restaurantDtos.Sum(x => x.NetRevenue);
+            var totalDiscount = restaurantDtos.Sum(x => x.TotalDiscount);
+
+            return new TotalRevenueByTenantDto
+            {
+                TenantId = tenant.Id,
+                TenantName = tenant.Name ?? string.Empty,
+                IsAllTime = filter.IsAllTime,
+                FilterPreset = filter.Preset,
+                StartDate = filter.StartDate,
+                EndDate = filter.EndDate,
+                TotalRestaurants = restaurantDtos.Count,
+                TotalOrders = totalOrders,
+                GrossRevenue = grossRevenue,
+                NetRevenue = netRevenue,
+                TotalDiscount = totalDiscount,
+                AverageOrderValue = totalOrders > 0 ? netRevenue / totalOrders : 0,
+                Restaurants = restaurantDtos
+            };
+        }
+
+        private static (DateTime? StartDate, DateTime? EndDate, bool IsAllTime, string Preset) ResolveFilter(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? preset)
+        {
+            var normalizedPreset = string.IsNullOrWhiteSpace(preset)
+                ? null
+                : preset.Trim().ToLowerInvariant();
+
+            if (!string.IsNullOrWhiteSpace(normalizedPreset))
+            {
+                var now = DateTime.UtcNow;
+                var todayStart = now.Date;
+
+                return normalizedPreset switch
+                {
+                    "alltime" => (null, null, true, "allTime"),
+                    "today" => (todayStart, todayStart.AddDays(1).AddTicks(-1), false, "today"),
+                    "last7days" => (todayStart.AddDays(-6), todayStart.AddDays(1).AddTicks(-1), false, "last7days"),
+                    "last30days" => (todayStart.AddDays(-29), todayStart.AddDays(1).AddTicks(-1), false, "last30days"),
+                    "thismonth" =>
+                        (
+                            new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+                            new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1).AddTicks(-1),
+                            false,
+                            "thisMonth"
+                        ),
+                    "thisyear" =>
+                        (
+                            new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                            new DateTime(now.Year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(-1),
+                            false,
+                            "thisYear"
+                        ),
+                    _ => throw new DomainException("preset không hợp lệ. Hỗ trợ: allTime, today, last7days, last30days, thisMonth, thisYear.")
+                };
+            }
+
+            if (startDate.HasValue ^ endDate.HasValue)
+            {
+                throw new DomainException("Khi lọc theo ngày, cần truyền đủ cả startDate và endDate.");
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue)
+            {
+                return (null, null, true, "allTime");
+            }
+
+            if (endDate!.Value < startDate!.Value)
+            {
+                throw new DomainException("endDate phải lớn hơn hoặc bằng startDate.");
+            }
+
+            var rangeDays = (endDate.Value.Date - startDate.Value.Date).TotalDays;
+            if (rangeDays > 366)
+            {
+                throw new DomainException("Khoảng thời gian tối đa là 366 ngày. Dùng preset=allTime để xem toàn bộ.");
+            }
+
+            return (startDate.Value, endDate.Value, false, "custom");
         }
     }
 }

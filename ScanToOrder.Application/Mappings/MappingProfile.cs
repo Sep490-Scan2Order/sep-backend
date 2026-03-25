@@ -103,6 +103,16 @@ namespace ScanToOrder.Application.Mappings
                     opt => opt.MapFrom(src => src.UpdatedAt ?? src.CreatedAt))
                 .ForMember(dest => dest.IsRefundLog,
                     opt => opt.MapFrom(src => src.typeOrder == TypeOrder.Refund));
+
+            CreateMap<Restaurant, TenantRestaurantRevenueDto>()
+                .ForMember(dest => dest.RestaurantName, opt => opt.MapFrom(src => src.RestaurantName))
+                .ForMember(dest => dest.CurrentPlan, opt => opt.MapFrom(src =>
+                    src.Subscription != null
+                    && src.Subscription.Status == SubscriptionStatus.Active
+                    && src.Subscription.Plan != null
+                        ? src.Subscription.Plan.Name
+                        : "No Active Plan"))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive ?? false));
         }
     }
 }

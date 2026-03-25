@@ -228,13 +228,23 @@ namespace ScanToOrder.Infrastructure.Repositories
         }
 
         public async Task<List<(int RestaurantId, int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount)>>
-            GetRevenueByTenantAsync(Guid tenantId, DateTime startDate, DateTime endDate)
+            GetRevenueByTenantAsync(Guid tenantId, DateTime? startDate, DateTime? endDate)
         {
-            var result = await _dbSet.AsNoTracking()
+            var query = _dbSet.AsNoTracking()
                 .Where(o => o.Restaurant.TenantId == tenantId
-                         && o.Status == OrderStatus.Served
-                         && o.CreatedAt >= startDate
-                         && o.CreatedAt <= endDate)
+                         && o.Status == OrderStatus.Served);
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(o => o.CreatedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(o => o.CreatedAt <= endDate.Value);
+            }
+
+            var result = await query
                 .GroupBy(o => o.RestaurantId)
                 .Select(g => new
                 {

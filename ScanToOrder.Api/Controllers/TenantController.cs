@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.External;
+using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -86,6 +87,18 @@ namespace ScanToOrder.Api.Controllers
         public async Task<ActionResult<ApiResponse<TenantDto>>> GetTenantById(Guid tenantId)
         {
             var result = await _tenantService.GetTenantByIdAsync(tenantId);
+            return Success(result);
+        }
+
+        [Authorize(Roles = "Tenant,Admin")]
+        [HttpGet("dashboard/revenue")]
+        public async Task<ActionResult<ApiResponse<TotalRevenueByTenantDto>>> GetDashboardRevenueByTenant(
+            [FromQuery] Guid? tenantId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? preset)
+        {
+            var result = await _tenantService.GetTotalRevenueByTenantAsync(tenantId, startDate, endDate, preset);
             return Success(result);
         }
     }
