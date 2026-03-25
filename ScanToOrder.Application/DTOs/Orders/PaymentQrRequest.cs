@@ -12,5 +12,7 @@ public class PaymentQrRequest
 
     // Giờ khách chọn (đề xuất) khi preorder; lưu UTC trong DB.
     public DateTime? RequestedPickupAt { get; set; }
+    
+    public int? AppliedPromotionId { get; set; }
 }
 

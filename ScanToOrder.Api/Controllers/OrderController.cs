@@ -5,6 +5,9 @@ using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Enums;
+using ScanToOrder.Application.DTOs.Promotion;
+using ScanToOrder.Domain.Exceptions;
+using ScanToOrder.Application.Message;
 
 namespace ScanToOrder.Api.Controllers;
 
@@ -12,10 +15,19 @@ public class OrderController : BaseController
 {
     private readonly IOrderService _orderService;
     private readonly IStorageService _storageService;
-    public OrderController(IOrderService orderService, IStorageService storageService)
+    private readonly IPromotionService _promotionService;
+    private readonly IRestaurantService _restaurantService;
+
+    public OrderController(
+        IOrderService orderService, 
+        IStorageService storageService,
+        IPromotionService promotionService,
+        IRestaurantService restaurantService)
     {
         _orderService = orderService;
         _storageService = storageService;
+        _promotionService = promotionService;
+        _restaurantService = restaurantService;
     }
 
     [HttpPost("add-to-cart")]
@@ -42,7 +54,8 @@ public class OrderController : BaseController
             request.CartId,
             request.Phone,
             request.IsPreOrder,
-            request.RequestedPickupAt);
+            request.RequestedPickupAt,
+            request.AppliedPromotionId);
         return Success(result);
     }
 
@@ -146,6 +159,17 @@ public class OrderController : BaseController
     {
         var result = await _orderService.ConfirmPickupTimeAsync(request);
         return Success(result, "Xác nhận thời gian nhận hàng thành công.");
+    }
+
+    [HttpPost("available-promotions")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<List<PromotionResponseDto>>>> GetAvailablePromotions([FromBody] GetAvailablePromotionsRequest request)
+    {
+        var restaurant = await _restaurantService.GetRestaurantByIdAsync(request.RestaurantId);
+        if (restaurant == null) throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+        
+        var result = await _promotionService.GetAvailablePromotionsByOrderAsync(restaurant.TenantId, request.RestaurantId, request.OrderTotal);
+        return Success(result);
     }
 }
 

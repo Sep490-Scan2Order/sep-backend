@@ -255,7 +255,7 @@ public class OrderService : IOrderService
         return cart;
     }
 
-    public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt)
+    public async Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt, int? appliedPromotionId)
     {
         if (string.IsNullOrWhiteSpace(cartId))
             throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
@@ -289,11 +289,35 @@ public class OrderService : IOrderService
 
         var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
             s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
-
+        
         if (activeShift == null)
             throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
 
-        var amount = Math.Round(cart.TotalAmount);
+        decimal promotionDiscount = 0;
+        if (appliedPromotionId.HasValue)
+        {
+            var promotion = await _unitOfWork.Promotions.GetByFieldsIncludeAsync(p => p.Id == appliedPromotionId.Value, p => p.RestaurantPromotions);
+            if (promotion == null || promotion.IsDeleted || !promotion.IsActive || promotion.Scope != PromotionScope.Order)
+                throw new DomainException("Mã khuyến mãi không hợp lệ.");
+
+            if (!promotion.IsValidAt(TimeUtils.GetVietnamTimeNow()))
+                throw new DomainException("Mã khuyến mãi đã hết hạn hoặc chưa tới khung giờ áp dụng.");
+
+            if (cart.TotalAmount < promotion.MinOrderValue)
+                throw new DomainException($"Đơn hàng chưa đạt giá trị tối thiểu {promotion.MinOrderValue} để áp dụng mã.");
+
+            if (!promotion.IsGlobal)
+            {
+                var isForRestaurant = promotion.RestaurantPromotions.Any(rp => rp.RestaurantId == cart.RestaurantId);
+                if (!isForRestaurant)
+                    throw new DomainException("Mã khuyến mãi không áp dụng cho nhà hàng này.");
+            }
+
+            promotionDiscount = CalculateDiscountValue(cart.TotalAmount, promotion);
+        }
+
+        var finalAmount = (decimal)PricingUtils.RoundToNearestThousand(Math.Max(0, cart.TotalAmount - promotionDiscount));
+        var amount = finalAmount;
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         Guid orderId;
@@ -324,13 +348,14 @@ public class OrderService : IOrderService
             {
                 Id = orderId,
                 RestaurantId = cart.RestaurantId,
+                PromotionId = appliedPromotionId,
                 OrderCode = orderCode,
                 IsPreOrder = isPreOrder,
                 RequestedPickupAt = isPreOrder ? requestedPickupAt : null,
                 Note = cart.Note,
                 TotalAmount = cart.TotalAmount,
-                PromotionDiscount = 0,
-                FinalAmount = cart.TotalAmount,
+                PromotionDiscount = promotionDiscount,
+                FinalAmount = finalAmount,
                 Status = OrderStatus.Unpaid,
                 IsScanned = false,
                 Type = "SePay",
@@ -442,7 +467,31 @@ public class OrderService : IOrderService
         if (activeShift == null)
             throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
 
-        var amount = Math.Round(cart.TotalAmount);
+        decimal promotionDiscount = 0;
+        if (request.AppliedPromotionId.HasValue)
+        {
+            var promotion = await _unitOfWork.Promotions.GetByFieldsIncludeAsync(p => p.Id == request.AppliedPromotionId.Value, p => p.RestaurantPromotions);
+            if (promotion == null || promotion.IsDeleted || !promotion.IsActive || promotion.Scope != PromotionScope.Order)
+                throw new DomainException("Mã khuyến mãi không hợp lệ.");
+
+            if (!promotion.IsValidAt(TimeUtils.GetVietnamTimeNow()))
+                throw new DomainException("Mã khuyến mãi đã hết hạn hoặc chưa tới khung giờ áp dụng.");
+
+            if (cart.TotalAmount < promotion.MinOrderValue)
+                throw new DomainException($"Đơn hàng chưa đạt giá trị tối thiểu {promotion.MinOrderValue} để áp dụng mã.");
+
+            if (!promotion.IsGlobal)
+            {
+                var isForRestaurant = promotion.RestaurantPromotions.Any(rp => rp.RestaurantId == cart.RestaurantId);
+                if (!isForRestaurant)
+                    throw new DomainException("Mã khuyến mãi không áp dụng cho nhà hàng này.");
+            }
+
+            promotionDiscount = CalculateDiscountValue(cart.TotalAmount, promotion);
+        }
+
+        var finalAmount = (decimal)PricingUtils.RoundToNearestThousand(Math.Max(0, cart.TotalAmount - promotionDiscount));
+        var amount = finalAmount;
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         Guid orderId;
@@ -474,12 +523,13 @@ public class OrderService : IOrderService
             {
                 Id = orderId,
                 RestaurantId = cart.RestaurantId,
+                PromotionId = request.AppliedPromotionId,
                 OrderCode = orderCode,
                 IsPreOrder = false,
                 Note = cart.Note,
                 TotalAmount = cart.TotalAmount,
-                PromotionDiscount = 0,
-                FinalAmount = cart.TotalAmount,
+                PromotionDiscount = promotionDiscount,
+                FinalAmount = finalAmount,
                 Status = OrderStatus.Unpaid,
                 IsScanned = false,
                 Type = "Cash",
