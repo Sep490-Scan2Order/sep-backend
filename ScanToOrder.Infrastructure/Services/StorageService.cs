@@ -74,6 +74,23 @@ namespace ScanToOrder.Infrastructure.Services
             return expectedUrl;
         }
 
+        public async Task<string> GetOrGenerateScanAudioAsync(int orderNumber, string textToSpeak)
+        {
+            string fileName = $"scan_{orderNumber}.mp3";
+            string expectedUrl = $"{_vpsBaseUrl}audio/{fileName}";
+
+            if (await CheckFileExistsAsync(expectedUrl))
+            {
+                return expectedUrl;
+            }
+
+            byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
+
+            await UploadAudioToVpsAsync(audioBytes, fileName);
+
+            return expectedUrl;
+        }
+
         public async Task<string> GetOrGeneratePaymentReceivedAudioAsync(int orderCode, decimal amount)
         {
             string fileName = $"order_{orderCode}_payment.mp3";

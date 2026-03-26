@@ -22,7 +22,7 @@ public interface IOrderService
     Task<List<CustomerOrderSummaryDto>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone);
     Task<bool> UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
 
-    Task<bool> ValidateQrCodeAsync(string qrContent);
+    Task<string> ValidateQrCodeAsync(string qrContent, int orderNumber);
     Task CancelExpiredUnpaidOrdersAsync();
     Task<bool> ConfirmPickupTimeAsync(ConfirmPickupTimeRequest request);
 }

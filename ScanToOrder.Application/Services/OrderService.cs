@@ -963,7 +963,7 @@ public class OrderService : IOrderService
         return result;
     }
 
-    public async Task<bool> ValidateQrCodeAsync(string qrContent)
+    public async Task<string> ValidateQrCodeAsync(string qrContent, int orderNumber)
     {
         if (string.IsNullOrWhiteSpace(qrContent))
             throw new DomainException(OrderMessage.OrderError.QR_INVALID);
@@ -976,7 +976,7 @@ public class OrderService : IOrderService
         if (order == null)
             throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
 
-        if (order.Status == OrderStatus.Served) 
+        if (order.Status == OrderStatus.Served)
             throw new DomainException(OrderMessage.OrderError.QR_ALREADY_SCANNED);
 
         if (order.Status != OrderStatus.Ready)
@@ -986,7 +986,12 @@ public class OrderService : IOrderService
 
         await _unitOfWork.SaveAsync();
 
-        return true;
+        string textInput =
+            $"Đã xác nhận thành công đơn hàng {orderNumber}";
+
+        string audioUrl = await _storageService.GetOrGenerateScanAudioAsync(orderNumber, textInput);
+
+        return audioUrl;
     }
 
     // Calculate discount value based on promotion type and rules
