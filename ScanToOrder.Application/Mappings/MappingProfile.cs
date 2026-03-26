@@ -105,6 +105,7 @@ namespace ScanToOrder.Application.Mappings
                     opt => opt.MapFrom(src => src.typeOrder == TypeOrder.Refund));
 
             CreateMap<Restaurant, TenantRestaurantRevenueDto>()
+                .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.RestaurantName, opt => opt.MapFrom(src => src.RestaurantName))
                 .ForMember(dest => dest.CurrentPlan, opt => opt.MapFrom(src =>
                     src.Subscription != null
