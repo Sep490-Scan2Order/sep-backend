@@ -19,5 +19,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<ExpiringSubscriptionDto>> GetExpiringSubscriptionsAsync(int daysThreshold = 30);
 
         Task<List<TopTenantDto>> GetTopTenantsByRevenueAsync(int top = 10);
+
+        Task<TenantDetailDto> GetTenantDetailAsync(Guid tenantId, DateTime startDate, DateTime endDate);
     }
 }

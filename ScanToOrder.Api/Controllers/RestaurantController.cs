@@ -174,7 +174,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("{id:int}/revenue-summary")]
-        [Authorize(Roles = "Tenant")]
+        [Authorize(Roles = "Tenant, Admin")]
         public async Task<ActionResult<ApiResponse<ScanToOrder.Application.DTOs.Restaurant.Report.RevenueSummaryDto>>> GetRevenueSummary(
             int id, 
             [FromQuery] DateTime? startDate, 

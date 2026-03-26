@@ -10,7 +10,7 @@ public interface IOrderService
 {
     Task<CartDto> AddToCartAsync(AddToCartRequest request);
     Task<CartDto> GetCartAsync(string cartId);
-    Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt);
+    Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt, int? appliedPromotionId);
     Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request);
     Task ConfirmCashPaymentAsync(Guid orderId);
     Task<List<CashPendingOrderResponse>> GetCashOrdersPendingConfirmAsync();

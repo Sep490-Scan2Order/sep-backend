@@ -226,6 +226,39 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Select(x => (x.TenantId, x.TenantName, x.TotalRestaurants, x.TotalOrders, x.TotalRevenue))
                 .ToList();
         }
+
+        public async Task<List<(int RestaurantId, int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount)>>
+            GetRevenueByTenantAsync(Guid tenantId, DateTime? startDate, DateTime? endDate)
+        {
+            var query = _dbSet.AsNoTracking()
+                .Where(o => o.Restaurant.TenantId == tenantId
+                         && o.Status == OrderStatus.Served);
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(o => o.CreatedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(o => o.CreatedAt <= endDate.Value);
+            }
+
+            var result = await query
+                .GroupBy(o => o.RestaurantId)
+                .Select(g => new
+                {
+                    RestaurantId  = g.Key,
+                    TotalOrders   = g.Count(),
+                    GrossRevenue  = g.Sum(o => o.TotalAmount),
+                    NetRevenue    = g.Sum(o => o.FinalAmount),
+                    TotalDiscount = g.Sum(o => o.PromotionDiscount)
+                })
+                .ToListAsync();
+
+            return result
+                .Select(x => (x.RestaurantId, x.TotalOrders, x.GrossRevenue, x.NetRevenue, x.TotalDiscount))
+                .ToList();
+        }
     }
 }
-

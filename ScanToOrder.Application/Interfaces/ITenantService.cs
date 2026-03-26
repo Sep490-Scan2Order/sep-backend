@@ -1,4 +1,5 @@
-﻿using ScanToOrder.Application.DTOs.User;
+﻿using ScanToOrder.Application.DTOs.Orders;
+using ScanToOrder.Application.DTOs.User;
 
 namespace ScanToOrder.Application.Interfaces
 {
@@ -12,5 +13,11 @@ namespace ScanToOrder.Application.Interfaces
         Task<string> UpdateBankInfoAsync(Guid bankId, string accountNumber);
         Task<bool> VerifyBankAccountAsync(string paymentCode, string gateway, string accountNumber);
         Task<TenantDto> GetTenantByIdAsync(Guid tenantId);
+
+        Task<TotalRevenueByTenantDto> GetTotalRevenueByTenantAsync(
+            Guid? tenantId,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? preset);
     }
 }
