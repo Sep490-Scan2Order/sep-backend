@@ -12,11 +12,12 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-
-        public ShiftService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IRealtimeService _realtimeService;
+        public ShiftService(IUnitOfWork unitOfWork, IMapper mapper, IRealtimeService realtimeService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _realtimeService = realtimeService;
         }
 
         public async Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, decimal openingCashAmount, string? note)
@@ -53,6 +54,7 @@ namespace ScanToOrder.Application.Services
 
             await _unitOfWork.Shifts.AddAsync(shift);
             await _unitOfWork.SaveAsync();
+            await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
 
             return _mapper.Map<ShiftDto>(shift);
         }
@@ -111,7 +113,7 @@ namespace ScanToOrder.Application.Services
 
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
-
+                await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
                 return _mapper.Map<ShiftDto>(shift);
             }
             catch
@@ -163,6 +165,16 @@ namespace ScanToOrder.Application.Services
 
             return rows.Select(x => MapToDto(x.Report, x.OpeningCashAmount)).ToList();
         }
+
+        public  async Task<ShiftDto>  GetShiftByIdAsync(Guid staffId)
+        {
+            var shift = await _unitOfWork.Shifts.GetCurrentShiftByStaffIdAsync(staffId);
+            if (shift == null)
+                throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
+
+            return _mapper.Map<ShiftDto>(shift);
+        }
+
 
         private static ShiftReportDto MapToDto(Domain.Entities.Shifts.ShiftReport r, decimal openingCash) => new()
         {

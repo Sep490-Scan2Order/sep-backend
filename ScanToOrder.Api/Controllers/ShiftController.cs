@@ -20,7 +20,7 @@ namespace ScanToOrder.Api.Controllers
         [HttpPost("check-in")]
         [Authorize(Roles = "Cashier")]
         public async Task<ActionResult<ApiResponse<ShiftDto>>> CheckIn([FromBody] CheckInShiftRequest request)
-        { 
+        {
 
             var result = await _shiftService.CheckInShiftAsync(
                 request.RestaurantId,
@@ -66,6 +66,15 @@ namespace ScanToOrder.Api.Controllers
         public async Task<ActionResult<ApiResponse<List<ShiftReportDto>>>> GetShiftReportsByStaff([FromRoute] Guid staffId)
         {
             var result = await _shiftService.GetShiftReportsByStaffAsync(staffId);
+            return Success(result);
+        }
+
+        [HttpGet("current")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<ShiftDto>>> GetCurrentShift()
+        {
+            var staffId = _authenticatedUserService.ProfileId.Value;
+            var result = await _shiftService.GetShiftByIdAsync(staffId);
             return Success(result);
         }
     }

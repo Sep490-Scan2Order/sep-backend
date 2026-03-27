@@ -14,5 +14,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<ShiftReportDto> GetShiftReportAsync(int shiftId);
         Task<List<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, DateTime? from, DateTime? to);
         Task<List<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId);
+        Task<ShiftDto> GetShiftByIdAsync(Guid staffId);
     }
 }
