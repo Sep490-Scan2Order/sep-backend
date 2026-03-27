@@ -26,12 +26,13 @@ namespace ScanToOrder.Application.Services
         private readonly IPlanLimitationService _planLimitationService;
         private readonly IMenuCacheService _menuCacheService;
         private readonly IBackgroundJobService _backgroundJobService;
+        private readonly IRealtimeService _realtimeService;
 
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
             IStorageService storageService, IDishRedisService dishRedisService,
             IPlanLimitationService planLimitationService, IMenuCacheService menuCacheService,
-            IBackgroundJobService backgroundJobService)
+            IBackgroundJobService backgroundJobService, IRealtimeService realtimeService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -42,6 +43,7 @@ namespace ScanToOrder.Application.Services
             _planLimitationService = planLimitationService;
             _menuCacheService = menuCacheService;
             _backgroundJobService = backgroundJobService;
+            _realtimeService = realtimeService;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -467,6 +469,11 @@ namespace ScanToOrder.Application.Services
             restaurant.IsReceivingOrders = isReceivingOrders;
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
+
+            await _realtimeService.NotifyReceivingOrdersChanged(
+                restaurantId.ToString(),
+                isReceivingOrders
+            );
 
             return RestaurantMessage.RestaurantSuccess.RESTAURANT_RECEIVING_STATUS_UPDATED;
         }

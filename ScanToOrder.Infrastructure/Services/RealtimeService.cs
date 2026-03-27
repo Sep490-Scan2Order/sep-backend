@@ -77,5 +77,11 @@ namespace ScanToOrder.Infrastructure.Services
             Console.WriteLine($"NotifyShiftChanged called | staffId={staffId}, shift={JsonSerializer.Serialize(shift)}");
             var group = $"staff:{staffId}"; await _hubContext.Clients.Group(group).SendAsync("ShiftChanged", shift);
         }
+        public async Task NotifyReceivingOrdersChanged(string restaurantId, bool isReceiving)
+        {
+            Console.WriteLine($"ReceivingOrdersChanged | restaurantId={restaurantId} | isReceiving={isReceiving}");
+
+            await _hubContext.Clients.Group(restaurantId).SendAsync("ReceivingOrdersChanged", new { RestaurantId = restaurantId, IsReceivingOrders = isReceiving });
+        }
     }
 }
