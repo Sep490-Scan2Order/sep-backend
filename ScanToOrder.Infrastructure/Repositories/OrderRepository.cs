@@ -136,6 +136,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<List<Order>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone)
         {
             return await _dbSet
+                .Include(o => o.Restaurant)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
                 .Where(o => !o.IsDeleted

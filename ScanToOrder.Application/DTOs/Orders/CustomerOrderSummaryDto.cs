@@ -5,6 +5,7 @@ namespace ScanToOrder.Application.DTOs.Orders
     public class CustomerOrderSummaryDto
     {
         public int RestaurantId { get; set; }
+        public string RestaurantName { get; set; } = string.Empty;
         public Guid OrderId { get; set; }
         public int OrderCode { get; set; }
         public OrderStatus Status { get; set; }

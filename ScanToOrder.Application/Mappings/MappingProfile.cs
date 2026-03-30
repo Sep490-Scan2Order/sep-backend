@@ -99,6 +99,8 @@ namespace ScanToOrder.Application.Mappings
 
             CreateMap<Order, CustomerOrderSummaryDto>()
                 .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.RestaurantName,
+                    opt => opt.MapFrom(src => src.Restaurant != null ? src.Restaurant.RestaurantName : string.Empty))
                 .ForMember(dest => dest.UpdatedAt,
                     opt => opt.MapFrom(src => src.UpdatedAt ?? src.CreatedAt))
                 .ForMember(dest => dest.IsRefundLog,
