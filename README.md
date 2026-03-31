@@ -1,81 +1,113 @@
-# 🍽️ ScanToOrder - Backend APIs (SEP490)
+# ScanToOrder - Backend APIs (SEP490)
 
-Chào mừng bạn đến với kho lưu trữ mã nguồn Backend của dự án **ScanToOrder** - Nền tảng SaaS quản lý F&B (Nhà hàng, Quán ăn) thông qua hệ thống quét mã QR gọi món, đa người thuê (Multi-tenant).
+ScanToOrder là nền tảng SaaS chuyên dụng cho hệ thống quản lý F&B (Nhà hàng, Quán ăn, Cafe) tập trung vào tính năng nòng cốt: Quét mã QR tại bàn để gọi món (Scan-to-Order).
 
-Dự án được triển khai dựa trên nền tảng **.NET 8** và áp dụng các tiêu chuẩn thiết kế phần mềm linh hoạt (Clean Architecture), cho phép khả năng mở rộng tối đa và dễ dàng kiểm thử.
-
----
-
-## 🏗️ Kiến Trúc Hệ Thống (Clean Architecture)
-Dự án được chia làm 4 dự án (Projects) độc lập, xoay quanh phần lõi nghiệp vụ (Domain-Centric) để đảm bảo tuân thủ nguyên lý đảo ngược phụ thuộc (Dependency Inversion) của SOLID:
-
-1. **`ScanToOrder.Domain` (Tầng Lõi):**
-   - Chứa Cấu trúc dữ liệu (Entities), Các Enum, hằng số (Constants/Messages), và Exceptions dành riêng cho nghiệp vụ (Domain Exceptions).
-   - Tầng này **KHÔNG** tham chiếu đến bất kỳ tầng nào khác. Được viết bằng C# thuần.
-   
-2. **`ScanToOrder.Application` (Tầng Ứng Dung):**
-   - Chứa các quy tắc nghiệp vụ hệ thống (Business Logic/Services).
-   - Định nghĩa DTOs, Interfaces (như `IGenericRepository`, `IUnitOfWork`, `IRedisService`).
-   - Tầng này chỉ được phép tham chiếu tới `ScanToOrder.Domain`.
-
-3. **`ScanToOrder.Infrastructure` (Tầng Hạ Tầng):**
-   - Chứa mã kết nối với bên thứ ba: Triển khai DbContext (EF Core / PostgreSQL), Repositories theo Interface từ Application, mã giao tiếp Redis/SendGrid/VNPAY/AWS S3, v.v.
-   - Trực tiếp tương tác với công nghệ phần cứng/mạng. Tham chiếu `Domain` & `Application`.
-
-4. **`ScanToOrder.Api` (Tầng Trình Diễn):**
-   - Giao thức đầu vào cuối cùng (Controllers, Program.cs, Middleware, Filter).
-   - Chịu trách nhiệm Cấu hình Dependency Injection (DI), xác thực token JWT, Swagger.
-   - Chỉ chứa các lệnh điều hướng luồng đến `Application`. Tham chiếu tới `Application` và `Infrastructure`.
+Dự án triển khai mô hình đa khách hàng (Multi-tenant), cho phép mỗi nhà hàng (Tenant) hoạt động độc lập trên cùng một hệ thống với dữ liệu, menu, nhân sự và báo cáo doanh thu được cô lập hoàn toàn.
 
 ---
 
-## 🛠️ Công Nghệ & Công Cụ (Tech Stack)
-- **Framework:** .NET 8 (C# 12)
-- **Cơ sở dữ liệu:** PostgreSQL (Kết hợp thư viện Pgvector để search AI).
-- **ORM:** Entity Framework Core (Code-First Migration).
-- **Caching & Session:** Redis (Sử dụng luồng đa tuyến cho tính năng Cart & Transaction).
-- **Realtime / Socket:** SignalR (Đồng bộ nhà bếp & đơn hàng).
-- **Testing:** xUnit, Moq, FluentAssertions, Coverlet.
+## 1. Các tính năng nổi bật
+
+*   **Multi-tenant Architecture:** Quản lý cơ cấu dữ liệu tách biệt an toàn giữa các Nhà Hàng và Chi Nhánh.
+*   **Realtime Kitchen Sync:** Đồng bộ tức thời trạng thái đơn hàng (Khách hàng - Thu Ngân - Nhà Bếp) bằng WebSockets (SignalR).
+*   **High-Performance Caching:** Ứng dụng Redis xử lý tác vụ giỏ hàng (Cart) và phiên giao dịch (Transaction Session), đảm bảo hiệu năng trong thời gian cao điểm.
+*   **Semantic Search:** Tích hợp công nghệ Vector Database (Pgvector) trong PostgreSQL hỗ trợ tìm kiếm ngữ nghĩa cho hệ thống món ăn.
+*   **Payment Gateway Integrations:** Tích hợp thanh toán linh hoạt qua VNPAY và chuyển khoản ngân hàng.
+*   **Advanced Promotion Engine:** Hệ thống cấu hình khuyến mãi chi tiết (chiết khấu phần trăm, cố định, giảm tối đa, theo khung giờ).
 
 ---
 
-## 🧪 Hệ thống Kiểm Thử & Chạy Test (Unit Test)
-Việc kiểm tra chất lượng mã nguồn (Code Coverage) là cực kỳ được chú trọng ở dự án này. Hệ thống được bao phủ bởi các Test Projects tương đương cho các tầng:
+## 2. Kiến trúc hệ thống (Clean Architecture)
 
-- `ScanToOrder.Application.UnitTest`: Mock Service và test mọi kịch bản ở tầng logic.
-- `ScanToOrder.Infrastructure.UnitTest`: *(Đang xây dựng)*.
-- `ScanToOrder.Domain.UnitTest`: *(Đang thiết lập)*.
+Dự án áp dụng mô hình Clean Architecture được chia thành 4 phân hệ (Projects) chính để đảm bảo tính độc lập của nghiệp vụ, dễ bảo trì và phục vụ tốt cho quá trình Unit Test.
 
-### 🚀 Hướng Dẫn Chạy Test Tự Động (Automation Script)
-Bên team đã xây dựng sẵn file thực thi lệnh `.bat` giúp người kiểm thử (hoặc Developer) dọn dẹp bộ nhớ đệm, tự động chạy tất cả các bài Test và trực tiếp sinh ra Website báo cáo kết quả:
+### 2.1. ScanToOrder.Domain (Tầng Lõi Nghiệp Vụ)
+Nằm ở tâm điểm kiến trúc và không phụ thuộc vào bất kỳ thư viện bên thứ 3 nào.
+*   `Entities/`: Chứa các thực thể cốt lõi (Cart, Dish, Order, Promotion, Restaurant, Tenant, v.v).
+*   `Interfaces/`: Định nghĩa các Abstractions cốt lõi (như `IGenericRepository`, `IUnitOfWork`).
+*   `Exceptions/`: Quản lý các ngoại lệ nghiệp vụ (`DomainException`).
 
-1. Điều hướng Terminal (hoặc mở Explorer) tại ngay thư mục gốc của project (có chứa file `ScanToOrder_BE_SEP490.sln`).
-2. Gõ lệnh trên Terminal: `.\run-tests.bat` (Hoặc bấm đúp chuột vào file **`run-tests.bat`** trên máy tính).
-3. Đợi tiến trình hiển thị PASSED. Một thư mục `CodeCoverageReport` sẽ xuất hiện ngay đó.
-4. Mở file **`CodeCoverageReport/index.html`** trên bất kì trình duyệt (Chrome/Edge) nào để tận hưởng bảng phân tích màu sắc trực quan (Đỏ/Xanh/Vàng).
+### 2.2. ScanToOrder.Application (Tầng Ứng Dụng)
+Chứa toàn bộ logic nghiệp vụ (Use-cases). Giao tiếp với hạ tầng thông qua các Interfaces được định nghĩa sẵn.
+*   `Services/`: Lớp logic xử lý kịch bản ứng dụng (`OrderService`, `PromotionService`, v.v).
+*   `DTOs/`: Data Transfer Objects vận chuyển dữ liệu giữa các tầng.
+*   `Mappings/`: Cấu hình thư viện AutoMapper.
+*   `Validators/`: Định nghĩa ràng buộc dữ liệu đầu vào (FluentValidation).
+*   `Interfaces/`: Xuất bản các Service Interfaces như `ICartRedisService`, `IStorageService`.
+
+### 2.3. ScanToOrder.Infrastructure (Tầng Hạ Tầng)
+Chịu trách nhiệm thực thi các tương tác với thế giới bên ngoài (Database, File Storage, Network).
+*   `Context/`: Triển khai DbContext của Entity Framework.
+*   `Repositories/`: Triển khai cụ thể các Repository khai báo từ tầng Domain (`GenericRepository`).
+*   `Migrations/`: Theo dõi các phiên bản thay đổi lược đồ (Schema) của cơ sở dữ liệu.
+*   `Hubs/`: Nơi xử lý WebSockets của SignalR.
+*   `Services/`: Thực thi các dịch vụ bên ngoài (VNPAY Service, AWS S3 upload, Sendgrid email, Redis Connection).
+
+### 2.4. ScanToOrder.Api (Tầng Trình Diễn)
+Điểm tiếp xúc duy nhất với phía Client (Restful APIs).
+*   `Controllers/`: Các endpoint API giao tiếp với các Frontend platform.
+*   `Program.cs` / `Startup`: Cấu hình Dependency Injection (DI) hệ thống toàn cục.
+*   `Middleware/`: Bắt lỗi chung (Global Exception Handling), chứng thực Authentication/Authorization và CORS.
+
+---
+
+## 3. Yêu cầu hệ thống (Prerequisites)
+
+*   **.NET 8.0 SDK**
+*   **PostgreSQL** (yêu cầu cài đặt extension `pgvector`). *Khuyến nghị sử dụng Docker Image `ankane/pgvector`.*
+*   **Redis Server** (cổng mặc định 6379).
+*   IDE khuyên dùng: Visual Studio 2022 hoặc Jetbrains Rider.
 
 ---
 
-## 📦 Hướng Dẫn Cài Đặt Ban Đầu
-*(Tuỳ chỉnh thêm các lệnh sau vào nếu máy Dev mới kéo code về)*
+## 4. Hướng dẫn thiết lập và chạy dự án
 
-1. Cài đặt các IDE như Visual Studio 2022 hoặc Jetbrains Rider.
-2. Phục hồi thư viện:
-   ```bash
-   dotnet restore ScanToOrder_BE_SEP490.sln
-   ```
-3. Khởi tạo Database (Migration):
-   > Lưu ý: Hãy chắc chắn chuỗi kết nối (Connection String) trong `appsettings.json` trỏ đúng vào CSDL PostgreSQL máy bạn trước khi chạy lệnh.
-   ```bash
-   cd ScanToOrder.Infrastructure
-   dotnet ef database update -s ../ScanToOrder.Api/ScanToOrder.Api.csproj
-   ```
-4. Khởi chạy dự án API:
-   ```bash
-   cd ScanToOrder.Api
-   dotnet run
-   ```
-   > Dashboard API Swagger sẽ hiện lên ở cổng (Ví dụ: `https://localhost:7xxx/swagger`).
+### Bước 1: Thiết lập biến môi trường
+Bên trong project `ScanToOrder.Api`, tìm và mở file **`appsettings.Development.json`**. Khai báo chính xác thông tin chuỗi kết nối:
+
+```json
+"ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=ScanToOrderDb;Username=postgres;Password=your_password",
+    "RedisConnection": "localhost:6379"
+}
+```
+
+### Bước 2: Apply Migrations (Khởi động lược đồ DB)
+Mở cửa sổ dòng lệnh tại gốc dự án, chuyển hướng tới project Infrastructure và thực thi lệnh sinh DB:
+
+```bash
+cd ScanToOrder.Infrastructure
+dotnet ef database update -s ../ScanToOrder.Api/ScanToOrder.Api.csproj
+```
+
+### Bước 3: Khởi chạy API
+Khởi chạy thông qua giao diện của IDE hoặc dòng lệnh:
+
+```bash
+cd ScanToOrder.Api
+dotnet run
+```
+Truy cập danh sách API tài liệu nội bộ tại: `http://localhost:<port>/swagger`
 
 ---
-*(Tài liệu này là một phiên bản mô tả kiến trúc nhanh do Bot AI biên tập - SEP490 Team)*
+
+## 5. Hướng dẫn kiểm thử (Unit Testing & Coverage)
+
+Dữ án triển khai Unit Test tập trung vào tầng nghiệp vụ (`ScanToOrder.Application.UnitTest`) với các framework chuyên dụng:
+*   **xUnit**: Test engine cấu trúc điều phối kịch bản.
+*   **Moq**: Giả lập các dependencies (Mocks/Stubs) để cách ly Data layer.
+*   **FluentAssertions**: Triển khai thiết kế TDD thông qua hệ thống ngữ cảnh code tự nhiên.
+
+### Cách chạy Test tự động và thu thập báo cáo Code Coverage
+
+Dự án cung cấp tệp thực thi batch **`run-tests.bat`** tại thư mục gốc nhằm khởi chạy tác vụ dò code Coverage.  
+Process bao gồm:
+1. Dọn dẹp cache `TestResults` dư thừa nếu có.
+2. Build giải pháp và thực thi lệnh Coverlet.
+3. Chuyển đổi file XML sang định dạng HTML bằng `ReportGenerator`.
+
+**Câu lệnh thực thi:**
+*   Mở Terminal tại gốc thư mục, gõ `.\run-tests.bat` (Hoặc chạy file .bat bằng đúp chuột).
+
+**Kiểm tra kết quả:**
+*   Sau khi quy trình hoàn tất, truy cập thư mục `CodeCoverageReport` và mở file `index.html` bằng trình duyệt web bất kỳ. Tại đây các dòng Line Coverage & Branch Coverage cho từng Function sẽ được hiển thị chi tiết.
