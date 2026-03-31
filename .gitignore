@@ -28,6 +28,7 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 CoverageReport/
+CodeCoverageReport/
 *.cobertura.xml
 
 ## OS specific files
