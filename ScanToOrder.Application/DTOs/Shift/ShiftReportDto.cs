@@ -17,5 +17,6 @@ namespace ScanToOrder.Application.DTOs.Shift
         public decimal ExpectedTotalAmount { get; set; }
 
         public string Note { get; set; } = string.Empty;
+        public string CashierName { get; set; } = string.Empty;
     }
 }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Application.DTOs.Restaurant;
+using ScanToOrder.Application.DTOs.Other;
 
 namespace ScanToOrder.Application.Interfaces;
 
@@ -25,5 +26,14 @@ public interface IOrderService
     Task<string> ValidateQrCodeAsync(string qrContent, int orderNumber);
     Task CancelExpiredUnpaidOrdersAsync();
     Task<bool> ConfirmPickupTimeAsync(ConfirmPickupTimeRequest request);
+
+    Task<PagedResult<TenantOrderResponseDto>> GetTenantOrdersAsync(
+        int restaurantId,
+        int pageIndex,
+        int pageSize,
+        string? keyword = null,
+        OrderStatus? status = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null);
 }
 

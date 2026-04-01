@@ -1,4 +1,5 @@
 using AutoMapper;
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.Shift;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Shifts;
@@ -128,6 +129,8 @@ namespace ScanToOrder.Application.Services
             var shift = await _unitOfWork.Shifts.GetByIdAsync(shiftId);
             if (shift == null)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
+                
+            var staff = await _unitOfWork.Staffs.GetByIdAsync(shift.StaffId);
 
             var report = await _unitOfWork.ShiftReports
                 .FirstOrDefaultAsync(r => r.ShiftId == shiftId);
@@ -147,23 +150,36 @@ namespace ScanToOrder.Application.Services
                 ActualCashAmount = report.ActualCashAmount,
                 Difference = report.Difference,
                 ExpectedTotalAmount = shift.OpeningCashAmount + report.TotalCashOrder + report.TotalTransferOrder,
-                Note = report.Note
+                Note = report.Note,
+                CashierName = staff != null ? staff.Name : string.Empty
             };
         }
 
-        public async Task<List<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, DateTime? from, DateTime? to)
+        public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to)
         {
-            var rows = await _unitOfWork.ShiftReports
-                .GetReportsByRestaurantAsync(restaurantId, from, to);
+            var result = await _unitOfWork.ShiftReports
+                .GetReportsByRestaurantAsync(restaurantId, from, to, pageIndex, pageSize);
 
-            return rows.Select(x => MapToDto(x.Report, x.OpeningCashAmount)).ToList();
+            return new PagedResult<ShiftReportDto>
+            {
+                Items = result.Items.Select(x => MapToDto(x.Report, x.OpeningCashAmount, x.CashierName)),
+                TotalCount = result.TotalCount,
+                Page = pageIndex,
+                PageSize = pageSize
+            };
         }
 
-        public async Task<List<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId)
+        public async Task<PagedResult<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId, int pageIndex, int pageSize)
         {
-            var rows = await _unitOfWork.ShiftReports.GetReportsByStaffAsync(staffId);
+            var result = await _unitOfWork.ShiftReports.GetReportsByStaffAsync(staffId, pageIndex, pageSize);
 
-            return rows.Select(x => MapToDto(x.Report, x.OpeningCashAmount)).ToList();
+            return new PagedResult<ShiftReportDto>
+            {
+                Items = result.Items.Select(x => MapToDto(x.Report, x.OpeningCashAmount, x.CashierName)),
+                TotalCount = result.TotalCount,
+                Page = pageIndex,
+                PageSize = pageSize
+            };
         }
 
         public  async Task<ShiftDto>  GetShiftByIdAsync(Guid staffId)
@@ -176,7 +192,7 @@ namespace ScanToOrder.Application.Services
         }
 
 
-        private static ShiftReportDto MapToDto(Domain.Entities.Shifts.ShiftReport r, decimal openingCash) => new()
+        private static ShiftReportDto MapToDto(Domain.Entities.Shifts.ShiftReport r, decimal openingCash, string cashierName = "") => new()
         {
             Id = r.Id,
             ShiftId = r.ShiftId,
@@ -188,7 +204,8 @@ namespace ScanToOrder.Application.Services
             ActualCashAmount = r.ActualCashAmount,
             Difference = r.Difference,
             ExpectedTotalAmount = openingCash + r.TotalCashOrder + r.TotalTransferOrder,
-            Note = r.Note
+            Note = r.Note,
+            CashierName = cashierName
         };
     }
 }

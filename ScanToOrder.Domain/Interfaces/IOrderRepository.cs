@@ -28,5 +28,14 @@ namespace ScanToOrder.Domain.Interfaces
 
         Task<List<(int RestaurantId, int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount)>>
             GetRevenueByTenantAsync(Guid tenantId, DateTime? startDate, DateTime? endDate);
+
+        Task<(List<Order> Items, int TotalCount)> GetTenantOrdersPagedAsync(
+            int restaurantId,
+            int pageIndex,
+            int pageSize,
+            string? keyword = null,
+            OrderStatus? status = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null);
     }
 }

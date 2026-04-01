@@ -12,16 +12,16 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
         }
 
-        public async Task<List<(ShiftReport Report, decimal OpeningCashAmount)>> GetReportsByRestaurantAsync(
-            int restaurantId, DateTime? from, DateTime? to)
+        public async Task<(List<(ShiftReport Report, decimal OpeningCashAmount, string CashierName)> Items, int TotalCount)> GetReportsByRestaurantAsync(
+            int restaurantId, DateTime? from, DateTime? to, int pageIndex = 1, int pageSize = 10)
         {
             var query = _context.ShiftReports
                 .AsNoTracking()
                 .Join(
-                    _context.Shifts.Where(s => s.RestaurantId == restaurantId && s.Status == ShiftStatus.Closed),
+                    _context.Shifts.Where(s => s.RestaurantId == restaurantId && s.Status == ShiftStatus.Closed).Include(s => s.Staffs),
                     report => report.ShiftId,
                     shift => shift.Id,
-                    (report, shift) => new { Report = report, shift.OpeningCashAmount }
+                    (report, shift) => new { Report = report, shift.OpeningCashAmount, CashierName = shift.Staffs.Name }
                 )
                 .AsQueryable();
 
@@ -31,32 +31,48 @@ namespace ScanToOrder.Infrastructure.Repositories
             if (to.HasValue)
                 query = query.Where(x => x.Report.ReportDate <= to.Value.ToUniversalTime());
 
+            int totalCount = await query.CountAsync();
+
             var results = await query
                 .OrderByDescending(x => x.Report.ReportDate)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return results
-                .Select(x => (x.Report, x.OpeningCashAmount))
+            var items = results
+                .Select(x => (x.Report, x.OpeningCashAmount, x.CashierName))
                 .ToList();
+
+            return (items, totalCount);
         }
 
-        public async Task<List<(ShiftReport Report, decimal OpeningCashAmount)>> GetReportsByStaffAsync(Guid staffId)
+        public async Task<(List<(ShiftReport Report, decimal OpeningCashAmount, string CashierName)> Items, int TotalCount)> GetReportsByStaffAsync(Guid staffId, int pageIndex = 1, int pageSize = 10)
         {
-            var results = await _context.ShiftReports
+            var query = _context.ShiftReports
                 .AsNoTracking()
                 .Join(
-                    _context.Shifts.Where(s => s.StaffId == staffId && s.Status == ShiftStatus.Closed),
+                    _context.Shifts.Where(s => s.StaffId == staffId && s.Status == ShiftStatus.Closed).Include(s => s.Staffs),
                     report => report.ShiftId,
                     shift => shift.Id,
-                    (report, shift) => new { Report = report, shift.OpeningCashAmount }
+                    (report, shift) => new { Report = report, shift.OpeningCashAmount, CashierName = shift.Staffs.Name }
                 )
+                .AsQueryable();
+
+            int totalCount = await query.CountAsync();
+
+            var results = await query
                 .OrderByDescending(x => x.Report.ReportDate)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return results
-                .Select(x => (x.Report, x.OpeningCashAmount))
+            var items = results
+                .Select(x => (x.Report, x.OpeningCashAmount, x.CashierName))
                 .ToList();
+
+            return (items, totalCount);
         }
+
 
         public async Task<(decimal TotalCash, decimal TotalTransfer, decimal TotalRefund)> GetPaymentMetricsAsync(int restaurantId, DateTime startDate, DateTime endDate)
         {
