@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.Shift;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -52,20 +53,25 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("reports")]
-        public async Task<ActionResult<ApiResponse<List<ShiftReportDto>>>> GetAllShiftReports(
+        public async Task<ActionResult<ApiResponse<PagedResult<ShiftReportDto>>>> GetAllShiftReports(
             [FromQuery] int restaurantId,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10,
             [FromQuery] DateTime? from = null,
             [FromQuery] DateTime? to = null)
         {
-            var result = await _shiftService.GetAllShiftReportsAsync(restaurantId, from, to);
+            var result = await _shiftService.GetAllShiftReportsAsync(restaurantId, pageIndex, pageSize, from, to);
             return Success(result);
         }
 
         [HttpGet("reports/staff/{staffId}")]
         [Authorize]
-        public async Task<ActionResult<ApiResponse<List<ShiftReportDto>>>> GetShiftReportsByStaff([FromRoute] Guid staffId)
+        public async Task<ActionResult<ApiResponse<PagedResult<ShiftReportDto>>>> GetShiftReportsByStaff(
+            [FromRoute] Guid staffId,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var result = await _shiftService.GetShiftReportsByStaffAsync(staffId);
+            var result = await _shiftService.GetShiftReportsByStaffAsync(staffId, pageIndex, pageSize);
             return Success(result);
         }
 

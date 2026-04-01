@@ -1,3 +1,4 @@
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.Shift;
 using System;
 using System.Collections.Generic;
@@ -12,8 +13,8 @@ namespace ScanToOrder.Application.Interfaces
         Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, decimal openingCashAmount, string? note);
         Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal closingCashAmount, string? note);
         Task<ShiftReportDto> GetShiftReportAsync(int shiftId);
-        Task<List<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, DateTime? from, DateTime? to);
-        Task<List<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId);
+        Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to);
+        Task<PagedResult<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId, int pageIndex, int pageSize);
         Task<ShiftDto> GetShiftByIdAsync(Guid staffId);
     }
 }
