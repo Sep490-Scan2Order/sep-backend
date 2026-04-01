@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using DocumentFormat.OpenXml.InkML;
 using ScanToOrder.Application.DTOs.Orders;
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -1205,6 +1206,54 @@ public class OrderService : IOrderService
         }
 
         return true;
+    }
+
+    public async Task<PagedResult<TenantOrderResponseDto>> GetTenantOrdersAsync(
+        int restaurantId,
+        int pageIndex,
+        int pageSize,
+        string? keyword = null,
+        OrderStatus? status = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
+    {
+        var result = await _unitOfWork.Orders.GetTenantOrdersPagedAsync(
+            restaurantId, pageIndex, pageSize, keyword, status, fromDate, toDate);
+
+        return new PagedResult<TenantOrderResponseDto>
+        {
+            Items = result.Items.Select(o => new TenantOrderResponseDto
+            {
+                Id = o.Id,
+                OrderCode = o.OrderCode,
+                NumberPhone = o.NumberPhone,
+                TotalAmount = o.TotalAmount,
+                PromotionDiscount = o.PromotionDiscount,
+                FinalAmount = o.FinalAmount,
+                Status = o.Status,
+                IsPreOrder = o.IsPreOrder,
+                RequestedPickupAt = o.RequestedPickupAt,
+                ConfirmedPickupAt = o.ConfirmedPickupAt,
+                Note = o.Note,
+                Type = o.Type,
+                PaymentProofUrl = o.PaymentProofUrl,
+                TypeOrder = o.typeOrder,
+                CreatedAt = o.CreatedAt,
+                OrderDetails = o.OrderDetails?.Select(od => new TenantOrderDetailDto
+                {
+                    DishId = od.DishId,
+                    DishName = od.Dish?.DishName ?? "Unknown",
+                    Quantity = od.Quantity,
+                    SubTotal = od.SubTotal,
+                    OriginalPrice = od.OriginalPrice,
+                    DiscountedPrice = od.DiscountedPrice,
+                    PromotionAmount = od.PromotionAmount
+                }).ToList() ?? new List<TenantOrderDetailDto>()
+            }),
+            TotalCount = result.TotalCount,
+            Page = pageIndex,
+            PageSize = pageSize
+        };
     }
 }
 

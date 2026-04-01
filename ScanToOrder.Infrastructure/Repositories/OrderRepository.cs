@@ -261,5 +261,52 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Select(x => (x.RestaurantId, x.TotalOrders, x.GrossRevenue, x.NetRevenue, x.TotalDiscount))
                 .ToList();
         }
+        public async Task<(List<Order> Items, int TotalCount)> GetTenantOrdersPagedAsync(
+            int restaurantId,
+            int pageIndex,
+            int pageSize,
+            string? keyword = null,
+            OrderStatus? status = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null)
+        {
+            var query = _dbSet.AsNoTracking()
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Dish)
+                .Where(o => o.RestaurantId == restaurantId && !o.IsDeleted);
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                var search = keyword.Trim().ToLower();
+                query = query.Where(o => o.OrderCode.ToString() == search || o.NumberPhone.Contains(search));
+            }
+
+            if (status.HasValue)
+            {
+                query = query.Where(o => o.Status == status.Value);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var start = fromDate.Value.ToUniversalTime();
+                query = query.Where(o => o.CreatedAt >= start);
+            }
+
+            if (toDate.HasValue)
+            {
+                var end = toDate.Value.ToUniversalTime();
+                query = query.Where(o => o.CreatedAt <= end);
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
     }
 }

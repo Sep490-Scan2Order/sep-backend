@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Orders;
+using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -169,6 +170,22 @@ public class OrderController : BaseController
         if (restaurant == null) throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
         
         var result = await _promotionService.GetAvailablePromotionsByOrderAsync(restaurant.TenantId, request.RestaurantId, request.OrderTotal);
+        return Success(result);
+    }
+
+    [HttpGet("tenant/restaurant/{restaurantId}")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<PagedResult<TenantOrderResponseDto>>>> GetTenantOrders(
+        [FromRoute] int restaurantId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? keyword = null,
+        [FromQuery] OrderStatus? status = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
+    {
+        var result = await _orderService.GetTenantOrdersAsync(
+            restaurantId, pageIndex, pageSize, keyword, status, fromDate, toDate);
         return Success(result);
     }
 }
