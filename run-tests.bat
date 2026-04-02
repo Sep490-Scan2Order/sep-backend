@@ -12,8 +12,9 @@ echo [2/3] Bat dau chay lai toan bo Unit Tests trong he thong...
 dotnet test ScanToOrder_BE_SEP490.sln --collect:"XPlat Code Coverage"
 
 echo.
-echo [3/3] Dang sinh bang du lieu HTML (ReportGenerator)...
-reportgenerator -reports:"**\TestResults\*\coverage.cobertura.xml" -targetdir:"CodeCoverageReport" -reporttypes:Html
+echo [3/3] Dang sinh bang du lieu HTML (Project Local Tool)...
+dotnet tool restore >nul 2>&1
+dotnet reportgenerator -reports:"**\TestResults\*\coverage.cobertura.xml" -targetdir:"CodeCoverageReport" -reporttypes:Html
 
 echo.
 echo ========================================================
