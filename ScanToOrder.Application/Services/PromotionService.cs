@@ -273,17 +273,44 @@ public class PromotionService : IPromotionService
 
         var validPromotions = promotions
             .Where(p => p.IsValidAt(now))
-            .OrderByDescending(p => p.Priority)
             .ToList();
 
         var dtos = _mapper.Map<List<PromotionResponseDto>>(validPromotions);
 
-        // Map RestaurantIds manually from loaded navigation property
+        // Tính DiscountAmount thực tế cho từng promotion dựa trên orderTotal
         for (int i = 0; i < dtos.Count; i++)
         {
             dtos[i].RestaurantIds = validPromotions[i].RestaurantPromotions?.Select(rp => rp.RestaurantId).ToList() ?? new List<int>();
+            dtos[i].DiscountAmount = CalculateDiscountValue(orderTotal, validPromotions[i]);
         }
-        
+
+        // Sắp xếp: ưu tiên theo Priority cao nhất, nếu bằng nhau thì chọn cái giảm nhiều tiền hơn
+        dtos = dtos
+            .OrderByDescending(d => d.Priority)
+            .ThenByDescending(d => d.DiscountAmount)
+            .ToList();
+
+        // Đánh dấu cái đầu tiên (tốt nhất) là IsRecommended để FE chọn
+        if (dtos.Count > 0)
+            dtos[0].IsRecommended = true;
+
         return dtos;
+    }
+
+    /// <summary>
+    /// Tính số tiền giảm thực tế dựa trên giá gốc và loại khuyến mãi.
+    /// - FixedAmount: giảm cố định (VD: -20,000đ)
+    /// - Percentage: giảm theo % với cap tối đa nếu có MaxDiscountValue (VD: 10% nhưng tối đa 50k)
+    /// </summary>
+    private static decimal CalculateDiscountValue(decimal price, Promotion p)
+    {
+        if (p.DiscountType == DiscountType.FixedAmount)
+            return p.DiscountValue;
+
+        var discount = price * (p.DiscountValue / 100);
+
+        return p.MaxDiscountValue.HasValue
+            ? Math.Min(discount, p.MaxDiscountValue.Value)
+            : discount;
     }
 }
