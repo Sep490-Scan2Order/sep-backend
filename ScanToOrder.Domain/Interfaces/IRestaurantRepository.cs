@@ -15,9 +15,10 @@ namespace ScanToOrder.Domain.Interfaces
             double latitude,
             double longitude,
             int page,
-            int pageSize);
+            int pageSize,
+            string? keyword = null);
 
-        Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize);
+        Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize, string? keyword = null);
         Task<List<Restaurant>> GetByTenantIdAsync(Guid tenantId);
         Task<Restaurant?> GetByIdIncludeSubscriptionAsync(int id);
         Task<Dictionary<int, Restaurant>> GetByIdsWithTenantId (List<int> ids, Guid tenantId);

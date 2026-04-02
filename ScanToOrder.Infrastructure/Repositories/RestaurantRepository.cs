@@ -72,28 +72,31 @@ namespace ScanToOrder.Infrastructure.Repositories
             double latitude,
             double longitude,
             int page,
-            int pageSize)
+            int pageSize,
+            string? keyword = null)
         {
             var offset = (page - 1) * pageSize;
             if (offset < 0) offset = 0;
             if (pageSize <= 0) pageSize = 20;
 
-            var totalCount = await _dbSet
-                .Where(r => r.Location != null && r.IsActive == true && r.IsDeleted == false)
-                .CountAsync();
+            var normalizedKeyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim();
+            var query = _dbSet
+                .Where(r => r.Location != null && r.IsActive == true && r.IsDeleted == false);
+            if (normalizedKeyword != null)
+            {
+                var pattern = $"%{normalizedKeyword}%";
+                query = query.Where(r => EF.Functions.ILike(r.RestaurantName ?? string.Empty, pattern));
+            }
 
-            FormattableString dataSql = $@"
-                SELECT r.*
-                FROM ""Restaurants"" r
-                WHERE r.""Location"" IS NOT NULL
-                  AND r.""IsActive"" = true
-                  AND r.""IsDeleted"" = false
-                ORDER BY r.""Location"" <-> ST_SetSRID(ST_MakePoint({longitude}, {latitude}), 4326)::geometry
-                OFFSET {offset}
-                LIMIT {pageSize}";
+            var totalCount = await query.CountAsync();
 
-            var restaurants = await _dbSet
-                .FromSqlInterpolated(dataSql)
+            var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+            var userLocation = geometryFactory.CreatePoint(new Coordinate(longitude, latitude));
+
+            var restaurants = await query
+                .OrderBy(r => r.Location!.Distance(userLocation))
+                .Skip(offset)
+                .Take(pageSize)
                 .ToListAsync();
 
             var items = new List<(Restaurant Restaurant, double DistanceKm)>();
@@ -109,14 +112,21 @@ namespace ScanToOrder.Infrastructure.Repositories
             return (items, totalCount);
         }
 
-        public async Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize)
+        public async Task<(List<Restaurant> Items, int TotalCount)> GetRestaurantsSortedByTotalOrderPagedAsync(int page, int pageSize, string? keyword = null)
         {
             var offset = (page - 1) * pageSize;
             if (offset < 0) offset = 0;
             if (pageSize <= 0) pageSize = 20;
 
+            var normalizedKeyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim();
+
             var query = _dbSet
                 .Where(r => r.IsActive == true && r.IsDeleted == false);
+            if (normalizedKeyword != null)
+            {
+                var pattern = $"%{normalizedKeyword}%";
+                query = query.Where(r => EF.Functions.ILike(r.RestaurantName ?? string.Empty, pattern));
+            }
 
             var totalCount = await query.CountAsync();
 

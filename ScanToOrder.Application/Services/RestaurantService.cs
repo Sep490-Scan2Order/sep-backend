@@ -56,10 +56,11 @@ namespace ScanToOrder.Application.Services
         }
 
         public async Task<PagedRestaurantResultDto> GetRestaurantsPagedAsync(double? latitude, double? longitude,
-            int page = 1, int pageSize = 20)
+            int page = 1, int pageSize = 20, string? keyword = null)
         {
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 20;
+            var normalizedKeyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim();
 
             if (latitude.HasValue && longitude.HasValue)
             {
@@ -67,7 +68,8 @@ namespace ScanToOrder.Application.Services
                     latitude.Value,
                     longitude.Value,
                     page,
-                    pageSize);
+                    pageSize,
+                    normalizedKeyword);
 
                 var dtos = items.Select(item =>
                 {
@@ -86,7 +88,7 @@ namespace ScanToOrder.Application.Services
             }
 
             var (restaurants, totalCountByOrder) =
-                await _unitOfWork.Restaurants.GetRestaurantsSortedByTotalOrderPagedAsync(page, pageSize);
+                await _unitOfWork.Restaurants.GetRestaurantsSortedByTotalOrderPagedAsync(page, pageSize, normalizedKeyword);
             var dtosByOrder = _mapper.Map<List<RestaurantDto>>(restaurants);
 
             return new PagedRestaurantResultDto

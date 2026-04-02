@@ -39,9 +39,10 @@ namespace ScanToOrder.Api.Controllers
             [FromQuery] double? latitude,
             [FromQuery] double? longitude,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? keyword = null)
         {
-            var result = await _restaurantService.GetRestaurantsPagedAsync(latitude, longitude, page, pageSize);
+            var result = await _restaurantService.GetRestaurantsPagedAsync(latitude, longitude, page, pageSize, keyword);
             return Success(result);
         }
 
