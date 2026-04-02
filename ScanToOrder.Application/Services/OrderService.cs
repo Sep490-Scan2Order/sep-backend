@@ -29,6 +29,7 @@ public class OrderService : IOrderService
     private readonly ICartRedisService _cartRedisService;
     private readonly ITransactionRedisService _transactionRedisService;
     private readonly IRealtimeService _realtimeService;
+    private readonly IMenuCacheService _menuCacheService;
     private readonly IMapper _mapper;
     private readonly IAuthenticatedUserService _authenticatedUserService;
     private readonly IStorageService _storageService;
@@ -40,6 +41,7 @@ public class OrderService : IOrderService
         ICartRedisService cartRedisService,
         ITransactionRedisService transactionRedisService,
         IRealtimeService realtimeService,
+        IMenuCacheService menuCacheService,
         IMapper mapper,
         IAuthenticatedUserService authenticatedUserService,
         IStorageService storageService,
@@ -50,6 +52,7 @@ public class OrderService : IOrderService
         _cartRedisService = cartRedisService;
         _transactionRedisService = transactionRedisService;
         _realtimeService = realtimeService;
+        _menuCacheService = menuCacheService;
         _mapper = mapper;
         _authenticatedUserService = authenticatedUserService;
         _storageService = storageService;
@@ -381,6 +384,8 @@ public class OrderService : IOrderService
 
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+
+            await _menuCacheService.InvalidateMenuAsync(cart.RestaurantId);
             var orderRealtime = new OrderRealtimeDto
             {
                 Id = order.Id,
@@ -565,6 +570,8 @@ public class OrderService : IOrderService
          
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+           
+            await _menuCacheService.InvalidateMenuAsync(cart.RestaurantId);
             var orderRealtime = new OrderRealtimeDto
             {
                 Id = order.Id,
@@ -1111,7 +1118,7 @@ public class OrderService : IOrderService
 
     public async Task CancelExpiredUnpaidOrdersAsync()
     {
-        var expiredOrders = await _unitOfWork.Orders.GetExpiredUnpaidOrdersAsync(10);
+        var expiredOrders = await _unitOfWork.Orders.GetExpiredUnpaidOrdersAsync(15);
         
         if (!expiredOrders.Any())
             return;
@@ -1135,12 +1142,14 @@ public class OrderService : IOrderService
             try
             {
                 order.Status = OrderStatus.Cancelled;
+                order.IsDeleted = true;
                 _unitOfWork.Orders.Update(order);
 
                 var dishQuantitiesToRefund = new Dictionary<int, int>();
 
                 foreach (var detail in order.OrderDetails)
                 {
+                    detail.IsDeleted = true;
                     if (dishQuantitiesToRefund.ContainsKey(detail.DishId))
                         dishQuantitiesToRefund[detail.DishId] += detail.Quantity;
                     else
@@ -1163,6 +1172,18 @@ public class OrderService : IOrderService
                 if (dishQuantitiesToRefund.Any())
                 {
                     await _unitOfWork.BranchDishConfigs.RefundDishAvailabilityBatchAsync(order.RestaurantId, dishQuantitiesToRefund);
+                }
+
+                var transactions = (await _unitOfWork.Transactions.FindAsync(t => t.OrderId == order.Id)).ToList();
+                if (transactions.Any())
+                {
+                    foreach (var t in transactions)
+                    {
+                        if (t.Status == OrderTransactionStatus.Pending)
+                            t.Status = OrderTransactionStatus.Canceled;
+                        t.IsDeleted = true;
+                    }
+                    _unitOfWork.Transactions.UpdateRange(transactions);
                 }
 
                 await _unitOfWork.SaveAsync();
