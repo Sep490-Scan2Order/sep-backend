@@ -113,7 +113,6 @@ public class CategoryServiceTests
     public async Task UpdateCategory_WhenCategoryNotFound_ThrowsDomainException()
     {
         _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Category)null);
-        // FIX: Thêm CategoryName cho required member
         var action = async () => await _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "Update" });
         await action.Should().ThrowAsync<DomainException>();
     }
@@ -163,6 +162,20 @@ public class CategoryServiceTests
         configs[0].IsSelling.Should().BeFalse();
         _mockUnitOfWork.Verify(u => u.BranchDishConfigs.Update(It.IsAny<BranchDishConfig>()), Times.Once);
     }
+
+    [Fact]
+    public async Task DeActiveCategory_WhenCategoryNotFound_ThrowsDomainException()
+    {
+        // Arrange
+        _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(It.IsAny<int>()))
+            .ReturnsAsync((Category)null);
+
+        // Act
+        var action = async () => await _categoryService.DeActiveCategory(1);
+
+        // Assert
+        await action.Should().ThrowAsync<DomainException>();
+    }
     #endregion
 
     #region 6. ActiveCategory
@@ -178,6 +191,20 @@ public class CategoryServiceTests
 
         configs[0].IsSelling.Should().BeTrue();
         _mockUnitOfWork.Verify(u => u.BranchDishConfigs.UpdateRange(It.IsAny<IEnumerable<BranchDishConfig>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ActiveCategory_WhenCategoryNotFound_ThrowsDomainException()
+    {
+        // Arrange
+        _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(It.IsAny<int>()))
+            .ReturnsAsync((Category)null);
+
+        // Act
+        var action = async () => await _categoryService.ActiveCategory(1);
+
+        // Assert
+        await action.Should().ThrowAsync<DomainException>();
     }
     #endregion
 }

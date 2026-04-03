@@ -25,6 +25,7 @@ public class OrderServiceTests
     private readonly Mock<ICartRedisService> _mockCartRedisService;
     private readonly Mock<ITransactionRedisService> _mockTransactionRedisService;
     private readonly Mock<IRealtimeService> _mockRealtimeService;
+    private readonly Mock<IMenuCacheService> _mockMenuCacheService; 
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<IAuthenticatedUserService> _mockAuthUserService;
     private readonly Mock<IStorageService> _mockStorageService;
@@ -44,6 +45,7 @@ public class OrderServiceTests
         _mockCartRedisService = new Mock<ICartRedisService>();
         _mockTransactionRedisService = new Mock<ITransactionRedisService>();
         _mockRealtimeService = new Mock<IRealtimeService>();
+        _mockMenuCacheService = new Mock<IMenuCacheService>();
         _mockMapper = new Mock<IMapper>();
         _mockAuthUserService = new Mock<IAuthenticatedUserService>();
         _mockStorageService = new Mock<IStorageService>();
@@ -55,6 +57,7 @@ public class OrderServiceTests
             _mockCartRedisService.Object,
             _mockTransactionRedisService.Object,
             _mockRealtimeService.Object,
+            _mockMenuCacheService.Object,
             _mockMapper.Object,
             _mockAuthUserService.Object,
             _mockStorageService.Object,
