@@ -22,12 +22,12 @@ public class AuthController : BaseController
         _taxService = taxService;
     }
 
-    [HttpPost("send-otp")]
-    public async Task<ActionResult<ApiResponse<string>>> SendOtp([FromBody] SendOtpRequest request)
-    {
-        var otp = await _authService.SendOtpAsync(request.Phone);
-        return Success(otp);
-    }  
+    //[HttpPost("send-otp")]
+    //public async Task<ActionResult<ApiResponse<string>>> SendOtp([FromBody] SendOtpRequest request)
+    //{
+    //    var otp = await _authService.SendOtpAsync(request.Phone);
+    //    return Success(otp);
+    //}  
 
     [HttpPost("tenant-login")]
     public async Task<ActionResult<ApiResponse<AuthResponse<TenantDto>>>> TenantLogin(

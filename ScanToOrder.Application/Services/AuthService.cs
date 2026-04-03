@@ -38,20 +38,20 @@ namespace ScanToOrder.Application.Services
             _redisDb = connectionMultiplexer.GetDatabase();
         }
 
-        public async Task<string> SendOtpAsync(string phone)
-        {
-            string otpCode = new Random().Next(100000, 999999).ToString();
+        //public async Task<string> SendOtpAsync(string phone)
+        //{
+        //    string otpCode = new Random().Next(100000, 999999).ToString();
 
-            await _otpRedisService.SaveOtpCustomerAsync(
-                phone,
-                otpCode,
-                OtpMessage.OtpKeyword.OTP_REGISTER_PHONE,
-                TimeSpan.FromMinutes(3));
+        //    await _otpRedisService.SaveOtpCustomerAsync(
+        //        phone,
+        //        otpCode,
+        //        OtpMessage.OtpKeyword.OTP_REGISTER_PHONE,
+        //        TimeSpan.FromMinutes(3));
 
-            // await _smsSender.SendAsync(phone, otpCode);
+        //    // await _smsSender.SendAsync(phone, otpCode);
 
-            return otpCode;
-        }    
+        //    return otpCode;
+        //}    
 
         public async Task<AuthResponse<TenantDto>> TenantLoginAsync(TenantLoginRequest request)
         {

@@ -5,7 +5,7 @@ namespace ScanToOrder.Application.Interfaces
 {
     public interface IAuthService
     {
-        Task<string> SendOtpAsync(string phone);
+        //Task<string> SendOtpAsync(string phone);
 
         Task<AuthResponse<TenantDto>> TenantLoginAsync(TenantLoginRequest request);
         Task<AuthResponse<StaffDto>> StaffLoginAsync(StaffLoginRequest request);
