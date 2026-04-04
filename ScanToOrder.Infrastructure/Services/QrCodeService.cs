@@ -15,7 +15,7 @@ namespace ScanToOrder.Infrastructure.Services
         {
             string baseUrl = _configuration["FrontEndUrl:scan2order_io_vn"]!;
 
-            string fullUrl = $"{baseUrl.TrimEnd('/')}/restaurant/{slug}";
+            string fullUrl = $"{baseUrl.TrimEnd('/')}/restaurants/{slug}";
 
             using var qrGenerator = new QRCodeGenerator();
             using var qrCodeData = qrGenerator.CreateQrCode(fullUrl, QRCodeGenerator.ECCLevel.Q);
