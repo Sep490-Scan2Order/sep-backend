@@ -98,9 +98,7 @@ namespace ScanToOrder.Infrastructure.Services
 
             if (await CheckFileExistsAsync(expectedUrl))
                 return expectedUrl;
-
-            string amountText = amount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
-            string textToSpeak = $"Đã nhận chuyển khoản {amountText} đồng cho đơn số {orderCode}.";
+            string textToSpeak = $"Đã nhận được tiền số tiền mặt cho đơn hàng {orderCode} ";
             byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
             await UploadAudioToVpsAsync(audioBytes, fileName);
             return expectedUrl;

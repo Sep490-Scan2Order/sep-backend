@@ -172,6 +172,7 @@ namespace ScanToOrder.Application.Services
                     ResponsibleStaffId = request.ResponsibleStaffId,
                     typeOrder = TypeOrder.Refund,
                     Status = OrderStatus.Served,
+                    NumberPhone = "",
                     FinalAmount = 0,
                     TotalAmount = 0,
                     PromotionDiscount = 0,
