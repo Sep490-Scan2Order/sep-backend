@@ -23,6 +23,8 @@ public class Restaurant : BaseEntity<int>
     public string? Description { get; set; }
 
     public string? ProfileUrl { get; set; }
+    public TimeOnly? OpenTime { get; set; }
+    public TimeOnly? CloseTime { get; set; }
 
     public string? QrMenu { get; set; }
 
