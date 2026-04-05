@@ -386,11 +386,10 @@ namespace ScanToOrder.Application.Services
                 var price = worksheet.Cell(row, 3).GetValue<decimal>();
                 var description = worksheet.Cell(row, 4).GetString();
 
-                var dishTypeRaw = worksheet.Cell(row, 5).GetString()?.Trim();
-                var isCombo = !string.IsNullOrWhiteSpace(dishTypeRaw)
-                              && dishTypeRaw.Equals("Combo", StringComparison.OrdinalIgnoreCase);
+                var dishTypeRaw = worksheet.Cell(row, 5).GetString().Trim();
+                var isCombo = dishTypeRaw.Equals("Combo", StringComparison.OrdinalIgnoreCase);
 
-                var comboItems = worksheet.Cell(row, 6).GetString()?.Trim() ?? string.Empty;
+                var comboItems = worksheet.Cell(row, 6).GetString().Trim();
 
                 rows.Add((categoryName, dishName, price, description, isCombo, comboItems));
             }
