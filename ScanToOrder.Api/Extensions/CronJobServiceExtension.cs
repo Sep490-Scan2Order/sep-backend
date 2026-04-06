@@ -58,5 +58,12 @@ public static class CronJobServiceExtension
             Cron.Daily(2, 00),
             options
         );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Update-Restaurant-Opening-Status",
+            job => job.UpdateRestaurantOpeningStatusAsync(CancellationToken.None),
+            Cron.Minutely(),
+            options
+        );
     }
 }

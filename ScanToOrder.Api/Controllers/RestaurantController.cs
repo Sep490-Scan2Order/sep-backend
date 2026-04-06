@@ -156,6 +156,28 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [HttpPut("{id}/opening-status")]
+        [Authorize(Roles = "Tenant, Staff, Cashier")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateOpeningStatus(int id, bool isOpened)
+        {
+            var result = await _restaurantService.UpdateOpeningStatusAsync(id, isOpened);
+            if (result == null)
+                return NotFound(ApiResponse<string>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
+
+            return Success(result);
+        }
+
+        [HttpPut("{id}/active-status")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateActiveStatus(int id, bool isActive)
+        {
+            var result = await _restaurantService.UpdateActiveStatusAsync(id, isActive);
+            if (result == null)
+                return NotFound(ApiResponse<string>.Failure(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND));
+
+            return Success(result);
+        }
+
         [HttpPut("{id}/assign-present-cashier")]
         [Authorize(Roles = "Tenant, Staff, Cashier")]
         public async Task<ActionResult<ApiResponse<AssignPresentCashierDto>>> AssignPresentCashier(int id, [FromQuery] Guid cashierId)

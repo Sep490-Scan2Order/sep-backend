@@ -480,6 +480,45 @@ namespace ScanToOrder.Application.Services
             return RestaurantMessage.RestaurantSuccess.RESTAURANT_RECEIVING_STATUS_UPDATED;
         }
 
+        public async Task<string> UpdateOpeningStatusAsync(int restaurantId, bool isOpened)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+            if (restaurant == null)
+                return null;
+
+            restaurant.IsOpened = isOpened;
+            
+            if (!isOpened)
+            {
+                restaurant.IsReceivingOrders = false;
+            }
+
+            _unitOfWork.Restaurants.Update(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED;
+        }
+
+        public async Task<string> UpdateActiveStatusAsync(int restaurantId, bool isActive)
+        {
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+            if (restaurant == null)
+                return null;
+
+            restaurant.IsActive = isActive;
+            
+            if (!isActive)
+            {
+                restaurant.IsOpened = false;
+                restaurant.IsReceivingOrders = false;
+            }
+
+            _unitOfWork.Restaurants.Update(restaurant);
+            await _unitOfWork.SaveAsync();
+
+            return RestaurantMessage.RestaurantSuccess.RESTAURANT_UPDATED;
+        }
+
         public async Task<AssignPresentCashierDto> AssignPresentCashier(int restaurantId, Guid cashierId)
         {
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
