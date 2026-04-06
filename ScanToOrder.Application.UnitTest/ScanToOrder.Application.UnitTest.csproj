@@ -32,8 +32,4 @@
     <ProjectReference Include="..\ScanToOrder.Infrastructure\ScanToOrder.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Postman\" />
-  </ItemGroup>
-
 </Project>

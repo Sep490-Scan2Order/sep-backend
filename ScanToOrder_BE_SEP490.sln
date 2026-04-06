@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36804.6
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11626.88 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanToOrder.Api", "ScanToOrder.Api\ScanToOrder.Api.csproj", "{14D14C38-9652-44CE-8D45-DEF223B51D88}"
 EndProject
@@ -18,6 +18,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanToOrder.Application.UnitTest", "ScanToOrder.Application.UnitTest\ScanToOrder.Application.UnitTest.csproj", "{1B9C8EFB-01FB-4D90-80BB-76C7921A0748}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanToOrder.Infrastructure.UnitTest", "ScanToOrder.Infrastructure.UnitTest\ScanToOrder.Infrastructure.UnitTest.csproj", "{32687AF3-2D96-4916-8FBD-2C0DC84092A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanToOrder.Api.IntegrationTest", "ScanToOrder.Api.IntegrationTest\ScanToOrder.Api.IntegrationTest.csproj", "{2FB6CCC5-EEF8-454B-9DD4-9A4C04F913F7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +51,10 @@ Global
 		{32687AF3-2D96-4916-8FBD-2C0DC84092A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32687AF3-2D96-4916-8FBD-2C0DC84092A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32687AF3-2D96-4916-8FBD-2C0DC84092A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2FB6CCC5-EEF8-454B-9DD4-9A4C04F913F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FB6CCC5-EEF8-454B-9DD4-9A4C04F913F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FB6CCC5-EEF8-454B-9DD4-9A4C04F913F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FB6CCC5-EEF8-454B-9DD4-9A4C04F913F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,6 +66,7 @@ Global
 		{99CE95BB-3B25-400F-840F-44513524463B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{1B9C8EFB-01FB-4D90-80BB-76C7921A0748} = {996C7DC8-A2FE-442A-82B4-B7216D48C445}
 		{32687AF3-2D96-4916-8FBD-2C0DC84092A9} = {996C7DC8-A2FE-442A-82B4-B7216D48C445}
+		{2FB6CCC5-EEF8-454B-9DD4-9A4C04F913F7} = {996C7DC8-A2FE-442A-82B4-B7216D48C445}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {61DFBAE6-3DF3-4877-BD65-891FE46DBB05}
