@@ -19,7 +19,7 @@ using AutoMapper;
 
 namespace ScanToOrder.Application.UnitTest.Services;
 
-public class OrderServiceTests
+public class OrderService_CartTests
 {
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<ICartRedisService> _mockCartRedisService;
@@ -29,17 +29,17 @@ public class OrderServiceTests
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<IAuthenticatedUserService> _mockAuthUserService;
     private readonly Mock<IStorageService> _mockStorageService;
-    private readonly Mock<ILogger<OrderService>> _mockLogger;
+    private readonly Mock<ILogger<ScanToOrder.Application.Services.OrderService>> _mockLogger;
     private readonly Mock<IQrCodeService> _mockQrCodeService;
 
-    private readonly OrderService _orderService;
+    private readonly ScanToOrder.Application.Services.OrderService _orderService;
 
     private readonly AddToCartRequest _validRequest;
     private readonly Restaurant _validRestaurant;
     private readonly BranchDishConfig _validBranchDish;
     private readonly Dish _validDish;
 
-    public OrderServiceTests()
+    public OrderService_CartTests()
     {
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockCartRedisService = new Mock<ICartRedisService>();
@@ -49,10 +49,10 @@ public class OrderServiceTests
         _mockMapper = new Mock<IMapper>();
         _mockAuthUserService = new Mock<IAuthenticatedUserService>();
         _mockStorageService = new Mock<IStorageService>();
-        _mockLogger = new Mock<ILogger<OrderService>>();
+        _mockLogger = new Mock<ILogger<ScanToOrder.Application.Services.OrderService>>();
         _mockQrCodeService = new Mock<IQrCodeService>();
 
-        _orderService = new OrderService(
+        _orderService = new ScanToOrder.Application.Services.OrderService(
             _mockUnitOfWork.Object,
             _mockCartRedisService.Object,
             _mockTransactionRedisService.Object,
@@ -105,6 +105,7 @@ public class OrderServiceTests
         _mockMapper.Setup(m => m.Map<CartDto>(It.IsAny<CartModel>())).Returns(new CartDto());
     }
 
+    #region AddToCartAsync
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -207,4 +208,114 @@ public class OrderServiceTests
         _mockMapper.Verify(m => m.Map<CartDto>(It.IsAny<CartModel>()), Times.Once);
         #endregion
     }
+    #endregion
+
+    #region GetCartAsync
+    [Theory]
+    [InlineData("", null, OrderMessage.OrderError.CART_ID_REQUIRED)]
+    [InlineData("  ", null, OrderMessage.OrderError.CART_ID_REQUIRED)]
+    [InlineData("cart-123", "", OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED)]
+    [InlineData("cart-123", null, OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED)]
+    [InlineData("cart-123", "null", OrderMessage.OrderError.INVALID_CART_DATA)]
+    public async Task GetCartAsync_WhenValidationFails_ThrowsDomainException(string cartId, string redisJson, string expectedMessage)
+    {
+        #region Arrange
+        _mockCartRedisService.Setup(r => r.GetRawCartAsync(It.IsAny<string>())).ReturnsAsync(redisJson);
+        #endregion
+
+        #region Act
+        var action = async () => await _orderService.GetCartAsync(cartId);
+        #endregion
+
+        #region Assert
+        await action.Should().ThrowAsync<DomainException>().WithMessage(expectedMessage);
+        #endregion
+    }
+
+    [Theory]
+    // 1. Happy path: No sync changes needed
+    [InlineData(10, 2, 50000, false, 5, 50000, 0, false, false)]
+    // 2. Dish sold out: Removal flag triggered
+    [InlineData(10, 2, 50000, true, 5, 50000, 0, false, true)]
+    // 3. Price mismatch: Auto-correction
+    [InlineData(10, 2, 45000, false, 5, 50000, 0, false, true)]
+    // 4. Stock reduced clamping: Quantity 5 > Stock 2. Clamped to 2
+    [InlineData(10, 5, 50000, false, 2, 50000, 0, false, true)]
+    // 5. Stock reduced to 0: Item removed
+    [InlineData(10, 2, 50000, false, 0, 50000, 0, false, true)]
+    // 6. Dish missing entirely from config: Item removed
+    [InlineData(20, 1, 50000, false, 5, 0, 0, true, true)]
+    public async Task GetCartAsync_WithSyncScenarios_UpdatesAndReturnsExpectedDto(
+        int dishIdInCart, int quantInCart, int cartDiscountedPrice, 
+        bool isDishSoldOut, int dishStockCount, int newDiscountedPrice, int originalPriceInCart, bool dishConfigNotFound, bool expectRedisSave)
+    {
+        #region Arrange
+        var cartId = "cart-sync";
+        var cartJson = $"{{\"CartId\":\"{cartId}\",\"RestaurantId\":1,\"Items\":[{{\"DishId\":{dishIdInCart},\"Quantity\":{quantInCart},\"DiscountedPrice\":{cartDiscountedPrice},\"OriginalPrice\":{originalPriceInCart},\"SubTotal\":100000}}]}}";
+        _mockCartRedisService.Setup(r => r.GetRawCartAsync(cartId)).ReturnsAsync(cartJson);
+
+        // Mock GetDishesByIdsWithPromotionAsync internals
+        // In the Setup constructor, we mock the exact db fetch that powers SyncCartPricingAndAvailabilityAsync
+        if (dishConfigNotFound)
+        {
+            _mockUnitOfWork.Setup(u => u.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(It.IsAny<int>(), It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<BranchDishConfig>()); // Returns empty list
+        }
+        else
+        {
+            var branchDish = new BranchDishConfig
+            {
+                RestaurantId = 1,
+                DishId = dishIdInCart,
+                IsSoldOut = isDishSoldOut,
+                DishAvailability = dishStockCount,
+                Price = newDiscountedPrice, // Assuming no promotion for simplicity so price = discountedPrice
+                Dish = new Dish { Id = dishIdInCart, DishName = "Dynamic Dish" }
+            };
+            _mockUnitOfWork.Setup(u => u.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(It.IsAny<int>(), It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<BranchDishConfig> { branchDish });
+        }
+        #endregion
+
+        #region Act
+        var result = await _orderService.GetCartAsync(cartId);
+        #endregion
+
+        #region Assert
+        if (expectRedisSave)
+        {
+            _mockCartRedisService.Verify(r => r.SaveRawCartAsync(cartId, It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Once);
+        }
+        else
+        {
+            _mockCartRedisService.Verify(r => r.SaveRawCartAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Never);
+        }
+
+        _mockMapper.Verify(m => m.Map<CartDto>(It.IsAny<CartModel>()), Times.Once);
+        #endregion
+    }
+
+    [Theory]
+    [InlineData("{\"CartId\":\"cart-empty\",\"RestaurantId\":1}")] // Missing Items -> might default to empty list
+    [InlineData("{\"CartId\":\"cart-empty\",\"RestaurantId\":1,\"Items\":[]}")] // Empty Items -> []
+    [InlineData("{\"CartId\":\"cart-empty\",\"RestaurantId\":1,\"Items\":null}")] // Explicit null -> covers cart.Items == null
+    public async Task GetCartAsync_WhenCartItemsIsNullOrEmpty_ReturnsCartWithoutSyncing(string cartJson)
+    {
+        #region Arrange
+        var cartId = "cart-empty";
+        _mockCartRedisService.Setup(r => r.GetRawCartAsync(cartId)).ReturnsAsync(cartJson);
+        #endregion
+
+        #region Act
+        var result = await _orderService.GetCartAsync(cartId);
+        #endregion
+
+        #region Assert
+        // The Sync method should return early, meaning no DB queries for promotions and no Redis Saves.
+        _mockUnitOfWork.Verify(u => u.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(It.IsAny<int>(), It.IsAny<List<int>>()), Times.Never);
+        _mockCartRedisService.Verify(r => r.SaveRawCartAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()), Times.Never);
+        _mockMapper.Verify(m => m.Map<CartDto>(It.IsAny<CartModel>()), Times.Once);
+        #endregion
+    }
+    #endregion
 }
