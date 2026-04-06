@@ -84,7 +84,11 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.Longitude,
                     opt => opt.MapFrom(src => src.Location != null ? (decimal?)src.Location.X : null))
                 .ForMember(dest => dest.Latitude,
-                    opt => opt.MapFrom(src => src.Location != null ? (decimal?)src.Location.Y : null));
+                    opt => opt.MapFrom(src => src.Location != null ? (decimal?)src.Location.Y : null))
+                .ForMember(dest => dest.OpenTime,
+                    opt => opt.MapFrom(src => src.OpenTime.HasValue ? src.OpenTime.Value.ToString("HH:mm") : null))
+                .ForMember(dest => dest.CloseTime,
+                    opt => opt.MapFrom(src => src.CloseTime.HasValue ? src.CloseTime.Value.ToString("HH:mm") : null));
             CreateMap<MenuTemplate, MenuTemplateDto>();
             CreateMap<MenuRestaurant, MenuRestaurantDto>();      
 

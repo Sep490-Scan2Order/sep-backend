@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.DTOs.Restaurant
+namespace ScanToOrder.Application.DTOs.Restaurant
 {
     public class RestaurantDto
     {
@@ -35,6 +35,8 @@
 
         public DateTime CreatedAt { get; set; }
         public double? DistanceKm { get; set; }
+        public string? OpenTime { get; set; }
+        public string? CloseTime { get; set; }
         public decimal MinCashAmount { get; set; }
     }
 }
