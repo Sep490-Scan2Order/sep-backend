@@ -1172,4 +1172,40 @@ public class DishServiceTests
         _mockUnitOfWork.Verify(u => u.Dishes.AddAsync(It.Is<Dish>(d => d.Type == DishType.Single)), Times.Exactly(2));
     }
     #endregion
+    
+    #region 9. DTO Coverage 
+    [Fact]
+    public void DishDto_Properties_GetAndSetCorrectly()
+    {
+        // Arrange
+        var date = DateTime.UtcNow;
+
+        // Act
+        var dto = new DishDto
+        {
+            Id = 1,
+            CategoryId = 10,
+            CategoryName = "Test Category",
+            DishName = "Test Dish",
+            Price = 99000m,
+            Description = "Test Description",
+            ImageUrl = "test_url.jpg",
+            Type = DishType.Single,
+            IsAvailable = true,
+            CreatedAt = date
+        };
+
+        // Assert
+        dto.Id.Should().Be(1);
+        dto.CategoryId.Should().Be(10);
+        dto.CategoryName.Should().Be("Test Category");
+        dto.DishName.Should().Be("Test Dish");
+        dto.Price.Should().Be(99000m);
+        dto.Description.Should().Be("Test Description");
+        dto.ImageUrl.Should().Be("test_url.jpg");
+        dto.Type.Should().Be(DishType.Single);
+        dto.IsAvailable.Should().BeTrue();
+        dto.CreatedAt.Should().Be(date);
+    }
+    #endregion
 }
