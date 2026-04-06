@@ -49,8 +49,10 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.IsOpened, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.IsReceivingOrders, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.TotalOrder, opt => opt.MapFrom(src => 0))
-                .ForMember(dest => dest.QrMenu,
-                    opt => opt.MapFrom(src => $"https://scantoorder.com/menu/{Guid.NewGuid()}"));
+                .ForMember(dest => dest.QrMenu, opt => opt.MapFrom(src => $"https://scantoorder.com/menu/{Guid.NewGuid()}"))
+                .ForMember(dest => dest.OpenTime, opt => opt.MapFrom(src => src.OpenTime))
+                .ForMember(dest => dest.CloseTime, opt => opt.MapFrom(src => src.CloseTime));
+
 
             CreateMap<BranchDishConfig, BranchDishConfigDto>()
                 .ForMember(dest => dest.RestaurantName,

@@ -151,6 +151,23 @@ namespace ScanToOrder.Application.Services
             restaurant.IsActive = true;
             restaurant.IsOpened = false;
 
+            // Handle OpenTime and CloseTime conversion from string to TimeOnly
+            if (!string.IsNullOrEmpty(request.OpenTime))
+            {
+                if (TimeOnly.TryParse(request.OpenTime, out var openTime))
+                {
+                    restaurant.OpenTime = openTime;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.CloseTime))
+            {
+                if (TimeOnly.TryParse(request.CloseTime, out var closeTime))
+                {
+                    restaurant.CloseTime = closeTime;
+                }
+            }
+
             string baseSlug = request.RestaurantName.GenerateSlug();
             // Đảm bảo slug không chứa ký tự '#' để tránh xung đột fragment trong URL
             baseSlug = baseSlug.Replace("#", "-");
@@ -205,6 +222,23 @@ namespace ScanToOrder.Application.Services
             restaurant.Address = request.Address;
             restaurant.Phone = request.Phone;
             restaurant.Description = request.Description;
+
+            // Handle OpenTime and CloseTime conversion from string to TimeOnly
+            if (!string.IsNullOrEmpty(request.OpenTime))
+            {
+                if (TimeOnly.TryParse(request.OpenTime, out var openTime))
+                {
+                    restaurant.OpenTime = openTime;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.CloseTime))
+            {
+                if (TimeOnly.TryParse(request.CloseTime, out var closeTime))
+                {
+                    restaurant.CloseTime = closeTime;
+                }
+            }
 
             if (request.Latitude.HasValue || request.Longitude.HasValue)
             {
