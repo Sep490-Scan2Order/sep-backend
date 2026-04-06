@@ -19,5 +19,9 @@ namespace ScanToOrder.Application.DTOs.Restaurant
         public IFormFile? Image { get; set; }
         public string? Phone { get; set; }
         public string? Description { get; set; }
+
+        public string? OpenTime { get; set; }
+        public string? CloseTime { get; set; }
+
     }
 }

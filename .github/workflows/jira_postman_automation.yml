@@ -4,19 +4,19 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'ScanToOrder.Application.UnitTest/Postman/**'
-  
+      - 'ScanToOrder.Api.IntegrationTest/Postman/**'
+      
   workflow_dispatch:
     inputs:
       test_scope:
-        description: 'Nhập tên file muốn test (Ví dụ: Auth_Automation.postman_collection.json). Nhập "all" để chạy tất cả.'
+        description: 'Tên file .json hoặc "all"'
         required: true
         default: 'all'
-        type: string
       test_folder:
-        description: 'Tên Folder cụ thể (ví dụ: Staff_Forgot_Pw_Flow). Để "all" nếu muốn chạy hết file.'
+        description: 'Tên Folder hoặc "all"'
         required: true
         default: 'all'
+
 jobs:
   api-testing:
     runs-on: ubuntu-latest
@@ -31,37 +31,58 @@ jobs:
           node-version: '18'
 
       - name: Install Newman & Reporters
-        run: npm install -g newman newman-reporter-htmlextra newman-reporter-csv
+        run: |
+          npm install -g newman newman-reporter-htmlextra newman-reporter-csv
 
-      # BƯỚC THÔNG MINH: Tự động quét và chạy
+      # BƯỚC 1: TẠO FILE MÔI TRƯỜNG TỪ SECRETS (PHẢI CHẠY TRƯỚC)
+      - name: Create Environment File
+        run: |
+          echo '{
+            "name": "GitHub_Actions_Env",
+            "values": [
+              { "key": "admin_email", "value": "${{ secrets.ADMIN_EMAIL }}", "enabled": true },
+              { "key": "admin_password", "value": "${{ secrets.ADMIN_PASSWORD }}", "enabled": true },
+              { "key": "baseUrl", "value": "https://api.scan2order.id.vn", "enabled": true }
+            ]
+          }' > env_vars.json
+
+      # BƯỚC 2: CHẠY NEWMAN
       - name: Execute Postman Collections
         run: |
-          COLLECTION_DIR="ScanToOrder.Application.UnitTest/Postman"
+          COLLECTION_DIR="ScanToOrder.Api.IntegrationTest/Postman"
           FILE="${{ github.event.inputs.test_scope }}"
           FOLDER="${{ github.event.inputs.test_folder }}"
-      
-          if [[ "$FILE" != "all" ]]; then
-             # Nếu có chỉ định Folder
-             if [[ "$FOLDER" != "all" ]]; then
-                echo "🚀 Chạy Folder [$FOLDER] trong file [$FILE]"
-                newman run "$COLLECTION_DIR/$FILE" --folder "$FOLDER" --reporters cli,json,htmlextra,csv --insecure || true
+          
+          mkdir -p TestResults
+
+          # Kiểm tra nếu chạy thủ công một file cụ thể
+          if [[ "$FILE" != "all" && "$FILE" != "" ]]; then
+             if [[ "$FOLDER" != "all" && "$FOLDER" != "" ]]; then
+                echo "🚀 Running Folder [$FOLDER] in file [$FILE]"
+                newman run "$COLLECTION_DIR/$FILE" -e env_vars.json --folder "$FOLDER" --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${FILE}_results.json" --insecure || true
              else
-                echo "📂 Chạy toàn bộ file [$FILE]"
-                newman run "$COLLECTION_DIR/$FILE" --reporters cli,json,htmlextra,csv --insecure || true
+                echo "📂 Running entire file [$FILE]"
+                newman run "$COLLECTION_DIR/$FILE" -e env_vars.json --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${FILE}_results.json" --insecure || true
              fi
           else
-             # Chạy tất cả nếu là Push hoặc chọn 'all'
+             # Chạy tất cả các file .json trong thư mục nếu là Push hoặc chọn 'all'
+             echo "🔄 Running all collections in $COLLECTION_DIR"
              for f in "$COLLECTION_DIR"/*.json; do
-                newman run "$f" --reporters cli,json,htmlextra,csv --insecure || true
+                filename=$(basename "$f")
+                echo "Testing $filename..."
+                newman run "$f" -e env_vars.json --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${filename}_results.json" --insecure || true
              done
           fi
 
-      # 5. Script Update Jira (Giữ nguyên logic PowerShell của bạn)
+      # BƯỚC 3: CẬP NHẬT JIRA
       - name: Dynamic Update Jira
         shell: pwsh
         run: |
           $results = Get-ChildItem "TestResults/*_results.json"
-          if ($null -eq $results) { exit 0 }
+          if ($null -eq $results) { 
+            Write-Host "⚠️ No results found to update Jira."
+            exit 0 
+          }
           foreach ($file in $results) {
               $report = Get-Content $file.FullName -Raw | ConvertFrom-Json
               foreach ($execution in $report.run.executions) {
@@ -81,8 +102,10 @@ jobs:
               }
           }
 
+      # BƯỚC 4: LƯU BÁO CÁO
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
+        if: always() # Luôn upload báo cáo kể cả khi test fail
         with:
           name: Professional-Reports
           path: TestResults/
