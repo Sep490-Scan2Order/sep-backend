@@ -484,7 +484,7 @@ public class SubscriptionService : ISubscriptionService
     {
         var utcNow = DateTime.UtcNow;
 
-        // 1. Process Expired Subscriptions
+        // 1. Query with navigation for email/deactivate logic (AsNoTracking)
         var expiredSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
             s => s.Status == SubscriptionStatus.Active && s.EndDate <= utcNow,
             s => s.Restaurant,
@@ -492,16 +492,18 @@ public class SubscriptionService : ISubscriptionService
             s => s.Restaurant.Tenant.Account
         );
 
-        bool hasChanges = false;
+        if (!expiredSubscriptions.Any())
+        {
+            await SendExpiringWarningEmailsAsync(utcNow);
+            return;
+        }
+
+        // 2. Deactivate restaurants
+        var expiredIds = expiredSubscriptions.Select(s => s.Id).ToList();
         foreach (var sub in expiredSubscriptions)
         {
-            sub.Status = SubscriptionStatus.Expired;
-            hasChanges = true;
-
             if (sub.Restaurant != null)
-            {
                 await _restaurantService.UpdateActiveStatusAsync(sub.Restaurant.Id, false);
-            }
         }
 
         var expiredEmailGroups = expiredSubscriptions
@@ -565,10 +567,55 @@ public class SubscriptionService : ISubscriptionService
             await _emailService.SendEmailAsync(email, subject, htmlContent);
         }
 
-        if (hasChanges)
+        // 5. Update Status in DB — use FindAsync (tracked, no AsNoTracking)
+        var subscriptionsToUpdate = await _unitOfWork.Subscriptions.FindAsync(
+            s => expiredIds.Contains(s.Id)
+        );
+
+        foreach (var sub in subscriptionsToUpdate)
+            sub.Status = SubscriptionStatus.Expired;
+
+        _unitOfWork.Subscriptions.UpdateRange(subscriptionsToUpdate);
+        await _unitOfWork.SaveAsync();
+
+        // 6. Send warning emails for subscriptions expiring within 24h
+        await SendExpiringWarningEmailsAsync(utcNow);
+    }
+
+    private async Task SendExpiringWarningEmailsAsync(DateTime utcNow)
+    {
+        var tomorrow = utcNow.AddDays(1);
+        var expiringSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
+            s => s.Status == SubscriptionStatus.Active && s.EndDate > utcNow && s.EndDate <= tomorrow,
+            s => s.Restaurant,
+            s => s.Restaurant.Tenant,
+            s => s.Restaurant.Tenant.Account
+        );
+
+        var expiringEmailGroups = expiringSubscriptions
+            .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
+            .GroupBy(s => s.Restaurant.Tenant.Account.Email);
+
+        foreach (var group in expiringEmailGroups)
         {
-            _unitOfWork.Subscriptions.UpdateRange(expiredSubscriptions);
-            await _unitOfWork.SaveAsync();
+            var email = group.Key;
+            string restaurantListHtml = "";
+            foreach (var sub in group)
+            {
+                restaurantListHtml += $"<li><strong>{sub.Restaurant.RestaurantName}</strong> (Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>";
+            }
+
+            string subject = "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn";
+            string htmlContent = $@"
+                <h3>Kính gửi Quý khách hàng,</h3>
+                <p>Gói dịch vụ ScanToOrder của các chi nhánh sau sẽ hết hạn trong vòng <strong>chưa tới 24 giờ nữa</strong>:</p>
+                <ul>
+                    {restaurantListHtml}
+                </ul>
+                <p>Để không làm gián đoạn trải nghiệm gọi món của khách hàng tại quán, bạn vui lòng đăng nhập vào hệ thống và gia hạn gói cước sớm nhé!</p>
+                <p>Trân trọng,<br>Đội ngũ ScanToOrder</p>";
+                
+            await _emailService.SendEmailAsync(email, subject, htmlContent);
         }
     }
 }
