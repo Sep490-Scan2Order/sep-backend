@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,5 +17,6 @@ namespace ScanToOrder.Application.Interfaces
         Task MarkPaymentCanceledAsync(long transactionCode, Guid currentTenantId);
         Task<PaymentStatusResponse> GetPaymentStatusAsync(long transactionCode, Guid currentTenantId);
         Task<List<RestaurantSubscriptionDto>> GetSubscriptionsByTenantAsync(Guid tenantId);
+        Task ProcessSubscriptionExpirationsAsync();
     }
 }

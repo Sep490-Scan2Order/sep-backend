@@ -535,7 +535,7 @@ namespace ScanToOrder.Application.Services
 
         public async Task<string> UpdateActiveStatusAsync(int restaurantId, bool isActive)
         {
-            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+            var restaurant = await _unitOfWork.Restaurants.GetByIdIncludeSubscriptionAsync(restaurantId);
             if (restaurant == null)
                 return null;
 
@@ -546,7 +546,7 @@ namespace ScanToOrder.Application.Services
                 restaurant.IsOpened = false;
                 restaurant.IsReceivingOrders = false;
             }
-
+            
             _unitOfWork.Restaurants.Update(restaurant);
             await _unitOfWork.SaveAsync();
 

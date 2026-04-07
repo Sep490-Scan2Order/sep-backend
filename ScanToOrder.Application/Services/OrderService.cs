@@ -354,6 +354,16 @@ public class OrderService : IOrderService
         
         if (activeShift == null)
             throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
+        
+        if ((bool)restaurant.IsActive!)
+        {
+            throw new DomainException("Restaurant is currently inactive.");
+        }
+        
+        if ((bool)restaurant.IsReceivingOrders!)
+        {
+            throw new DomainException("Restaurant is not receiving orders at the moment.");
+        }
 
         decimal promotionDiscount = 0;
         if (appliedPromotionId.HasValue)

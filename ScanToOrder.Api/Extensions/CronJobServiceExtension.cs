@@ -65,5 +65,12 @@ public static class CronJobServiceExtension
             Cron.MinuteInterval(5),
             options
         );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Process-Subscription-Expirations",
+            job => job.ProcessSubscriptionExpirationsAsync(CancellationToken.None),
+            Cron.Daily(1, 00), // Run daily at 1:00 AM VN time
+            options
+        );
     }
 }

@@ -13,16 +13,18 @@ public class CronJobService : ICronJobService
         private readonly IOrderService _orderService;
         private readonly IDishRedisService _dishRedisService;
         private readonly IRealtimeService _realtimeService;
+        private readonly ISubscriptionService _subscriptionService;
 
         public CronJobService(ILogger<CronJobService> logger, IUnitOfWork unitOfWork, 
             IOrderService orderService, IDishRedisService dishRedisService,
-            IRealtimeService realtimeService)
+            IRealtimeService realtimeService, ISubscriptionService subscriptionService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _orderService = orderService;
             _dishRedisService = dishRedisService;
             _realtimeService = realtimeService;
+            _subscriptionService = subscriptionService;
         }
         
         public async Task CancelExpiredUnpaidOrdersAsync(CancellationToken cancellationToken = default)
@@ -207,5 +209,19 @@ public class CronJobService : ICronJobService
             _logger.LogInformation("Đã hoàn thành CronJob: UpdateRestaurantOpeningStatusAsync");
         }
 
-        
+        public async Task ProcessSubscriptionExpirationsAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: ProcessSubscriptionExpirationsAsync vào lúc {Time}", DateTimeOffset.Now);
+            
+            try
+            {
+                await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: ProcessSubscriptionExpirationsAsync");
+            }
+            
+            _logger.LogInformation("Đã hoàn thành CronJob: ProcessSubscriptionExpirationsAsync");
+        }
 }

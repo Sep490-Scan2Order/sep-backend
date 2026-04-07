@@ -17,7 +17,9 @@ namespace ScanToOrder.Application.UnitTest.Services
         private readonly Mock<IOrderService> _mockOrderService;
         private readonly Mock<IDishRedisService> _mockDishRedisService;
         private readonly Mock<IRealtimeService> _mockRealtimeService;
+        private readonly Mock<ISubscriptionService> _mockSubscriptionService;
         private readonly CronJobService _service;
+        
 
         public CronJobServiceTests()
         {
@@ -26,13 +28,15 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockOrderService = new Mock<IOrderService>();
             _mockDishRedisService = new Mock<IDishRedisService>();
             _mockRealtimeService = new Mock<IRealtimeService>();
+            _mockSubscriptionService = new Mock<ISubscriptionService>();
 
             _service = new CronJobService(
                 _mockLogger.Object,
                 _mockUnitOfWork.Object,
                 _mockOrderService.Object,
                 _mockDishRedisService.Object,
-                _mockRealtimeService.Object
+                _mockRealtimeService.Object,
+                _mockSubscriptionService.Object
             );
         }
 

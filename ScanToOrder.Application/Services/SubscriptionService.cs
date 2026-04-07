@@ -18,17 +18,23 @@ public class SubscriptionService : ISubscriptionService
     private readonly IPaymentService _paymentService;
     private readonly IRealtimeService _realtimeService;
     private readonly IConfiguration _configuration;
+    private readonly IEmailService _emailService;
+    private readonly IRestaurantService _restaurantService;
 
     public SubscriptionService(
         IUnitOfWork unitOfWork,
         IPaymentService paymentService,
         IRealtimeService realtimeService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IEmailService emailService,
+        IRestaurantService restaurantService)
     {
         _unitOfWork = unitOfWork;
         _paymentService = paymentService;
         _realtimeService = realtimeService;
         _configuration = configuration;
+        _emailService = emailService;
+        _restaurantService = restaurantService;
     }
 
     public async Task<CheckoutPreviewResponse> CalculatePreviewAsync(PlanCheckoutRequest request, Guid currentTenantId)
@@ -465,12 +471,104 @@ public class SubscriptionService : ISubscriptionService
                 dto.StartDate = currentSub.StartDate;
                 dto.EndDate = currentSub.EndDate;
                 
-                dto.Status = currentSub.EndDate > DateTime.UtcNow ? "Active" : "Expired";
+                dto.Status = currentSub.Status.ToString();
             }
 
             return dto;
         }).ToList();
 
         return result;
+    }
+
+    public async Task ProcessSubscriptionExpirationsAsync()
+    {
+        var utcNow = DateTime.UtcNow;
+
+        // 1. Process Expired Subscriptions
+        var expiredSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
+            s => s.Status == SubscriptionStatus.Active && s.EndDate <= utcNow,
+            s => s.Restaurant,
+            s => s.Restaurant.Tenant,
+            s => s.Restaurant.Tenant.Account
+        );
+
+        bool hasChanges = false;
+        foreach (var sub in expiredSubscriptions)
+        {
+            sub.Status = SubscriptionStatus.Expired;
+            hasChanges = true;
+
+            if (sub.Restaurant != null)
+            {
+                await _restaurantService.UpdateActiveStatusAsync(sub.Restaurant.Id, false);
+            }
+        }
+
+        var expiredEmailGroups = expiredSubscriptions
+            .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
+            .GroupBy(s => s.Restaurant.Tenant.Account.Email);
+
+        foreach (var group in expiredEmailGroups)
+        {
+            var email = group.Key;
+            string restaurantListHtml = "";
+            foreach (var sub in group)
+            {
+                restaurantListHtml += $"<li><strong>{sub.Restaurant.RestaurantName}</strong> (Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>";
+            }
+
+            string subject = "Thông báo: Gói dịch vụ đã hết hạn - ScanToOrder";
+            string htmlContent = $@"
+                <h3>Kính gửi Quý khách hàng,</h3>
+                <p>Hệ thống ScanToOrder xin thông báo gói dịch vụ của các chi nhánh sau đã <strong>chính thức hết hạn</strong>:</p>
+                <ul>
+                    {restaurantListHtml}
+                </ul>
+                <p>Hiện tại, tính năng gọi món tại các chi nhánh trên đã được tạm khóa. Vui lòng đăng nhập vào trang quản trị hệ thống và thực hiện gia hạn để tiếp tục sử dụng dịch vụ.</p>
+                <p>Trân trọng,<br>Đội ngũ ScanToOrder</p>";
+                
+            await _emailService.SendEmailAsync(email, subject, htmlContent);
+        }
+
+        // 2. Warn Expiring Subscriptions (<= 1 day left)
+        var tomorrow = utcNow.AddDays(1);
+        var expiringSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
+            s => s.Status == SubscriptionStatus.Active && s.EndDate > utcNow && s.EndDate <= tomorrow,
+            s => s.Restaurant,
+            s => s.Restaurant.Tenant,
+            s => s.Restaurant.Tenant.Account
+        );
+
+        var expiringEmailGroups = expiringSubscriptions
+            .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
+            .GroupBy(s => s.Restaurant.Tenant.Account.Email);
+
+        foreach (var group in expiringEmailGroups)
+        {
+            var email = group.Key;
+            string restaurantListHtml = "";
+            foreach (var sub in group)
+            {
+                restaurantListHtml += $"<li><strong>{sub.Restaurant.RestaurantName}</strong> (Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>";
+            }
+
+            string subject = "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn";
+            string htmlContent = $@"
+                <h3>Kính gửi Quý khách hàng,</h3>
+                <p>Gói dịch vụ ScanToOrder của các chi nhánh sau sẽ hết hạn trong vòng <strong>chưa tới 24 giờ nữa</strong>:</p>
+                <ul>
+                    {restaurantListHtml}
+                </ul>
+                <p>Để không làm gián đoạn trải nghiệm gọi món của khách hàng tại quán, bạn vui lòng đăng nhập vào hệ thống và gia hạn gói cước sớm nhé!</p>
+                <p>Trân trọng,<br>Đội ngũ ScanToOrder</p>";
+                
+            await _emailService.SendEmailAsync(email, subject, htmlContent);
+        }
+
+        if (hasChanges)
+        {
+            _unitOfWork.Subscriptions.UpdateRange(expiredSubscriptions);
+            await _unitOfWork.SaveAsync();
+        }
     }
 }
