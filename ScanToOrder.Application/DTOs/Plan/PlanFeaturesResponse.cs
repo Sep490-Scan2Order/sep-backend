@@ -2,8 +2,8 @@
 
 public class PlanFeaturesResponse
 {
-    public int MaxStaff { get; set; }
-    public bool CanUseCombo { get; set; }
+    public bool CanUseAIUpsell { get; set; }
+    public bool CanRecommendationOnTop { get; set; } 
     public bool CanUsePromotions { get; set; }
     public bool CanCustomMenuTemplate { get; set; }
 }

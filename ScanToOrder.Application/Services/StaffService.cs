@@ -49,10 +49,6 @@ namespace ScanToOrder.Application.Services
 
             var features = await _planLimitationService.GetRestaurantFeaturesAsync(staffDto.RestaurantId);
             var currentStaffs = await _unitOfWork.Staffs.FindAsync(s => s.RestaurantId == staffDto.RestaurantId);
-            if (currentStaffs.Count() >= features.MaxStaff)
-            {
-                throw new DomainException($"Gói dịch vụ (Plan) của cửa hàng hiện chỉ cho phép cấu hình tối đa {features.MaxStaff} nhân viên.");
-            }
 
             var generatedPassword = Guid.NewGuid().ToString("N").Substring(0, 8);
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(generatedPassword);

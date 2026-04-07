@@ -361,11 +361,6 @@ namespace ScanToOrder.Application.Services
             }
 
             // 4. Plan Limitation: Filter out combos if the restaurant's active plan does NOT have CanUseCombo enabled
-            if (!features.CanUseCombo)
-            {
-                branchDishes = branchDishes.Where(bdc => bdc.Dish.Type != DishType.Combo).ToList();
-            }
-
             // 5. Build Menu structure
             var menu = branchDishes
                 .GroupBy(bdc => new { bdc.Dish.Category.Id, bdc.Dish.Category.CategoryName })
@@ -540,7 +535,10 @@ namespace ScanToOrder.Application.Services
                 return null;
 
             restaurant.IsActive = isActive;
-            
+            if (restaurant.Subscription.Status == SubscriptionStatus.Expired && isActive)
+            {
+                return "Không thể kích hoạt nhà hàng khi subscription đã hết hạn";                    
+            }
             if (!isActive)
             {
                 restaurant.IsOpened = false;

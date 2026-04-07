@@ -34,6 +34,8 @@ namespace ScanToOrder.Application.Mappings
             // Plan mapping
             CreateMap<Plan, PlanResponse>().ReverseMap();
             CreateMap<PlanFeaturesConfig, PlanFeaturesResponse>().ReverseMap();
+            CreateMap<CreatePlanRequest, Plan>();
+            CreateMap<UpdatePlanRequest, Plan>();
             
             // Configuration mapping
             CreateMap<Configurations, ConfigurationResponse>();
