@@ -12,6 +12,7 @@ using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.Shifts;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
+using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Application.Mappings
 {
@@ -34,8 +35,15 @@ namespace ScanToOrder.Application.Mappings
             // Plan mapping
             CreateMap<Plan, PlanResponse>().ReverseMap();
             CreateMap<PlanFeaturesConfig, PlanFeaturesResponse>().ReverseMap();
-            CreateMap<CreatePlanRequest, Plan>();
-            CreateMap<UpdatePlanRequest, Plan>();
+            CreateMap<CreatePlanRequest, Plan>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => PlanStatus.Active))
+                .ForMember(dest => dest.DailyRateMonth, opt => opt.MapFrom(src => src.DurationInDays > 0 ? src.MonthlyPrice / src.DurationInDays : 0))
+                .ForMember(dest => dest.DailyRateYear, opt => opt.MapFrom(src => src.DurationInDays > 0 ? src.YearlyPrice / (src.DurationInDays * 12) : 0));
+            CreateMap<CreatePlanFeaturesRequest, PlanFeaturesConfig>();
+            CreateMap<UpdatePlanRequest, Plan>()
+                .ForMember(dest => dest.DailyRateMonth, opt => opt.MapFrom(src => src.DurationInDays > 0 ? src.MonthlyPrice / src.DurationInDays : 0))
+                .ForMember(dest => dest.DailyRateYear, opt => opt.MapFrom(src => src.DurationInDays > 0 ? src.YearlyPrice / (src.DurationInDays * 12) : 0));
+            CreateMap<UpdatePlanFeaturesRequest, PlanFeaturesConfig>();
             
             // Configuration mapping
             CreateMap<Configurations, ConfigurationResponse>();

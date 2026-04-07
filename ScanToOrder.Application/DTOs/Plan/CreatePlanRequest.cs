@@ -1,5 +1,3 @@
-using ScanToOrder.Domain.Entities.SubscriptionPlan;
-using ScanToOrder.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace ScanToOrder.Application.DTOs.Plan
@@ -18,12 +16,22 @@ namespace ScanToOrder.Application.DTOs.Plan
         [Range(0, double.MaxValue)]
         public decimal YearlyPrice { get; set; }
 
-        public int DurationInDays { get; set; } = 30; // Default or ignored if based on monthly/yearly
+        [Required]
+        [Range(1, int.MaxValue)]
+        public int DurationInDays { get; set; } = 30;
 
-        public int Level { get; set; } = 0;
+        [Required]
+        [Range(0, int.MaxValue)]
+        public int Level { get; set; }
 
-        public PlanStatus Status { get; set; } = PlanStatus.Active;
+        public CreatePlanFeaturesRequest Features { get; set; } = new CreatePlanFeaturesRequest();
+    }
 
-        public PlanFeaturesConfig Features { get; set; } = new PlanFeaturesConfig();
+    public class CreatePlanFeaturesRequest
+    {
+        public bool CanUseAIUpsell { get; set; } = false;
+        public bool CanRecommendationOnTop { get; set; } = false;
+        public bool CanUsePromotions { get; set; } = false;
+        public bool CanCustomMenuTemplate { get; set; } = false;
     }
 }
