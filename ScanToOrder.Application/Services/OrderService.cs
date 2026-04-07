@@ -192,6 +192,64 @@ public class OrderService : IOrderService
         return _mapper.Map<CartDto>(cart);
     }
 
+    public async Task<CartDto> UpdateCartItemQuantityAsync(UpdateCartItemRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CartId))
+            throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
+
+        if (request.NewQuantity < 0)
+            throw new DomainException(OrderMessage.OrderError.QUANTITY_MUST_BE_GREATER_THAN_ZERO);
+
+        var json = await _cartRedisService.GetRawCartAsync(request.CartId);
+        if (string.IsNullOrEmpty(json))
+            throw new DomainException(OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED);
+
+        var cart = JsonSerializer.Deserialize<CartModel>(json)
+                   ?? throw new DomainException(OrderMessage.OrderError.INVALID_CART_DATA);
+
+        var existingItem = cart.Items.FirstOrDefault(i => i.DishId == request.DishId);
+        if (existingItem == null)
+            throw new DomainException(OrderMessage.OrderError.ITEM_NOT_FOUND_IN_CART);
+
+        // Nếu NewQuantity = 0 thì xóa món khỏi giỏ hàng
+        if (request.NewQuantity == 0)
+        {
+            cart.Items.Remove(existingItem);
+        }
+        else
+        {
+            // Kiểm tra số lượng tồn kho thực tế
+            var branchDish = await _unitOfWork.BranchDishConfigs.FirstOrDefaultAsync(
+                b => b.RestaurantId == cart.RestaurantId && b.DishId == request.DishId);
+
+            if (branchDish == null)
+                throw new DomainException(DishMessage.DishError.DISH_NOT_FOUND);
+
+            if (!branchDish.IsSelling)
+                throw new DomainException(BranchDishMessage.BranchDishError.NOT_SELLING);
+
+            if (branchDish.IsSoldOut)
+                throw new DomainException(BranchDishMessage.BranchDishError.SOLD_OUT);
+
+            // Nếu số lượng yêu cầu vượt quá tồn kho thì báo lỗi
+            if (branchDish.DishAvailability > 0 && request.NewQuantity > branchDish.DishAvailability)
+                throw new DomainException(
+                    string.Format(OrderMessage.OrderError.QUANTITY_EXCEEDS_AVAILABLE_STOCK, branchDish.DishAvailability));
+
+            existingItem.Quantity = request.NewQuantity;
+            existingItem.SubTotal = existingItem.DiscountedPrice * existingItem.Quantity;
+        }
+
+        cart.TotalAmount = cart.Items.Sum(i => i.SubTotal);
+
+        var updatedJson = JsonSerializer.Serialize(cart);
+        await _cartRedisService.SaveRawCartAsync(request.CartId, updatedJson, TimeSpan.FromMinutes(60));
+
+        cart = await SyncCartPricingAndAvailabilityAsync(cart);
+
+        return _mapper.Map<CartDto>(cart);
+    }
+
     private async Task<CartModel> SyncCartPricingAndAvailabilityAsync(CartModel cart)
     {
         if (cart.Items == null || !cart.Items.Any())

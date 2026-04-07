@@ -39,6 +39,15 @@ public class OrderController : BaseController
         return Success(result, "Thêm món vào giỏ hàng thành công.");
     }
 
+    [HttpPut("cart/update-item")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<CartDto>>> UpdateCartItem([FromBody] UpdateCartItemRequest request)
+    {
+        var result = await _orderService.UpdateCartItemQuantityAsync(request);
+        return Success(result, "Cập nhật số lượng món thành công.");
+    }
+
+
     // [HttpGet("cart/{cartId}")]
     // [AllowAnonymous]
     // public async Task<ActionResult<ApiResponse<CartDto>>> GetCart([FromRoute] string cartId)

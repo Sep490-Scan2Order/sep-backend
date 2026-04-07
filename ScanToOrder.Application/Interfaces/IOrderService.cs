@@ -11,6 +11,7 @@ public interface IOrderService
 {
     Task<CartDto> AddToCartAsync(AddToCartRequest request);
     Task<CartDto> GetCartAsync(string cartId);
+    Task<CartDto> UpdateCartItemQuantityAsync(UpdateCartItemRequest request);
     Task<PaymentQrDto> GetPaymentQrAsync(string cartId, string phone, bool isPreOrder, DateTime? requestedPickupAt, int? appliedPromotionId);
     Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request);
     Task ConfirmCashPaymentAsync(Guid orderId);

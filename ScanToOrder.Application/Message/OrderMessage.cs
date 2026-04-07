@@ -40,6 +40,8 @@ namespace ScanToOrder.Application.Message
             public const string ORDER_ALREADY_CANCELLED_OR_REFUNDED = "Đơn hàng đã được hủy hoặc hoàn tiền trước đó.";
             public const string ONLY_CONFIRM_UNPAID_ORDER = "Chỉ có thể xác nhận thanh toán cho đơn hàng đang ở trạng thái Chưa thanh toán.";
             public const string SYSTEM_ERROR_MANUAL_ONLY = "Lỗi hệ thống trong mô hình trả trước chỉ được xử lý qua chức năng Xác nhận thanh toán thủ công.";
+            public const string ITEM_NOT_FOUND_IN_CART = "Không tìm thấy món này trong giỏ hàng.";
+            public const string QUANTITY_EXCEEDS_AVAILABLE_STOCK = "Số lượng yêu cầu vượt quá số lượng còn lại ({0} còn lại).";
         }
 
         public class OrderSuccess
