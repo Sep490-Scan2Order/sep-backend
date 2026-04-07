@@ -9,6 +9,8 @@ using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Interfaces;
+using ScanToOrder.Application.Template;
+using System.Text;
 
 namespace ScanToOrder.Application.Services;
 
@@ -513,23 +515,18 @@ public class SubscriptionService : ISubscriptionService
         foreach (var group in expiredEmailGroups)
         {
             var email = group.Key;
-            string restaurantListHtml = "";
-            foreach (var sub in group)
-            {
-                restaurantListHtml += $"<li><strong>{sub.Restaurant.RestaurantName}</strong> (Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>";
-            }
+            var restaurantListHtml = BuildRestaurantListHtml(group);
 
-            string subject = "Thông báo: Gói dịch vụ đã hết hạn - ScanToOrder";
-            string htmlContent = $@"
-                <h3>Kính gửi Quý khách hàng,</h3>
-                <p>Hệ thống ScanToOrder xin thông báo gói dịch vụ của các chi nhánh sau đã <strong>chính thức hết hạn</strong>:</p>
-                <ul>
-                    {restaurantListHtml}
-                </ul>
-                <p>Hiện tại, tính năng gọi món tại các chi nhánh trên đã được tạm khóa. Vui lòng đăng nhập vào trang quản trị hệ thống và thực hiện gia hạn để tiếp tục sử dụng dịch vụ.</p>
-                <p>Trân trọng,<br>Đội ngũ ScanToOrder</p>";
-                
-            await _emailService.SendEmailAsync(email, subject, htmlContent);
+            await _emailService.SendEmailWithTemplateIdDomainAsync(
+                email,
+                "Thông báo: Gói dịch vụ đã hết hạn - ScanToOrder",
+                ResendTemplate.EXPIRED_SUBSCRIPTION_TEMPLATE_ID,
+                new
+                {
+                    restaurant_list = $"<ul>{restaurantListHtml}</ul>",
+                    admin_url = "https://admin.scantoorder.com"
+                }
+            );
         }
 
         // 2. Warn Expiring Subscriptions (<= 1 day left)
@@ -548,23 +545,18 @@ public class SubscriptionService : ISubscriptionService
         foreach (var group in expiringEmailGroups)
         {
             var email = group.Key;
-            string restaurantListHtml = "";
-            foreach (var sub in group)
-            {
-                restaurantListHtml += $"<li><strong>{sub.Restaurant.RestaurantName}</strong> (Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>";
-            }
+            var restaurantListHtml = BuildRestaurantListHtml(group);
 
-            string subject = "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn";
-            string htmlContent = $@"
-                <h3>Kính gửi Quý khách hàng,</h3>
-                <p>Gói dịch vụ ScanToOrder của các chi nhánh sau sẽ hết hạn trong vòng <strong>chưa tới 24 giờ nữa</strong>:</p>
-                <ul>
-                    {restaurantListHtml}
-                </ul>
-                <p>Để không làm gián đoạn trải nghiệm gọi món của khách hàng tại quán, bạn vui lòng đăng nhập vào hệ thống và gia hạn gói cước sớm nhé!</p>
-                <p>Trân trọng,<br>Đội ngũ ScanToOrder</p>";
-                
-            await _emailService.SendEmailAsync(email, subject, htmlContent);
+            await _emailService.SendEmailWithTemplateIdDomainAsync(
+                email,
+                "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn",
+                ResendTemplate.EXPIRING_SUBSCRIPTION_TEMPLATE_ID,
+                new
+                {
+                    restaurant_list = $"<ul>{restaurantListHtml}</ul>",
+                    admin_url = "https://admin.scantoorder.com"
+                }
+            );
         }
 
         // 5. Update Status in DB — use FindAsync (tracked, no AsNoTracking)
@@ -599,23 +591,32 @@ public class SubscriptionService : ISubscriptionService
         foreach (var group in expiringEmailGroups)
         {
             var email = group.Key;
-            string restaurantListHtml = "";
-            foreach (var sub in group)
-            {
-                restaurantListHtml += $"<li><strong>{sub.Restaurant.RestaurantName}</strong> (Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>";
-            }
+            var restaurantListHtml = BuildRestaurantListHtml(group);
 
-            string subject = "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn";
-            string htmlContent = $@"
-                <h3>Kính gửi Quý khách hàng,</h3>
-                <p>Gói dịch vụ ScanToOrder của các chi nhánh sau sẽ hết hạn trong vòng <strong>chưa tới 24 giờ nữa</strong>:</p>
-                <ul>
-                    {restaurantListHtml}
-                </ul>
-                <p>Để không làm gián đoạn trải nghiệm gọi món của khách hàng tại quán, bạn vui lòng đăng nhập vào hệ thống và gia hạn gói cước sớm nhé!</p>
-                <p>Trân trọng,<br>Đội ngũ ScanToOrder</p>";
-                
-            await _emailService.SendEmailAsync(email, subject, htmlContent);
+            await _emailService.SendEmailWithTemplateIdDomainAsync(
+                email,
+                "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn",
+                ResendTemplate.EXPIRING_SUBSCRIPTION_TEMPLATE_ID,
+                new
+                {
+                    restaurant_list = $"<ul>{restaurantListHtml}</ul>",
+                    admin_url = "https://admin.scantoorder.com"
+                }
+            );
         }
+    }
+    private string BuildRestaurantListHtml(IEnumerable<Subscription> subs)
+    {
+        var sb = new StringBuilder();
+
+        foreach (var sub in subs)
+        {
+            sb.Append(
+                $"<li><strong>{sub.Restaurant.RestaurantName}</strong> " +
+                $"(Thời điểm hết hạn: {sub.EndDate.ToLocalTime():dd/MM/yyyy HH:mm})</li>"
+            );
+        }
+
+        return sb.ToString();
     }
 }
