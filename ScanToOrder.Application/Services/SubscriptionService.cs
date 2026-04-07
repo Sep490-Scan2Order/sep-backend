@@ -486,7 +486,7 @@ public class SubscriptionService : ISubscriptionService
     {
         var utcNow = DateTime.UtcNow;
 
-        // 1. Query with navigation for email/deactivate logic (AsNoTracking)
+        // 1. Query expired subscriptions with navigation (AsNoTracking - for email & deactivate)
         var expiredSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
             s => s.Status == SubscriptionStatus.Active && s.EndDate <= utcNow,
             s => s.Restaurant,
@@ -494,88 +494,63 @@ public class SubscriptionService : ISubscriptionService
             s => s.Restaurant.Tenant.Account
         );
 
-        if (!expiredSubscriptions.Any())
+        if (expiredSubscriptions.Any())
         {
-            await SendExpiringWarningEmailsAsync(utcNow);
-            return;
-        }
+            // 2. Collect IDs to process
+            var expiredSubscriptionIds = expiredSubscriptions.Select(s => s.Id).ToList();
+            var expiredRestaurantIds = expiredSubscriptions
+                .Where(s => s.Restaurant != null)
+                .Select(s => s.Restaurant.Id)
+                .Distinct()
+                .ToList();
 
-        // 2. Deactivate restaurants
-        var expiredIds = expiredSubscriptions.Select(s => s.Id).ToList();
-        foreach (var sub in expiredSubscriptions)
-        {
-            if (sub.Restaurant != null)
-                await _restaurantService.UpdateActiveStatusAsync(sub.Restaurant.Id, false);
-        }
+            // 3. Send expired notification emails (grouped by tenant) — before DB update
+            var expiredEmailGroups = expiredSubscriptions
+                .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
+                .GroupBy(s => s.Restaurant.Tenant.Account.Email);
 
-        var expiredEmailGroups = expiredSubscriptions
-            .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
-            .GroupBy(s => s.Restaurant.Tenant.Account.Email);
+            foreach (var group in expiredEmailGroups)
+            {
+                var email = group.Key;
+                var restaurantListHtml = BuildRestaurantListHtml(group);
 
-        foreach (var group in expiredEmailGroups)
-        {
-            var email = group.Key;
-            var restaurantListHtml = BuildRestaurantListHtml(group);
+                await _emailService.SendEmailWithTemplateIdDomainAsync(
+                    email,
+                    "Thông báo: Gói dịch vụ đã hết hạn - ScanToOrder",
+                    ResendTemplate.EXPIRED_SUBSCRIPTION_TEMPLATE_ID,
+                    new
+                    {
+                        restaurant_list = $"<ul>{restaurantListHtml}</ul>",
+                        admin_url = "https://admin.scantoorder.com"
+                    }
+                );
+            }
 
-            await _emailService.SendEmailWithTemplateIdDomainAsync(
-                email,
-                "Thông báo: Gói dịch vụ đã hết hạn - ScanToOrder",
-                ResendTemplate.EXPIRED_SUBSCRIPTION_TEMPLATE_ID,
-                new
-                {
-                    restaurant_list = $"<ul>{restaurantListHtml}</ul>",
-                    admin_url = "https://admin.scantoorder.com"
-                }
+            // 4. Batch update Subscriptions (tracked via FindAsync — no AsNoTracking conflict)
+            var subscriptionsToUpdate = await _unitOfWork.Subscriptions.FindAsync(
+                s => expiredSubscriptionIds.Contains(s.Id)
             );
-        }
+            foreach (var sub in subscriptionsToUpdate)
+                sub.Status = SubscriptionStatus.Expired;
+            _unitOfWork.Subscriptions.UpdateRange(subscriptionsToUpdate);
 
-        // 2. Warn Expiring Subscriptions (<= 1 day left)
-        var tomorrow = utcNow.AddDays(1);
-        var expiringSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
-            s => s.Status == SubscriptionStatus.Active && s.EndDate > utcNow && s.EndDate <= tomorrow,
-            s => s.Restaurant,
-            s => s.Restaurant.Tenant,
-            s => s.Restaurant.Tenant.Account
-        );
-
-        var expiringEmailGroups = expiringSubscriptions
-            .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
-            .GroupBy(s => s.Restaurant.Tenant.Account.Email);
-
-        foreach (var group in expiringEmailGroups)
-        {
-            var email = group.Key;
-            var restaurantListHtml = BuildRestaurantListHtml(group);
-
-            await _emailService.SendEmailWithTemplateIdDomainAsync(
-                email,
-                "Sắp hết hạn gói dịch vụ - Vui lòng gia hạn",
-                ResendTemplate.EXPIRING_SUBSCRIPTION_TEMPLATE_ID,
-                new
-                {
-                    restaurant_list = $"<ul>{restaurantListHtml}</ul>",
-                    admin_url = "https://admin.scantoorder.com"
-                }
+            // 5. Batch update Restaurants in the same transaction (avoid per-entity SaveAsync → identity conflict)
+            var restaurantsToDeactivate = await _unitOfWork.Restaurants.FindAsync(
+                r => expiredRestaurantIds.Contains(r.Id)
             );
+            foreach (var restaurant in restaurantsToDeactivate)
+            {
+                restaurant.IsActive = false;
+                restaurant.IsOpened = false;
+                restaurant.IsReceivingOrders = false;
+            }
+            _unitOfWork.Restaurants.UpdateRange(restaurantsToDeactivate);
+
+            // 6. Single SaveAsync for all changes
+            await _unitOfWork.SaveAsync();
         }
 
-        // 5. Update Status in DB — use FindAsync (tracked, no AsNoTracking)
-        var subscriptionsToUpdate = await _unitOfWork.Subscriptions.FindAsync(
-            s => expiredIds.Contains(s.Id)
-        );
-
-        foreach (var sub in subscriptionsToUpdate)
-            sub.Status = SubscriptionStatus.Expired;
-
-        _unitOfWork.Subscriptions.UpdateRange(subscriptionsToUpdate);
-        await _unitOfWork.SaveAsync();
-
-        // 6. Send warning emails for subscriptions expiring within 24h
-        await SendExpiringWarningEmailsAsync(utcNow);
-    }
-
-    private async Task SendExpiringWarningEmailsAsync(DateTime utcNow)
-    {
+        // 5. Send warning emails for subscriptions expiring within 24h
         var tomorrow = utcNow.AddDays(1);
         var expiringSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
             s => s.Status == SubscriptionStatus.Active && s.EndDate > utcNow && s.EndDate <= tomorrow,
@@ -605,6 +580,7 @@ public class SubscriptionService : ISubscriptionService
             );
         }
     }
+
     private string BuildRestaurantListHtml(IEnumerable<Subscription> subs)
     {
         var sb = new StringBuilder();
