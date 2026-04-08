@@ -2,6 +2,7 @@ using AutoMapper;
 using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Configuration;
+using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 
 namespace ScanToOrder.Application.Services;
@@ -25,31 +26,14 @@ public class ConfigurationService : IConfigurationService
 
     public async Task<ConfigurationResponse> UpdateConfigurationsAsync(int id, UpdateConfigurationRequest request)
     {
-        var existing = await _unitOfWork.Configurations.GetByIdAsync(id);
-        Configurations result;
+        var existing = await _unitOfWork.Configurations.GetByIdAsync(id)
+            ?? throw new DomainException("Không tìm thấy cấu hình.");
 
-        if (existing == null)
-        {
-            var utc = DateTime.UtcNow;
-            result = new Configurations
-            {
-                Id = id,
-                CommissionRate = request.CommissionRate,
-                CreatedAt = utc,
-                UpdatedAt = utc,
-                IsDeleted = false
-            };
-            await _unitOfWork.Configurations.AddAsync(result);
-        }
-        else
-        {
-            existing.CommissionRate = request.CommissionRate;
-            existing.UpdatedAt = DateTime.UtcNow;
-            _unitOfWork.Configurations.Update(existing);
-            result = existing;
-        }
+        existing.CommissionRate = request.CommissionRate;
+        existing.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.Configurations.Update(existing);
 
         await _unitOfWork.SaveAsync();
-        return _mapper.Map<ConfigurationResponse>(result);
+        return _mapper.Map<ConfigurationResponse>(existing);
     }
 }
