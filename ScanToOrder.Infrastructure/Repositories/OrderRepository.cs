@@ -122,12 +122,19 @@ namespace ScanToOrder.Infrastructure.Repositories
 
         public async Task<List<Order>> GetCustomerActiveOrdersAsync(int restaurantId, string phone)
         {
-            return await _dbSet
+            var baseQuery = _dbSet.Where(o => !o.IsDeleted && o.RestaurantId == restaurantId);
+
+            return await baseQuery
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
-                .Where(o => o.RestaurantId == restaurantId
-                            && !o.IsDeleted
-                            && o.NumberPhone == phone)
+                .Where(o =>
+                    o.NumberPhone == phone
+                    ||
+                    (o.typeOrder == TypeOrder.Refund
+                     && o.RefundOrderId != null
+                     && baseQuery.Any(root =>
+                         root.Id == o.RefundOrderId
+                         && root.NumberPhone == phone)))
                 .OrderByDescending(o => o.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
@@ -135,12 +142,20 @@ namespace ScanToOrder.Infrastructure.Repositories
 
         public async Task<List<Order>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone)
         {
-            return await _dbSet
+            var baseQuery = _dbSet.Where(o => !o.IsDeleted);
+
+            return await baseQuery
                 .Include(o => o.Restaurant)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
-                .Where(o => !o.IsDeleted
-                            && o.NumberPhone == phone)
+                .Where(o =>
+                    o.NumberPhone == phone
+                    ||                    
+                    (o.typeOrder == TypeOrder.Refund
+                     && o.RefundOrderId != null
+                     && baseQuery.Any(root =>
+                         root.Id == o.RefundOrderId
+                         && root.NumberPhone == phone)))
                 .OrderByDescending(o => o.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
