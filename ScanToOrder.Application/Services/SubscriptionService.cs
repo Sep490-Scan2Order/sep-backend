@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Plan;
@@ -194,9 +193,10 @@ public class SubscriptionService : ISubscriptionService
                 TransactionCode = transactionCode.ToString(),
                 PaymentDate = DateTime.UtcNow,
                 TotalAmount = previewResult.TotalAmountToPay,
-                Status = PaymentTransactionStatus.Pending,
-                Payload = payloadItems
+                Status = PaymentTransactionStatus.Pending
             };
+            transaction.SetSubscriptionPayload(payloadItems);
+
             await _unitOfWork.PaymentTransactions.AddAsync(transaction);
             await _unitOfWork.SaveAsync();
 
@@ -213,10 +213,87 @@ public class SubscriptionService : ISubscriptionService
             await dbTxn.CommitAsync();
             return paymentLink;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await dbTxn.RollbackAsync();
             throw new DomainException(SubscriptionMessage.SubscriptionError.PAYMENT_SYSTEM_BUSY);
+        }
+    }
+
+    public async Task<string> CreateCommissionFeePaymentAsync(Guid currentTenantId)
+    {
+        var tenant = (await _unitOfWork.Tenants.GetByIdAsync(currentTenantId))
+            .OrThrow("Tenant không tồn tại");
+
+        var configuration = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
+        if (configuration == null || configuration.CommissionRate <= 0)
+        {
+            throw new DomainException("Cấu hình tỷ lệ hoa hồng không hợp lệ.");
+        }
+
+        if (tenant.TotalDebtAmount <= 0)
+        {
+            throw new DomainException("Không có khoản nợ hoa hồng nào cần thanh toán.");
+        }
+
+        await using var dbTxn = await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var amountToPay = (long)Math.Ceiling(tenant.TotalDebtAmount);
+            if (amountToPay <= 0)
+            {
+                throw new DomainException("Không có khoản nợ hoa hồng nào cần thanh toán.");
+            }
+
+            var transactionCode = BankQrLinkUtils.GeneratePayOsOrderCode();
+            var transaction = new PaymentTransaction
+            {
+                TenantId = currentTenantId,
+                TransactionCode = transactionCode.ToString(),
+                PaymentDate = DateTime.UtcNow,
+                TotalAmount = amountToPay,
+                Status = PaymentTransactionStatus.Pending
+            };
+
+            var commissionRate = configuration.CommissionRate / 100m;
+            var periodStart = tenant.DebtStartedAt.HasValue
+                ? new DateTimeOffset(tenant.DebtStartedAt.Value, TimeSpan.Zero)
+                : DateTimeOffset.UtcNow;
+
+            var payload = new CommissionFeePayload
+            {
+                PeriodStart = periodStart,
+                PeriodEnd = DateTimeOffset.UtcNow,
+                CommissionRate = commissionRate,
+                TotalOrderAmount = transaction.TotalAmount / commissionRate
+            };
+            transaction.SetCommissionPayload(payload);
+
+            await _unitOfWork.PaymentTransactions.AddAsync(transaction);
+            await _unitOfWork.SaveAsync();
+
+            var paymentRequest = new CreatePaymentRequest
+            {
+                OrderCode = transactionCode,
+                Amount = amountToPay,
+                CancelUrl = $"{GetFrontendBaseUrl()}/tenant/debt-callback/cancel?orderCode={transactionCode}",
+                ReturnUrl = $"{GetFrontendBaseUrl()}/tenant/debt-callback/success?orderCode={transactionCode}",
+                Description = "Thanh toán nợ hoa hồng",
+            };
+
+            var paymentLink = await _paymentService.CreatePaymentLinkAsync(paymentRequest);
+            await dbTxn.CommitAsync();
+            return paymentLink;
+        }
+        catch (DomainException)
+        {
+            await dbTxn.RollbackAsync();
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await dbTxn.RollbackAsync();
+            throw new DomainException($"Không thể tạo link thanh toán nợ hoa hồng: {ex.Message}");
         }
     }
 
@@ -310,13 +387,26 @@ public class SubscriptionService : ISubscriptionService
                 t.TransactionCode == transactionCode.ToString()))
             .OrThrow("Giao dịch không tồn tại");
 
-        var payload = paymentTransaction.Payload;
-
-        // Idempotency check: If transaction is already marked as success, prevent duplicate processing
         if (paymentTransaction.Status == PaymentTransactionStatus.Success) return;
-        if (!payload.Any()) return;
 
-        // Extract unique IDs required for bulk queries
+        switch (paymentTransaction.PaymentTransactionType)
+        {
+            case PaymentTransactionType.Subscription:
+                await ProcessSubscriptionSuccessAsync(paymentTransaction);
+                break;
+            case PaymentTransactionType.CommissionFee:
+                await ProcessCommissionFeeSuccessAsync(paymentTransaction);
+                break;
+            default:
+                throw new DomainException("Loại giao dịch thanh toán không hợp lệ");
+        }
+    }
+
+    private async Task ProcessSubscriptionSuccessAsync(PaymentTransaction paymentTransaction)
+    {
+        var payload = paymentTransaction.SubscriptionPayload;
+        if (payload == null || !payload.Any()) return;
+
         var restaurantIds = payload.Select(x => x.RestaurantId).Distinct().ToList();
         var newPlanIds = payload.Select(x => x.NewPlanId).Distinct().ToList();
 
@@ -444,6 +534,58 @@ public class SubscriptionService : ISubscriptionService
         {
             await dbTxn.RollbackAsync();
             throw new Exception("Error while updating subscriptions: " + ex.Message);
+        }
+    }
+
+    private async Task ProcessCommissionFeeSuccessAsync(PaymentTransaction paymentTransaction)
+    {
+        var payload = paymentTransaction.CommissionPayload;
+        if (payload == null) return;
+
+        await using var dbTxn = await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var tenant = (await _unitOfWork.Tenants.GetByIdAsync(paymentTransaction.TenantId))
+                .OrThrow("Tenant không tồn tại");
+
+            var wasSuspended = tenant.IsSuspended;
+
+            tenant.TotalDebtAmount = 0;
+            tenant.DebtStartedAt = null;
+            tenant.LastWarningSentAt = null;
+            if (wasSuspended)
+            {
+                tenant.IsSuspended = false;
+                tenant.SuspendedAt = null;
+            }
+            _unitOfWork.Tenants.Update(tenant);
+
+            var restaurants = await _unitOfWork.Restaurants.GetAllAsync(r => r.TenantId == paymentTransaction.TenantId);
+            foreach (var restaurant in restaurants)
+            {
+                restaurant.IsActive = true;
+                restaurant.IsReceivingOrders = true;
+            }
+            _unitOfWork.Restaurants.UpdateRange(restaurants);
+
+            paymentTransaction.Status = PaymentTransactionStatus.Success;
+            paymentTransaction.PaymentDate = DateTime.UtcNow;
+            _unitOfWork.PaymentTransactions.Update(paymentTransaction);
+
+            await _unitOfWork.SaveAsync();
+            await dbTxn.CommitAsync();
+
+            foreach (var restaurant in restaurants)
+            {
+                await _realtimeService.NotifyReceivingOrdersChanged(restaurant.Id.ToString(), true);
+            }
+
+            await _realtimeService.NotifyTenantProfileChanged(paymentTransaction.TenantId.ToString());
+        }
+        catch (Exception ex)
+        {
+            await dbTxn.RollbackAsync();
+            throw new Exception("Error while settling commission fee: " + ex.Message);
         }
     }
 

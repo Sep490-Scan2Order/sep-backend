@@ -12,6 +12,7 @@ namespace ScanToOrder.Application.Interfaces
     {
         Task<CheckoutPreviewResponse> CalculatePreviewAsync(PlanCheckoutRequest request, Guid currentTenantId);
         Task<string> CreatePaymentAsync(PlanCheckoutRequest request, Guid currentTenantId);
+        Task<string> CreateCommissionFeePaymentAsync(Guid currentTenantId);
         Task ProcessPaymentSuccessAsync(long transactionCode);
         Task MarkPaymentFailedAsync(long transactionCode);
         Task MarkPaymentCanceledAsync(long transactionCode, Guid currentTenantId);

@@ -72,5 +72,19 @@ public static class CronJobServiceExtension
             Cron.Daily(1, 00), // Run daily at 1:00 AM VN time
             options
         );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Calculate-Weekly-Commission-Fee",
+            job => job.CalculateWeeklyCommissionFeeAsync(CancellationToken.None),
+            Cron.Weekly(DayOfWeek.Sunday, 23, 30),
+            options
+        );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Monitor-Suspend-Overdue-Debts",
+            job => job.MonitorAndSuspendOverdueDebtsAsync(CancellationToken.None),
+            Cron.Daily(2, 30),
+            options
+        );
     }
 }

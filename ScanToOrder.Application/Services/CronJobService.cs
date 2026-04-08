@@ -14,10 +14,12 @@ public class CronJobService : ICronJobService
         private readonly IDishRedisService _dishRedisService;
         private readonly IRealtimeService _realtimeService;
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IEmailService _emailService;
 
         public CronJobService(ILogger<CronJobService> logger, IUnitOfWork unitOfWork, 
             IOrderService orderService, IDishRedisService dishRedisService,
-            IRealtimeService realtimeService, ISubscriptionService subscriptionService)
+            IRealtimeService realtimeService, ISubscriptionService subscriptionService,
+            IEmailService emailService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -25,6 +27,7 @@ public class CronJobService : ICronJobService
             _dishRedisService = dishRedisService;
             _realtimeService = realtimeService;
             _subscriptionService = subscriptionService;
+            _emailService = emailService;
         }
         
         public async Task CancelExpiredUnpaidOrdersAsync(CancellationToken cancellationToken = default)
@@ -223,5 +226,221 @@ public class CronJobService : ICronJobService
             }
             
             _logger.LogInformation("Đã hoàn thành CronJob: ProcessSubscriptionExpirationsAsync");
+        }
+
+        public async Task CalculateWeeklyCommissionFeeAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: CalculateWeeklyCommissionFeeAsync vào lúc {Time}", DateTimeOffset.Now);
+
+            await using var dbTxn = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var servedUnscannedOrders = await _unitOfWork.Orders.GetAllAsync(
+                    o => o.Status == OrderStatus.Served && !o.IsScanned,
+                    o => o.Restaurant);
+
+                var configuration = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
+                var commissionRatePercent = configuration?.CommissionRate is > 0
+                    ? configuration.CommissionRate
+                    : 3;
+                var commissionRate = commissionRatePercent / 100m;
+
+                if (!servedUnscannedOrders.Any())
+                {
+                    await dbTxn.CommitAsync();
+                    _logger.LogInformation("Không có đơn Served chưa quét để tính phí hoa hồng tuần này.");
+                    return;
+                }
+
+                var ordersByTenant = servedUnscannedOrders
+                    .GroupBy(o => o.Restaurant.TenantId)
+                    .ToList();
+
+                var tenantIds = ordersByTenant.Select(g => g.Key).Distinct().ToList();
+                var tenantMap = (await _unitOfWork.Tenants.GetAllAsync(t => tenantIds.Contains(t.Id)))
+                    .ToDictionary(t => t.Id);
+
+                var updatedTenants = new List<Domain.Entities.User.Tenant>();
+                foreach (var group in ordersByTenant)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!tenantMap.TryGetValue(group.Key, out var tenant))
+                    {
+                        _logger.LogWarning("Không tìm thấy Tenant {TenantId} khi tính phí hoa hồng.", group.Key);
+                        continue;
+                    }
+
+                    var totalFee = group.Sum(x => x.FinalAmount) * commissionRate;
+                    if (totalFee <= 0) continue;
+
+                    tenant.TotalDebtAmount += totalFee;
+                    if (tenant.DebtStartedAt == null)
+                    {
+                        tenant.DebtStartedAt = DateTime.UtcNow;
+                    }
+
+                    updatedTenants.Add(tenant);
+                }
+
+                foreach (var order in servedUnscannedOrders)
+                {
+                    order.IsScanned = true;
+                }
+
+                if (updatedTenants.Any())
+                {
+                    _unitOfWork.Tenants.UpdateRange(updatedTenants.DistinctBy(t => t.Id));
+                }
+
+                _unitOfWork.Orders.UpdateRange(servedUnscannedOrders);
+                await _unitOfWork.SaveAsync();
+                await dbTxn.CommitAsync();
+
+                _logger.LogInformation(
+                    "Đã tính phí hoa hồng với tỷ lệ {CommissionRatePercent}% cho {TenantCount} tenant từ {OrderCount} đơn hàng.",
+                    commissionRatePercent,
+                    updatedTenants.Select(t => t.Id).Distinct().Count(),
+                    servedUnscannedOrders.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                await dbTxn.RollbackAsync();
+                _logger.LogWarning("CronJob CalculateWeeklyCommissionFeeAsync bị hủy.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await dbTxn.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: CalculateWeeklyCommissionFeeAsync");
+            }
+
+            _logger.LogInformation("Đã hoàn thành CronJob: CalculateWeeklyCommissionFeeAsync");
+        }
+
+        public async Task MonitorAndSuspendOverdueDebtsAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: MonitorAndSuspendOverdueDebtsAsync vào lúc {Time}", DateTimeOffset.Now);
+
+            await using var dbTxn = await _unitOfWork.BeginTransactionAsync();
+            var suspendedTenantIds = new HashSet<Guid>();
+            var receivingOrdersUpdates = new List<(int RestaurantId, bool IsReceiving)>();
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var tenants = await _unitOfWork.Tenants.GetAllAsync(
+                    t => t.TotalDebtAmount > 0 && t.DebtStartedAt != null,
+                    t => t.Account);
+
+                if (!tenants.Any())
+                {
+                    await dbTxn.CommitAsync();
+                    _logger.LogInformation("Không có tenant nợ phí hoa hồng cần theo dõi.");
+                    return;
+                }
+
+                var tenantIds = tenants.Select(t => t.Id).ToList();
+                var allRestaurants = await _unitOfWork.Restaurants.GetAllAsync(r => tenantIds.Contains(r.TenantId));
+                var restaurantsByTenant = allRestaurants
+                    .GroupBy(r => r.TenantId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                foreach (var tenant in tenants)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var daysOverdue = (DateTime.UtcNow - tenant.DebtStartedAt!.Value).TotalDays;
+
+                    if (daysOverdue >= 7)
+                    {
+                        var wasSuspended = tenant.IsSuspended;
+                        tenant.IsSuspended = true;
+                        suspendedTenantIds.Add(tenant.Id);
+
+                        if (!wasSuspended && !string.IsNullOrWhiteSpace(tenant.Account?.Email))
+                        {
+                            var suspendedSubject = "Thong bao dinh chi tai khoan - ScanToOrder";
+                            var suspendedHtmlContent = $@"
+                                <h3>Kính gửi Quý khách hàng,</h3>
+                                <p>Tài khoản của bạn đã bị <strong>dừng hoạt động</strong> do quá hạn thanh toán phí hoa hồng.</p>
+                                <p>Số ngày quá hạn: <strong>{Math.Floor(daysOverdue)}</strong> ngày.</p>
+                                <p>Tổng công nợ hiện tại: <strong>{tenant.TotalDebtAmount:N0} VND</strong>.</p>
+                                <p>Vui lòng thanh toán để kích hoạt lại hệ thống và các nhà hàng.</p>
+                                <p>Trân trọng,<br>ScanToOrder</p>";
+
+                            await _emailService.SendEmailAsync(tenant.Account.Email, suspendedSubject, suspendedHtmlContent);
+                        }
+
+                        if (restaurantsByTenant.TryGetValue(tenant.Id, out var tenantRestaurants))
+                        {
+                            foreach (var restaurant in tenantRestaurants)
+                            {
+                                restaurant.IsActive = false;
+                                restaurant.IsReceivingOrders = false;
+                                receivingOrdersUpdates.Add((restaurant.Id, false));
+                            }
+                        }
+                    }
+                    else if (daysOverdue >= 3 && tenant.LastWarningSentAt == null)
+                    {
+                        tenant.LastWarningSentAt = DateTime.UtcNow;
+
+                        if (!string.IsNullOrWhiteSpace(tenant.Account?.Email))
+                        {
+                            var subject = "Canh bao cong no phi hoa hong - ScanToOrder";
+                            var htmlContent = $@"
+                                <h3>Kính gửi Quý khách hàng,</h3>
+                                <p>Tài khoản của bạn đang có công nợ phí hoa hồng cần thanh toán.</p>
+                                <p>Số ngày quá hạn: <strong>{Math.Floor(daysOverdue)}</strong> ngày.</p>
+                                <p>Tổng công nợ hiện tại: <strong>{tenant.TotalDebtAmount:N0} VND</strong>.</p>
+                                <p>Vui lòng thanh toán sớm để tránh bị tạm ngưng hoạt động hệ thống.</p>
+                                <p>Trân trọng,<br>ScanToOrder</p>";
+
+                            await _emailService.SendEmailAsync(tenant.Account.Email, subject, htmlContent);
+                        }
+                    }
+                }
+
+                _unitOfWork.Tenants.UpdateRange(tenants);
+                if (allRestaurants.Any())
+                {
+                    _unitOfWork.Restaurants.UpdateRange(allRestaurants);
+                }
+
+                await _unitOfWork.SaveAsync();
+                await dbTxn.CommitAsync();
+
+                foreach (var update in receivingOrdersUpdates.Distinct())
+                {
+                    await _realtimeService.NotifyReceivingOrdersChanged(update.RestaurantId.ToString(), update.IsReceiving);
+                }
+
+                foreach (var tenantId in suspendedTenantIds)
+                {
+                    await _realtimeService.NotifyTenantProfileChanged(tenantId.ToString());
+                }
+
+                _logger.LogInformation(
+                    "Đã theo dõi công nợ: {TenantCount} tenant, trong đó {SuspendedCount} tenant bị tạm ngưng.",
+                    tenants.Count,
+                    suspendedTenantIds.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                await dbTxn.RollbackAsync();
+                _logger.LogWarning("CronJob MonitorAndSuspendOverdueDebtsAsync bị hủy.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await dbTxn.RollbackAsync();
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: MonitorAndSuspendOverdueDebtsAsync");
+            }
+
+            _logger.LogInformation("Đã hoàn thành CronJob: MonitorAndSuspendOverdueDebtsAsync");
         }
 }

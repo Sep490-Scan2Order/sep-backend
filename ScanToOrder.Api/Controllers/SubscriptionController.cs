@@ -41,6 +41,16 @@ namespace ScanToOrder.Api.Controllers
             var paymentResult = await _subscriptionService.CreatePaymentAsync(request, tenantId);
             return Success(paymentResult);
         }
+
+        [HttpPost("create-commission-fee-payment")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<string>>> CreateCommissionFeePaymentRequest()
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var paymentResult = await _subscriptionService.CreateCommissionFeePaymentAsync(tenantId);
+            return Success(paymentResult);
+        }
         
         [HttpGet("get-by-tenant")]
         [Authorize(Roles = "Tenant")]

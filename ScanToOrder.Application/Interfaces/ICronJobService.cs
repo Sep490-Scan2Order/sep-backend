@@ -7,4 +7,6 @@ public interface ICronJobService
     Task SyncBranchDishPriceAsync(CancellationToken cancellationToken = default);
     Task UpdateRestaurantOpeningStatusAsync(CancellationToken cancellationToken = default);
     Task ProcessSubscriptionExpirationsAsync(CancellationToken cancellationToken = default);
+    Task CalculateWeeklyCommissionFeeAsync(CancellationToken cancellationToken = default);
+    Task MonitorAndSuspendOverdueDebtsAsync(CancellationToken cancellationToken = default);
 }
