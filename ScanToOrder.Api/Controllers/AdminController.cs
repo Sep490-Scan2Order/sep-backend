@@ -10,10 +10,12 @@ namespace ScanToOrder.Api.Controllers
     public class AdminController : BaseController
     {
         private readonly IAdminDashboardService _dashboardService;
+        private readonly ICronJobService _cronJobService;
 
-        public AdminController(IAdminDashboardService dashboardService)
+        public AdminController(IAdminDashboardService dashboardService, ICronJobService cronJobService)
         {
             _dashboardService = dashboardService;
+            _cronJobService = cronJobService;
         }
 
         [HttpGet("summary-metrics")]
@@ -68,6 +70,14 @@ namespace ScanToOrder.Api.Controllers
             var end   = endDate   ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var result = await _dashboardService.GetTenantDetailAsync(tenantId, start, end);
             return Success(result);
+        }
+
+        [HttpPost("test-cronjobs")]
+        public async Task<ActionResult<ApiResponse<string>>> TestCronJobs()
+        {
+            await _cronJobService.CalculateWeeklyCommissionFeeAsync(CancellationToken.None);
+            await _cronJobService.MonitorAndSuspendOverdueDebtsAsync(CancellationToken.None);
+            return Success("Cron jobs executed", "Đã chạy test cronjob thành công.");
         }
     }
 }
