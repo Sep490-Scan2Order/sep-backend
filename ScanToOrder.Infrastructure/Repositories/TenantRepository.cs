@@ -14,6 +14,8 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<List<Tenant>> GetTenantsWithSubscriptionsAsync()
         {
             return await _dbSet
+                .Include(t => t.Account)
+                .Include(t => t.Bank)
                 .ToListAsync();
         }
 
