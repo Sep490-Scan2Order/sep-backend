@@ -4,39 +4,52 @@ using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Interfaces;
 
-namespace ScanToOrder.Application.Services
+namespace ScanToOrder.Application.Services;
+
+public class ConfigurationService : IConfigurationService
 {
-    public class ConfigurationService : IConfigurationService
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+
+    public ConfigurationService(IUnitOfWork unitOfWork, IMapper mapper)
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
-        public ConfigurationService(IUnitOfWork unitOfWork, IMapper mapper)
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+    }
+
+    public async Task<ConfigurationResponse?> GetConfigurationsAsync()
+    {
+        var row = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
+        return _mapper.Map<ConfigurationResponse?>(row);
+    }
+
+    public async Task<ConfigurationResponse> UpdateConfigurationsAsync(int id, UpdateConfigurationRequest request)
+    {
+        var existing = await _unitOfWork.Configurations.GetByIdAsync(id);
+        Configurations result;
+
+        if (existing == null)
         {
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
-        }
-        public async Task<ConfigurationResponse> GetConfigurationsAsync()
-        {
-            var configurations = await _unitOfWork.Configurations.GetAllAsync();
-            return _mapper.Map<ConfigurationResponse>(configurations.FirstOrDefault());
-        }
-        public async Task<ConfigurationResponse> UpdateConfigurationsAsync(Configurations configurations)
-        {
-            var existingConfig = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
-            if (existingConfig == null)
+            var utc = DateTime.UtcNow;
+            result = new Configurations
             {
-                await _unitOfWork.Configurations.AddAsync(configurations);
-            }
-            else
-            {
-                existingConfig.CommissionRate = configurations.CommissionRate;
-                existingConfig.ExpiredDuration = configurations.ExpiredDuration;
-                existingConfig.RedeemRate = configurations.RedeemRate;
-                existingConfig.LastUpdated = DateOnly.FromDateTime(DateTime.UtcNow);
-                _unitOfWork.Configurations.Update(existingConfig);
-            }
-            await _unitOfWork.SaveAsync();
-            return _mapper.Map<ConfigurationResponse>(configurations);
+                Id = id,
+                CommissionRate = request.CommissionRate,
+                CreatedAt = utc,
+                UpdatedAt = utc,
+                IsDeleted = false
+            };
+            await _unitOfWork.Configurations.AddAsync(result);
         }
+        else
+        {
+            existing.CommissionRate = request.CommissionRate;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Configurations.Update(existing);
+            result = existing;
+        }
+
+        await _unitOfWork.SaveAsync();
+        return _mapper.Map<ConfigurationResponse>(result);
     }
 }

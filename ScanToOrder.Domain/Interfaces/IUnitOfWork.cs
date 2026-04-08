@@ -1,5 +1,4 @@
 using ScanToOrder.Domain.Entities.Blogs;
-using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Entities.Notifications;
 using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Entities.User;

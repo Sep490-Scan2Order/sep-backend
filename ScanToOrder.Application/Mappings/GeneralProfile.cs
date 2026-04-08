@@ -44,10 +44,8 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.DailyRateMonth, opt => opt.MapFrom(src => src.DurationInDays > 0 ? src.MonthlyPrice / src.DurationInDays : 0))
                 .ForMember(dest => dest.DailyRateYear, opt => opt.MapFrom(src => src.DurationInDays > 0 ? src.YearlyPrice / (src.DurationInDays * 12) : 0));
             CreateMap<UpdatePlanFeaturesRequest, PlanFeaturesConfig>();
-            
-            // Configuration mapping
-            CreateMap<Configurations, ConfigurationResponse>();
 
+            CreateMap<Configurations, ConfigurationResponse>();
 
             // Mapping for BranchDishConfig with custom logic to include related Restaurant and Dish information
             CreateMap<CreateRestaurantRequest, Restaurant>()

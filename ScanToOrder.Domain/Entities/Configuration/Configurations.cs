@@ -1,10 +1,9 @@
+using ScanToOrder.Domain.Entities.Base;
+
 namespace ScanToOrder.Domain.Entities.Configuration
 {
-    public class Configurations
+    public class Configurations : BaseEntity<int>
     {
         public int CommissionRate { get; set; }
-        public int ExpiredDuration { get; set; }
-        public int RedeemRate { get; set; }
-        public DateOnly LastUpdated { get; set; }
     }
 }

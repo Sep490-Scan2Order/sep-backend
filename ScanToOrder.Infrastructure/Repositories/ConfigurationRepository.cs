@@ -2,13 +2,11 @@ using ScanToOrder.Domain.Entities.Configuration;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 
-namespace ScanToOrder.Infrastructure.Repositories
+namespace ScanToOrder.Infrastructure.Repositories;
+
+public class ConfigurationRepository : GenericRepository<Configurations>, IConfigurationRepository
 {
-    public class ConfigurationRepository : GenericRepository<Configurations>, IConfigurationRepository
+    public ConfigurationRepository(AppDbContext context) : base(context)
     {
-        public ConfigurationRepository(AppDbContext context) : base(context)
-        {
-        }
     }
 }
-

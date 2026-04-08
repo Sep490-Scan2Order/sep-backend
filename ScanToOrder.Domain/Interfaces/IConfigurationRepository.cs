@@ -1,8 +1,7 @@
-﻿using ScanToOrder.Domain.Entities.Configuration;
+using ScanToOrder.Domain.Entities.Configuration;
 
-namespace ScanToOrder.Domain.Interfaces
+namespace ScanToOrder.Domain.Interfaces;
+
+public interface IConfigurationRepository : IGenericRepository<Configurations>
 {
-    public interface IConfigurationRepository : IGenericRepository<Configurations>
-    {
-    }
 }

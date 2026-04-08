@@ -138,11 +138,6 @@ public class AppDbContext : DbContext
             .Property(o => o.RefundType)
             .HasConversion<string>();
 
-        modelBuilder.Entity<Configurations>(entity =>
-        {
-            entity.HasNoKey(); 
-        });
-
         modelBuilder.Entity<SystemBlog>()
         .Property(b => b.BlogType)
         .HasConversion<string>();

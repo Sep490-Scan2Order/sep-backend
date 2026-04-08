@@ -1,7 +1,6 @@
 namespace ScanToOrder.Application.DTOs.Configuration;
 
-public class ConfigurationResponse
+public class UpdateConfigurationRequest
 {
-    public int Id { get; set; }
     public int CommissionRate { get; set; }
 }
