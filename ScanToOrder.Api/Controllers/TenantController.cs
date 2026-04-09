@@ -101,5 +101,15 @@ namespace ScanToOrder.Api.Controllers
             var result = await _tenantService.GetTotalRevenueByTenantAsync(tenantId, startDate, endDate, preset);
             return Success(result);
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("IsSuspened")]
+        public async Task<ActionResult<ApiResponse<bool>>> ToggleTenantStatus(Guid tenantId, [FromQuery] bool isSuspended)
+        {
+            var result = await _tenantService.ToggleTenantStatusAsync(tenantId, isSuspended);
+            if (!result)
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+            return Success(result);
+        }
     }
 }

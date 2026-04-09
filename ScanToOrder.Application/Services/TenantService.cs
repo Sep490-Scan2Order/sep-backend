@@ -380,5 +380,14 @@ namespace ScanToOrder.Application.Services
 
             return (startDate.Value, endDate.Value, false, "custom");
         }
+
+        public async Task<bool> ToggleTenantStatusAsync(Guid tenantId, bool isSuspended)
+        {
+            var tenant = await _unitOfWork.Tenants.GetByFieldsIncludeAsync(x => x.Id == tenantId, x => x.Account);
+            if (tenant == null) 
+                throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
+
+            return await _unitOfWork.Tenants.SuspendTenantAsync(tenantId, isSuspended);
+        }
     }
 }

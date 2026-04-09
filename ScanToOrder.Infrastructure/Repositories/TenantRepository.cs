@@ -33,5 +33,22 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(x => x.Account)
                 .FirstOrDefaultAsync(x => x.Id == tenantId);
         }
+
+        public async Task<bool> SuspendTenantAsync(Guid tenantId, bool isSuspended)
+        {
+            if (tenantId == Guid.Empty)
+                return false;
+
+            var tenant = await _dbSet.FindAsync(tenantId);
+
+            if (tenant == null)
+                return false;
+
+            tenant.IsSuspended = isSuspended;
+            tenant.SuspendedAt = isSuspended ? DateTime.UtcNow : null;
+
+            var result = await _context.SaveChangesAsync();
+            return result > 0;
+        }
     }
 }

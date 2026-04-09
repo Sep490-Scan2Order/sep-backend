@@ -19,5 +19,7 @@ namespace ScanToOrder.Application.Interfaces
             DateTime? startDate,
             DateTime? endDate,
             string? preset);
+
+        Task<bool> ToggleTenantStatusAsync(Guid tenantId, bool isSuspended);
     }
 }

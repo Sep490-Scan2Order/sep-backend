@@ -8,5 +8,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<Tenant?> GetTenantWithSubscriptionByAccountIdAsync(Guid accountId);
 
         Task<Tenant?> GetByIdWithAccountAsync(Guid tenantId);
+
+        Task<bool> SuspendTenantAsync(Guid tenantId, bool isSuspended);
     }
 }
