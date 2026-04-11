@@ -495,7 +495,8 @@ public class OrderService : IOrderService
             TotalAmount = amount,
             TransactionCode = paymentCode,
             PaymentMethod = PaymentMethod.BankTransfer,
-            ShiftId = activeShift.Id
+            ShiftId = activeShift.Id,
+            TransactionType = TransactionType.Payment
         });
 
         await _unitOfWork.SaveAsync();
@@ -633,7 +634,8 @@ public class OrderService : IOrderService
                 TotalAmount = amount,
                 TransactionCode = null,
                 PaymentMethod = PaymentMethod.Cash,
-                ShiftId = activeShift.Id
+                ShiftId = activeShift.Id,
+                TransactionType = TransactionType.Payment
             });
          
             await _unitOfWork.SaveAsync();

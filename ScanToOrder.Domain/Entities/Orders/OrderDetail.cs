@@ -12,6 +12,7 @@ namespace ScanToOrder.Domain.Entities.Orders
         public decimal OriginalPrice { get; set; }
         public decimal DiscountedPrice { get; set; }
         public decimal PromotionAmount { get; set; }
+        public int RefundedQuantity { get; set; } = 0;
 
         public virtual Order Order { get; set; } = null!;
         public virtual Dish Dish { get; set; } = null!;
