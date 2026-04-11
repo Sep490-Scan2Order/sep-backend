@@ -13,6 +13,7 @@ namespace ScanToOrder.Application.Message
             public const string CATEGORY_ALREADY_EXISTS = "Tên danh mục đã tồn tại, chọn tên danh mục khác.";
             public const string CATEGORY_NOT_FOUND = "Không tìm thấy danh mục.";
             public const string CATEGORY_OUT_OF_LIMIT = "Số lượng danh mục đã đạt giới hạn, vui lòng nâng cấp để sử dụng thêm.";
+            public const string YOU_DONT_HAVE_PERMISSION = "Bạn không có quyền chỉnh sửa Category của người khác.";
         }
 
         public class CategorySuccess

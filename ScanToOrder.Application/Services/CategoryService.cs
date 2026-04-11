@@ -11,12 +11,14 @@ namespace ScanToOrder.Application.Services
     public class CategoryService : ICategoryService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly IMapper _mapper;
 
-        public CategoryService(IUnitOfWork unitOfWork, IMapper mapper)
+        public CategoryService(IUnitOfWork unitOfWork, IMapper mapper, IAuthenticatedUserService authenticatedUserService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _authenticatedUserService = authenticatedUserService;
         }
 
         public async Task<CategoryDto> CreateCategory(Guid tenantId, CreateCategoryRequest categoryDto)
@@ -63,16 +65,29 @@ namespace ScanToOrder.Application.Services
 
         public async Task<CategoryDto> UpdateCategory(int categoryId, UpdateCategoryRequest categoryDto)
         {
+            if (_authenticatedUserService.ProfileId == null)
+            {
+                throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            }
+
             var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryId);
+
             if (existingCategory == null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+            }
+
+       
+            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            {
+                throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
 
             existingCategory.CategoryName = categoryDto.CategoryName;
 
             _unitOfWork.Categories.Update(existingCategory);
             await _unitOfWork.SaveAsync();
+
             return _mapper.Map<CategoryDto>(existingCategory);
         }
 

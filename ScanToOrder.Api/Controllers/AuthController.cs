@@ -89,7 +89,6 @@ public class AuthController : BaseController
     {
         return Success<object?>(await _taxService.GetTaxCodeDetailsAsync(taxCode));
     }
-    //
 
     [Authorize]
     [HttpPost("change-password-staff")]
