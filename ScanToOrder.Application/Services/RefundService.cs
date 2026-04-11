@@ -199,6 +199,11 @@ namespace ScanToOrder.Application.Services
             decimal refundAmount = 0;
             var refundDetails = new List<OrderDetail>();
 
+            // Tính hệ số thanh toán thực tế (Sau Voucher)
+            decimal paymentRatio = originalOrder.TotalAmount > 0 
+                ? originalOrder.FinalAmount / originalOrder.TotalAmount 
+                : 1;
+
             if (request.IsFullRefund)
             {
                 refundAmount = originalOrder.FinalAmount;
@@ -233,7 +238,9 @@ namespace ScanToOrder.Application.Services
                     if (refundQty <= 0) continue;
 
                     decimal ratio = (decimal)refundQty / originalDetail.Quantity;
-                    decimal itemRefundAmount = originalDetail.SubTotal * ratio;
+                    
+                    decimal rawItemRefund = (originalDetail.SubTotal * ratio) * paymentRatio;
+                    decimal itemRefundAmount = (decimal)PricingUtils.RoundToNearestThousand(rawItemRefund);
 
                     refundAmount += itemRefundAmount;
                     originalDetail.RefundedQuantity += refundQty;
