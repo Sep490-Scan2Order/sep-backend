@@ -15,6 +15,7 @@ namespace ScanToOrder.Application.Services
         private readonly IRestaurantMenuService _restaurantMenuService;
         private readonly IGeminiService _geminiService;
         private readonly IHuggingFaceService _huggingFaceService;
+        private readonly IPlanLimitationService _planLimitationService;
 
         public MenuTemplateService(
             IUnitOfWork unitOfWork,
@@ -22,7 +23,8 @@ namespace ScanToOrder.Application.Services
             IStorageService storageService,
             IRestaurantMenuService restaurantMenuService,
             IGeminiService geminiService,
-            IHuggingFaceService huggingFaceService)
+            IHuggingFaceService huggingFaceService,
+            IPlanLimitationService planLimitationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -30,6 +32,7 @@ namespace ScanToOrder.Application.Services
             _restaurantMenuService = restaurantMenuService;
             _geminiService = geminiService;
             _huggingFaceService = huggingFaceService;
+            _planLimitationService = planLimitationService;
         }
 
         public async Task<CreateTemplateResponseDto> CreateTemplateAsync(CreateTemplateRequestDto request)
@@ -150,6 +153,22 @@ namespace ScanToOrder.Application.Services
                 BackgroundImageUrl = uploadedImageUrl,
                 LayoutConfigJson = visualConfig.LayoutConfigJson 
             };
+        }
+
+        public async Task<IEnumerable<MenuTemplateDto>> GetTemplatesForRestaurantAsync(int restaurantId)
+        {
+            var features = await _planLimitationService.GetRestaurantFeaturesAsync(restaurantId);
+
+            if (!features.CanCustomMenuTemplate)
+            {
+                //Basic: chỉ trả về classic template
+                var defaultTemplate = await _unitOfWork.MenuTemplates.GetAllAsync(t => t.IsDefault && !t.IsDeleted);
+                return _mapper.Map<IEnumerable<MenuTemplateDto>>(defaultTemplate);
+            }
+
+            //Pro: trả về tất cả template
+            var allTemplates = await _unitOfWork.MenuTemplates.GetAllAsync(t => !t.IsDeleted);
+            return _mapper.Map<IEnumerable<MenuTemplateDto>>(allTemplates);
         }
     }
 }

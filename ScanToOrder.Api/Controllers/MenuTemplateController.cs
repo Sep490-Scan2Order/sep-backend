@@ -72,5 +72,12 @@ namespace ScanToOrder.Api.Controllers
                 });
             }
         }
+
+        [HttpGet("restaurant/{restaurantId:int}")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<MenuTemplateDto>>>> GetTemplatesForRestaurant(int restaurantId)
+        {
+            var result = await _menuTemplateService.GetTemplatesForRestaurantAsync(restaurantId);
+            return Success(result);
+        }
     }
 }
