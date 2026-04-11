@@ -93,10 +93,20 @@ namespace ScanToOrder.Application.Services
 
         public async Task<bool> DeleteCategory(int categoryId)
         {
+            if (_authenticatedUserService.ProfileId == null)
+            {
+                throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            }
+
             var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryId);
             if (existingCategory == null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+            }
+
+            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            {
+                throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
 
             // 1. Cập nhật trạng thái Category
@@ -137,10 +147,20 @@ namespace ScanToOrder.Application.Services
 
         public async Task<bool> DeActiveCategory(int categoryId)
         {
+            if (_authenticatedUserService.ProfileId == null)
+            {
+                throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            }
+
             var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryId);
             if (existingCategory == null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+            }
+
+            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            {
+                throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
 
             // 1. Cập nhật trạng thái Category
@@ -168,10 +188,20 @@ namespace ScanToOrder.Application.Services
 
         public async Task<bool> ActiveCategory(int categoryId)
         {
+            if (_authenticatedUserService.ProfileId == null)
+            {
+                throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            }
+
             var existingCategory = await _unitOfWork.Categories.GetByIdAsync(categoryId);
             if (existingCategory == null)
             {
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+            }
+
+            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            {
+                throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
 
             // 1. Cập nhật trạng thái Category
