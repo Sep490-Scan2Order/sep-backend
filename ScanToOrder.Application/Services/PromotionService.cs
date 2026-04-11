@@ -1,6 +1,7 @@
 using AutoMapper;
 using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Domain.Entities;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Enums;
@@ -14,11 +15,13 @@ public class PromotionService : IPromotionService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IPlanLimitationService _planLimitationService;
 
-    public PromotionService(IUnitOfWork unitOfWork, IMapper mapper)
+    public PromotionService(IUnitOfWork unitOfWork, IMapper mapper, IPlanLimitationService planLimitationService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _planLimitationService = planLimitationService;
     }
 
     public async Task CreatePromotionAsync(Guid tenantId, CreatePromotionDto dto)
@@ -259,6 +262,10 @@ public class PromotionService : IPromotionService
 
     public async Task<List<PromotionResponseDto>> GetAvailablePromotionsByOrderAsync(Guid tenantId, int restaurantId, decimal orderTotal)
     {
+        var features = await _planLimitationService.GetRestaurantFeaturesAsync(restaurantId);
+        if (!features.CanUsePromotions)
+            return new List<PromotionResponseDto>();
+
         var now = TimeUtils.GetVietnamTimeNow();
 
         var promotions = await _unitOfWork.Promotions.GetAllAsync(p =>

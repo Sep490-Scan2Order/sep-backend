@@ -1,9 +1,11 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.DTOs.Menu;
+using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Services;
 using ScanToOrder.Domain.Entities.Menu;
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Application.Message;
@@ -15,13 +17,21 @@ namespace ScanToOrder.Application.UnitTest.Services
     {
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IMapper> _mockMapper;
+        private readonly Mock<IPlanLimitationService> _mockPlanLimitation;
         private readonly MenuRestaurantService _service;
 
         public MenuRestaurantServiceTests()
         {
             _mockUnitOfWork = new Mock<IUnitOfWork> { DefaultValue = DefaultValue.Mock };
             _mockMapper = new Mock<IMapper>();
-            _service = new MenuRestaurantService(_mockUnitOfWork.Object, _mockMapper.Object);
+            _mockPlanLimitation = new Mock<IPlanLimitationService>();
+
+            // Default: allow custom menu template for all restaurants
+            _mockPlanLimitation
+                .Setup(p => p.GetRestaurantFeaturesAsync(It.IsAny<int>()))
+                .ReturnsAsync(new PlanFeaturesConfig { CanCustomMenuTemplate = true });
+
+            _service = new MenuRestaurantService(_mockUnitOfWork.Object, _mockMapper.Object, _mockPlanLimitation.Object);
         }
 
         #region 1. GetMenuByRestaurantIdAsync

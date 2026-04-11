@@ -8,6 +8,7 @@ namespace ScanToOrder.Application.Message
             public const string PAYMENT_SYSTEM_BUSY = "Hệ thống thanh toán đang bận, vui lòng thử lại sau.";
             public const string NO_PERMISSION_TO_UPDATE_TRANSACTION = "Không có quyền cập nhật giao dịch này.";
             public const string NO_PERMISSION_TO_VIEW_TRANSACTION = "Không có quyền xem giao dịch này.";
+            public const string PLAN_FEATURE_PROMOTION_REQUIRED = "Gói dịch vụ hiện tại không hỗ trợ tính năng Khuyến mãi. Vui lòng nâng cấp gói để sử dụng.";
         }
 
         public class SubscriptionSuccess

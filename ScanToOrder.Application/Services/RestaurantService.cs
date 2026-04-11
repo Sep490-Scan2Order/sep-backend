@@ -6,6 +6,7 @@ using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Dishes;
+using ScanToOrder.Domain.Entities.Menu;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
@@ -201,6 +202,15 @@ namespace ScanToOrder.Application.Services
             );
 
             _unitOfWork.Restaurants.Update(restaurant);
+
+            // Assign default Menu Template (ID = 12)
+            var defaultMenuRestaurant = new MenuRestaurant
+            {
+                RestaurantId = restaurant.Id,
+                MenuTemplateId = 12
+            };
+            await _unitOfWork.MenuRestaurants.AddAsync(defaultMenuRestaurant);
+
             await _unitOfWork.SaveAsync();
 
             _backgroundJobService.EnqueueSearchIndexRestaurant(restaurant.Id);
@@ -331,14 +341,14 @@ namespace ScanToOrder.Application.Services
 
             // 2. Fetch "Base" promotions (Those that apply to ALL dishes in the restaurant)
             // Logic: IsGlobal (Tenant-wide) OR (Restaurant-mapped AND NO specific dishes assigned)
-            var basePromotions = await _unitOfWork.Promotions.GetAllAsync(p =>
+            var basePromotions = features.CanUsePromotions ? await _unitOfWork.Promotions.GetAllAsync(p =>
                 p.TenantId == tenantId &&
                 p.IsActive &&
                 !p.IsDeleted &&
                 p.Scope == PromotionScope.Dish &&
                 (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
                                 && !p.PromotionDishes.Any()))
-            );
+            ) : new List<Promotion>();
 
             // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
             List<BranchDishConfig> branchDishes;
@@ -371,12 +381,14 @@ namespace ScanToOrder.Application.Services
                     Dishes = group.Select(bdc =>
                     {
                         // 5. Identify promotions specifically mapped to THIS dish
-                        var specificDishPromos = bdc.Dish.PromotionDishes?
+                        var specificDishPromos = features.CanUsePromotions ?
+                                                 (bdc.Dish.PromotionDishes?
                                                      .Select(pd => pd.Promotion)
                                                      .Where(p => p.Scope == PromotionScope.Dish &&
                                                                  p.IsActive &&
                                                                  !p.IsDeleted)
-                                                 ?? Enumerable.Empty<Promotion>();
+                                                  ?? Enumerable.Empty<Promotion>())
+                                                 : Enumerable.Empty<Promotion>();
 
                         // Combine Base promos (e.g., Grand Opening) with Specific promos (e.g., Happy Hour)
                         var allEligiblePromotions = basePromotions.Concat(specificDishPromos);

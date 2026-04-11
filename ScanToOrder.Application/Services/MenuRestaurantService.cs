@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -12,10 +12,16 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public MenuRestaurantService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IPlanLimitationService _planLimitationService;
+
+        public MenuRestaurantService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IPlanLimitationService planLimitationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _planLimitationService = planLimitationService;
         }
 
         public async Task<MenuRestaurantDto> GetMenuByRestaurantIdAsync(int restaurantId)
@@ -35,6 +41,12 @@ namespace ScanToOrder.Application.Services
         }
         public async Task<MenuRestaurantDto> ApplyRestaurantWithTemplateAsync(CreateMenuRestaurantRequestDto request)
         {
+            // Guard: check if the restaurant has the CanCustomMenuTemplate feature
+            // If the plan doesn't support custom templates, only the default template (ID = 12) is allowed
+            var features = await _planLimitationService.GetRestaurantFeaturesAsync(request.RestaurantId);
+            if (!features.CanCustomMenuTemplate && request.TemplateId != 12)
+                throw new DomainException(MenuTemplateMessage.MenuTemplateError.PLAN_FEATURE_CUSTOM_MENU_REQUIRED);
+
             var menuTemplate = await _unitOfWork.MenuTemplates.GetByIdAsync(request.TemplateId);
             if (menuTemplate == null)
                 throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
