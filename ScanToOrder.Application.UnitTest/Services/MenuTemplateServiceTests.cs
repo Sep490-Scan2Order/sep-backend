@@ -26,6 +26,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         private readonly Mock<IRestaurantMenuService> _mockRestaurantMenuService;
         private readonly Mock<IGeminiService> _mockGeminiService;
         private readonly Mock<IHuggingFaceService> _mockHuggingFaceService;
+        private readonly Mock<IPlanLimitationService> _mockPlanLimitationService;
         private readonly MenuTemplateService _service;
 
         public MenuTemplateServiceTests()
@@ -36,6 +37,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockRestaurantMenuService = new Mock<IRestaurantMenuService>();
             _mockGeminiService = new Mock<IGeminiService>();
             _mockHuggingFaceService = new Mock<IHuggingFaceService>();
+            _mockPlanLimitationService = new Mock<IPlanLimitationService>();
 
             _service = new MenuTemplateService(
                 _mockUnitOfWork.Object,
@@ -43,7 +45,8 @@ namespace ScanToOrder.Application.UnitTest.Services
                 _mockStorageService.Object,
                 _mockRestaurantMenuService.Object,
                 _mockGeminiService.Object,
-                _mockHuggingFaceService.Object
+                _mockHuggingFaceService.Object,
+                _mockPlanLimitationService.Object
             );
         }
 

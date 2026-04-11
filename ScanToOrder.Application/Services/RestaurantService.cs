@@ -203,11 +203,14 @@ namespace ScanToOrder.Application.Services
 
             _unitOfWork.Restaurants.Update(restaurant);
 
-            // Assign default Menu Template (ID = 12)
+            // Assign default Menu Template dynamically
+            var defaultTemplate = await _unitOfWork.MenuTemplates.FirstOrDefaultAsync(t => t.IsDefault);
+            int fallbackTemplateId = defaultTemplate?.Id ?? 12;
+
             var defaultMenuRestaurant = new MenuRestaurant
             {
                 RestaurantId = restaurant.Id,
-                MenuTemplateId = 12
+                MenuTemplateId = fallbackTemplateId
             };
             await _unitOfWork.MenuRestaurants.AddAsync(defaultMenuRestaurant);
 

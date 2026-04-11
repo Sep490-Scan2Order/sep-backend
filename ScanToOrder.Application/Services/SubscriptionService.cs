@@ -418,6 +418,10 @@ public class SubscriptionService : ISubscriptionService
         // Query 2: Fetch all target plans' details using Custom Repository Method
         var plansDict = await _unitOfWork.Plans.GetByIds(newPlanIds);
 
+        // Query 3: Fetch the default menu template
+        var defaultTemplate = await _unitOfWork.MenuTemplates.FirstOrDefaultAsync(t => t.IsDefault);
+        int fallbackTemplateId = defaultTemplate?.Id ?? 12;
+
         // Begin database transaction to ensure data integrity
         await using var dbTxn = await _unitOfWork.BeginTransactionAsync();
         try
@@ -504,9 +508,9 @@ public class SubscriptionService : ISubscriptionService
                     var menuRestaurant = await _unitOfWork.MenuRestaurants
                         .FirstOrDefaultAsync(mr => mr.RestaurantId == item.RestaurantId);
                     
-                    if (menuRestaurant != null && menuRestaurant.MenuTemplateId != 12)
+                    if (menuRestaurant != null && menuRestaurant.MenuTemplateId != fallbackTemplateId)
                     {
-                        menuRestaurant.MenuTemplateId = 12;
+                        menuRestaurant.MenuTemplateId = fallbackTemplateId;
                         _unitOfWork.MenuRestaurants.Update(menuRestaurant);
                     }
                 }
