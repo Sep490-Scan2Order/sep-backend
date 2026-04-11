@@ -8,13 +8,14 @@ using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Services;
 using ScanToOrder.Domain.Entities.Menu;
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Interfaces;
-using System.Linq.Expressions;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
 
 namespace ScanToOrder.Application.UnitTest.Services
 {
@@ -428,6 +429,57 @@ namespace ScanToOrder.Application.UnitTest.Services
             renderDto.TemplateId.Should().Be(1);
             aiReq.HolidayName.Should().Be("Tet");
             aiRes.TemplateName.Should().Be("A");
+        }
+
+        #endregion
+
+        #region 8. GetTemplatesForRestaurantAsync
+
+        [Fact]
+        public async Task GetTemplatesForRestaurantAsync_WhenCannotCustom_ReturnsOnlyDefaultTemplates()
+        {
+            // Arrange
+            int restaurantId = 1;
+            var defaultTemplates = new List<MenuTemplate> { new MenuTemplate { Id = 1, IsDefault = true } };
+            var expectedDtos = new List<MenuTemplateDto> { new MenuTemplateDto { Id = 1 } };
+
+            _mockPlanLimitationService.Setup(p => p.GetRestaurantFeaturesAsync(restaurantId))
+                .ReturnsAsync(new PlanFeaturesConfig { CanCustomMenuTemplate = false });
+
+            _mockUnitOfWork.Setup(u => u.MenuTemplates.GetAllAsync(It.IsAny<Expression<Func<MenuTemplate, bool>>>(), It.IsAny<Expression<Func<MenuTemplate, object>>[]>()))
+                .ReturnsAsync(defaultTemplates);
+
+            _mockMapper.Setup(m => m.Map<IEnumerable<MenuTemplateDto>>(defaultTemplates)).Returns(expectedDtos);
+
+            // Act
+            var result = await _service.GetTemplatesForRestaurantAsync(restaurantId);
+
+            // Assert
+            result.Should().BeEquivalentTo(expectedDtos);
+            _mockUnitOfWork.Verify(u => u.MenuTemplates.GetAllAsync(It.IsAny<Expression<Func<MenuTemplate, bool>>>(), It.IsAny<Expression<Func<MenuTemplate, object>>[]>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetTemplatesForRestaurantAsync_WhenCanCustom_ReturnsAllTemplates()
+        {
+            // Arrange
+            int restaurantId = 1;
+            var allTemplates = new List<MenuTemplate> { new MenuTemplate { Id = 1 }, new MenuTemplate { Id = 2 } };
+            var expectedDtos = new List<MenuTemplateDto> { new MenuTemplateDto { Id = 1 }, new MenuTemplateDto { Id = 2 } };
+
+            _mockPlanLimitationService.Setup(p => p.GetRestaurantFeaturesAsync(restaurantId))
+                .ReturnsAsync(new PlanFeaturesConfig { CanCustomMenuTemplate = true });
+
+            _mockUnitOfWork.Setup(u => u.MenuTemplates.GetAllAsync(It.IsAny<Expression<Func<MenuTemplate, bool>>>(), It.IsAny<Expression<Func<MenuTemplate, object>>[]>()))
+                .ReturnsAsync(allTemplates);
+
+            _mockMapper.Setup(m => m.Map<IEnumerable<MenuTemplateDto>>(allTemplates)).Returns(expectedDtos);
+
+            // Act
+            var result = await _service.GetTemplatesForRestaurantAsync(restaurantId);
+
+            // Assert
+            result.Should().BeEquivalentTo(expectedDtos);
         }
 
         #endregion

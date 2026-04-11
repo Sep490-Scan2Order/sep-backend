@@ -10,7 +10,6 @@ using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
-using ScanToOrder.Application.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,6 +53,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             var tenantId = Guid.NewGuid();
             var dto = new CreatePromotionDto { Type = type, Priority = priority, IsGlobal = true };
             var promotion = new Promotion { Type = type };
+            ApplyValidPromotionFieldsForType(promotion);
 
             _mockMapper.Setup(m => m.Map<Promotion>(dto)).Returns(promotion);
 
@@ -79,6 +79,7 @@ namespace ScanToOrder.Application.UnitTest.Services
                 RestaurantIds = new List<int> { 101 }
             };
             var promotion = new Promotion { IsGlobal = false, Scope = PromotionScope.Dish };
+            ApplyValidPromotionFieldsForType(promotion);
 
             _mockMapper.Setup(m => m.Map<Promotion>(dto)).Returns(promotion);
 
@@ -95,7 +96,14 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             // Arrange
             var dto = new CreatePromotionDto();
-            _mockMapper.Setup(m => m.Map<Promotion>(dto)).Throws(new Exception());
+            var promotion = new Promotion
+            {
+                Type = PromotionType.Standard,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(1)
+            };
+            _mockMapper.Setup(m => m.Map<Promotion>(dto)).Returns(promotion);
+            _mockUnitOfWork.Setup(u => u.SaveAsync()).ThrowsAsync(new Exception("db"));
 
             // Act
             Func<Task> action = async () => await _service.CreatePromotionAsync(Guid.NewGuid(), dto);
@@ -156,6 +164,9 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 Id = 1,
                 IsGlobal = false,
+                Type = PromotionType.Standard,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(1),
                 PromotionDishes = new List<PromotionDish> { new() { DishId = 1 } },
                 RestaurantPromotions = new List<RestaurantPromotion> { new() { RestaurantId = 1 } }
             };
@@ -164,6 +175,9 @@ namespace ScanToOrder.Application.UnitTest.Services
                 It.IsAny<Expression<Func<Promotion, bool>>>(),
                 It.IsAny<Expression<Func<Promotion, object>>[]>()))
                 .ReturnsAsync(existing);
+
+            _mockMapper.Setup(m => m.Map(It.IsAny<UpdatePromotionDto>(), It.IsAny<Promotion>()))
+                .Callback<UpdatePromotionDto, Promotion>((d, p) => p.IsGlobal = d.IsGlobal);
 
             // Act
             await _service.UpdatePromotionAsync(new UpdatePromotionDto { Id = 1, IsGlobal = true });
@@ -183,6 +197,8 @@ namespace ScanToOrder.Application.UnitTest.Services
                 Type = PromotionType.HappyHour,
                 IsGlobal = false,
                 Scope = PromotionScope.Dish,
+                DailyStartTime = TimeSpan.FromHours(16),
+                DailyEndTime = TimeSpan.FromHours(18),
                 PromotionDishes = new List<PromotionDish> { new() { DishId = 1 } },
                 RestaurantPromotions = new List<RestaurantPromotion>()
             };
@@ -231,6 +247,9 @@ namespace ScanToOrder.Application.UnitTest.Services
                 It.IsAny<Expression<Func<Promotion, object>>[]>()))
                 .ReturnsAsync(promos);
 
+            _mockPlanLimitation.Setup(p => p.GetRestaurantFeaturesAsync(It.IsAny<int>()))
+                .ReturnsAsync(new PlanFeaturesConfig { CanUsePromotions = true });
+
             _mockMapper.Setup(m => m.Map<List<PromotionResponseDto>>(It.IsAny<List<Promotion>>()))
                 .Returns(new List<PromotionResponseDto> { new() { Id = 1, Priority = 1 }, new() { Id = 2, Priority = 2 } });
 
@@ -272,6 +291,28 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             // Assert
             result.Items.Should().HaveCount(1);
+        }
+
+        private static void ApplyValidPromotionFieldsForType(Promotion promotion)
+        {
+            switch (promotion.Type)
+            {
+                case PromotionType.Standard:
+                case PromotionType.Clearance:
+                    promotion.StartDate ??= DateTime.UtcNow;
+                    promotion.EndDate ??= DateTime.UtcNow.AddDays(7);
+                    break;
+                case PromotionType.HappyHour:
+                    promotion.DailyStartTime ??= TimeSpan.FromHours(17);
+                    promotion.DailyEndTime ??= TimeSpan.FromHours(19);
+                    break;
+                case PromotionType.WeeklySpecial:
+                    promotion.StartDate ??= DateTime.UtcNow;
+                    promotion.EndDate ??= DateTime.UtcNow.AddDays(7);
+                    if (promotion.DaysOfWeek == DaysOfWeek.None)
+                        promotion.DaysOfWeek = DaysOfWeek.Monday;
+                    break;
+            }
         }
     }
 }

@@ -137,7 +137,6 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockUnitOfWork.Setup(u => u.MenuTemplates.GetByIdAsync(request.TemplateId))
                 .ReturnsAsync(template);
 
-            // Mock trả về null để ép hệ thống tạo mới
             _mockUnitOfWork.Setup(u => u.MenuRestaurants.FirstOrDefaultAsync(
                 It.IsAny<Expression<Func<MenuRestaurant, bool>>>(), It.IsAny<string>()))
                 .ReturnsAsync((MenuRestaurant)null);
@@ -155,6 +154,52 @@ namespace ScanToOrder.Application.UnitTest.Services
             result.Should().Be(expectedDto);
         }
 
+        [Fact]
+        public async Task ApplyRestaurantWithTemplateAsync_WhenCannotCustomAndTemplateIsNotDefault_ThrowsDomainException()
+        {
+            // Arrange
+            var request = new CreateMenuRestaurantRequestDto { TemplateId = 1, RestaurantId = 1 };
+            var template = new MenuTemplate { Id = 1, IsDefault = false }; // Không phải template mặc định
+
+            _mockUnitOfWork.Setup(u => u.MenuTemplates.GetByIdAsync(request.TemplateId)).ReturnsAsync(template);
+
+            _mockPlanLimitation.Setup(p => p.GetRestaurantFeaturesAsync(request.RestaurantId))
+                .ReturnsAsync(new PlanFeaturesConfig { CanCustomMenuTemplate = false });
+
+            // Act
+            Func<Task> action = async () => await _service.ApplyRestaurantWithTemplateAsync(request);
+
+            // Assert
+            await action.Should().ThrowAsync<DomainException>()
+                .WithMessage(MenuTemplateMessage.MenuTemplateError.NOT_SUPPORT_TEMPLATE);
+        }
+
+        [Fact]
+        public async Task ApplyRestaurantWithTemplateAsync_WhenCannotCustomButTemplateIsDefault_Succeeds()
+        {
+            // Arrange
+            var request = new CreateMenuRestaurantRequestDto { TemplateId = 1, RestaurantId = 1 };
+            var template = new MenuTemplate { Id = 1, IsDefault = true }; // LÀ template mặc định
+            var expectedDto = new MenuRestaurantDto { RestaurantId = 1 };
+
+            _mockUnitOfWork.Setup(u => u.MenuTemplates.GetByIdAsync(request.TemplateId)).ReturnsAsync(template);
+
+            _mockPlanLimitation.Setup(p => p.GetRestaurantFeaturesAsync(request.RestaurantId))
+                .ReturnsAsync(new PlanFeaturesConfig { CanCustomMenuTemplate = false });
+
+            _mockUnitOfWork.Setup(u => u.MenuRestaurants.FirstOrDefaultAsync(It.IsAny<Expression<Func<MenuRestaurant, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync((MenuRestaurant)null);
+
+            _mockMapper.Setup(m => m.Map<MenuRestaurant>(request)).Returns(new MenuRestaurant());
+            _mockMapper.Setup(m => m.Map<MenuRestaurantDto>(It.IsAny<MenuRestaurant>())).Returns(expectedDto);
+
+            // Act
+            var result = await _service.ApplyRestaurantWithTemplateAsync(request);
+
+            // Assert
+            result.Should().Be(expectedDto);
+            _mockUnitOfWork.Verify(u => u.MenuRestaurants.AddAsync(It.IsAny<MenuRestaurant>()), Times.Once);
+        }
         #endregion
     }
 }
