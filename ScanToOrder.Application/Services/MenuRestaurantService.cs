@@ -14,10 +14,7 @@ namespace ScanToOrder.Application.Services
         private readonly IMapper _mapper;
         private readonly IPlanLimitationService _planLimitationService;
 
-        public MenuRestaurantService(
-            IUnitOfWork unitOfWork,
-            IMapper mapper,
-            IPlanLimitationService planLimitationService)
+        public MenuRestaurantService(IUnitOfWork unitOfWork, IMapper mapper, IPlanLimitationService planLimitationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -40,16 +37,18 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<MenuRestaurantDto>(menuRestaurant);
         }
         public async Task<MenuRestaurantDto> ApplyRestaurantWithTemplateAsync(CreateMenuRestaurantRequestDto request)
-        {
-            // Guard: check if the restaurant has the CanCustomMenuTemplate feature
-            // If the plan doesn't support custom templates, only the default template (ID = 12) is allowed
-            var features = await _planLimitationService.GetRestaurantFeaturesAsync(request.RestaurantId);
-            if (!features.CanCustomMenuTemplate && request.TemplateId != 12)
-                throw new DomainException(MenuTemplateMessage.MenuTemplateError.PLAN_FEATURE_CUSTOM_MENU_REQUIRED);
-
+        {           
             var menuTemplate = await _unitOfWork.MenuTemplates.GetByIdAsync(request.TemplateId);
             if (menuTemplate == null)
                 throw new Exception(MenuTemplateMessage.MenuTemplateError.TEMPLATE_NOT_FOUND);
+
+            var features = await _planLimitationService.GetRestaurantFeaturesAsync(request.RestaurantId);
+            if (!features.CanCustomMenuTemplate)
+            {
+                var isDefault = menuTemplate.IsDefault;
+                if (!isDefault)
+                    throw new DomainException(MenuTemplateMessage.MenuTemplateError.NOT_SUPPORT_TEMPLATE);
+            }
 
             MenuRestaurant menuRestaurant;
 
