@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Configuration;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -14,6 +15,7 @@ public class ConfigurationController : BaseController
         _configurationService = configurationService;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<ConfigurationResponse?>>> GetConfigurations()
     {
@@ -21,6 +23,7 @@ public class ConfigurationController : BaseController
         return Success(configurations);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ApiResponse<ConfigurationResponse>>> UpdateConfigurations(
         int id,
