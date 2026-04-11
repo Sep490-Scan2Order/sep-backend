@@ -16,6 +16,8 @@ namespace ScanToOrder.Domain.Entities.Orders
         public PaymentMethod PaymentMethod { get; set; }
 
         public int? ShiftId { get; set; }
+        public TransactionType TransactionType { get; set; } = TransactionType.Payment;
+
 
         public virtual Order Order { get; set; } = null!;
         public virtual Shifts.Shift? Shift { get; set; }

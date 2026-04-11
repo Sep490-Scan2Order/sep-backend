@@ -11,12 +11,13 @@ namespace ScanToOrder.Infrastructure.Repositories
         public SubscriptionRepository(AppDbContext context) : base(context)
         {
         }
-        
-        public async Task<Dictionary<int, Subscription>> GetByRestaurantIds (List<int> restaurantIds)
+
+        public async Task<Dictionary<int, Subscription>> GetByRestaurantIds(List<int> restaurantIds)
         {
             return await _dbSet
                 .AsNoTracking()
-                .Where(r => restaurantIds.Contains(r.RestaurantId) && !r.IsDeleted && r.Status == SubscriptionStatus.Active)
+                .Where(r => restaurantIds.Contains(r.RestaurantId) && !r.IsDeleted &&
+                            r.Status == SubscriptionStatus.Active)
                 .Include(s => s.Plan)
                 .ToDictionaryAsync(r => r.RestaurantId);
         }
@@ -39,12 +40,12 @@ namespace ScanToOrder.Infrastructure.Repositories
         }
 
         public async Task<List<(int RestaurantId, string RestaurantName, string PlanName, DateTime ExpirationDate)>>
-    GetExpiringSubscriptionsRawAsync(DateTime now, DateTime targetDate)
+            GetExpiringSubscriptionsRawAsync(DateTime now, DateTime targetDate)
         {
             var data = await _dbSet
                 .Where(s => s.Status == SubscriptionStatus.Active
-                         && s.EndDate <= targetDate
-                         && s.EndDate >= now)
+                            && s.EndDate <= targetDate
+                            && s.EndDate >= now)
                 .Select(s => new
                 {
                     s.RestaurantId,
@@ -61,4 +62,3 @@ namespace ScanToOrder.Infrastructure.Repositories
         }
     }
 }
-

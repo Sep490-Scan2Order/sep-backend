@@ -2,9 +2,11 @@ using AutoMapper;
 using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.DTOs.Promotion;
+using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Services;
 using ScanToOrder.Domain.Entities;
 using ScanToOrder.Domain.Entities.Promotions;
+using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
@@ -24,6 +26,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IDbTransaction> _mockTransaction;
+        private readonly Mock<IPlanLimitationService> _mockPlanLimitation;
         private readonly PromotionService _service;
 
         public PromotionServiceTests()
@@ -31,11 +34,13 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockUnitOfWork = new Mock<IUnitOfWork> { DefaultValue = DefaultValue.Mock };
             _mockMapper = new Mock<IMapper>();
             _mockTransaction = new Mock<IDbTransaction>();
+            _mockPlanLimitation = new Mock<IPlanLimitationService>();
 
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync())
                 .Returns(Task.FromResult(_mockTransaction.Object));
 
-            _service = new PromotionService(_mockUnitOfWork.Object, _mockMapper.Object);
+
+            _service = new PromotionService(_mockUnitOfWork.Object, _mockMapper.Object, _mockPlanLimitation.Object);
         }
 
         [Theory]

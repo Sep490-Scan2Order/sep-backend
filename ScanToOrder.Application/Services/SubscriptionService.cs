@@ -76,8 +76,8 @@ public class SubscriptionService : ISubscriptionService
 
             detail.BasePrice = basePrice;
 
-            // If there's no current subscription or it's expired, it's a new purchase
-            if (currentSub == null || currentSub.EndDate <= DateTime.UtcNow)
+            // If there's no current active subscription (either first time or Expired and swept by CronJob), it's a new purchase
+            if (currentSub == null)
             {
                 detail.ActionType = SubscriptionLogStatus.BuyNew;
                 detail.BalanceConverted = 0;
@@ -418,6 +418,10 @@ public class SubscriptionService : ISubscriptionService
         // Query 2: Fetch all target plans' details using Custom Repository Method
         var plansDict = await _unitOfWork.Plans.GetByIds(newPlanIds);
 
+        // Query 3: Fetch the default menu template
+        var defaultTemplate = await _unitOfWork.MenuTemplates.FirstOrDefaultAsync(t => t.IsDefault);
+        int fallbackTemplateId = defaultTemplate?.Id ?? 12;
+
         // Begin database transaction to ensure data integrity
         await using var dbTxn = await _unitOfWork.BeginTransactionAsync();
         try
@@ -496,6 +500,19 @@ public class SubscriptionService : ISubscriptionService
 
                     currentSub.EndDate = newExpiredDate;
                     _unitOfWork.Subscriptions.Update(currentSub);
+                }
+
+                // Handle Resetting Menu Template on Downgrade or BuyNew
+                if (item.ActionType == SubscriptionLogStatus.Downgrade || item.ActionType == SubscriptionLogStatus.BuyNew || currentSub == null)
+                {
+                    var menuRestaurant = await _unitOfWork.MenuRestaurants
+                        .FirstOrDefaultAsync(mr => mr.RestaurantId == item.RestaurantId);
+                    
+                    if (menuRestaurant != null && menuRestaurant.MenuTemplateId != fallbackTemplateId)
+                    {
+                        menuRestaurant.MenuTemplateId = fallbackTemplateId;
+                        _unitOfWork.MenuRestaurants.Update(menuRestaurant);
+                    }
                 }
 
                 // Create a subscription log entry to securely track historical changes

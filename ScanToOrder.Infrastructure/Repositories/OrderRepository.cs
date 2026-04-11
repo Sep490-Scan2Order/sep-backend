@@ -165,22 +165,46 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             var query = _dbSet.AsNoTracking()
                 .Where(o => o.RestaurantId == restaurantId
-                         && o.Status == OrderStatus.Served
+                         && (o.Status == OrderStatus.Served || (o.typeOrder == TypeOrder.Refund && o.Status == OrderStatus.Cancelled))
                          && o.CreatedAt >= startDate
                          && o.CreatedAt <= endDate);
 
             var metrics = await query
+                .Select(o => new
+                {
+                    o.Id,
+                    o.typeOrder,
+                    o.TotalAmount,
+                    o.FinalAmount,
+                    o.PromotionDiscount,
+                    o.RefundOrderId
+                })
+                .GroupJoin(_context.Orders.AsNoTracking(), 
+                    o => o.RefundOrderId, 
+                    orig => (Guid?)orig.Id, 
+                    (o, origs) => new { o, origs })
+                .SelectMany(x => x.origs.DefaultIfEmpty(), 
+                    (x, orig) => new { x.o, orig })
+                .Select(x => new 
+                {
+                    x.o.typeOrder,
+                    x.o.TotalAmount,
+                    x.o.FinalAmount,
+                    x.o.PromotionDiscount,
+                    IsOriginalCancelled = x.o.typeOrder == TypeOrder.Refund && x.orig != null && x.orig.Status == OrderStatus.Cancelled
+                })
                 .GroupBy(o => 1)
                 .Select(g => new
                 {
-                    TotalOrders = g.Count(),
-                    GrossRevenue = g.Sum(o => o.TotalAmount),
-                    NetRevenue = g.Sum(o => o.FinalAmount),
-                    TotalDiscount = g.Sum(o => o.PromotionDiscount),
+                    TotalOrders = g.Count(o => o.typeOrder == TypeOrder.Regular),
+                    GrossRevenue = g.Where(o => o.typeOrder == TypeOrder.Regular).Sum(o => o.TotalAmount),
+                    NetRevenue = g.Where(o => o.typeOrder == TypeOrder.Regular).Sum(o => o.FinalAmount) 
+                                 - g.Where(o => o.typeOrder == TypeOrder.Refund && !o.IsOriginalCancelled).Sum(o => o.FinalAmount),
+                    TotalDiscount = g.Where(o => o.typeOrder == TypeOrder.Regular).Sum(o => o.PromotionDiscount),
                     RegularCount = g.Count(o => o.typeOrder == TypeOrder.Regular),
                     RegularRevenue = g.Where(o => o.typeOrder == TypeOrder.Regular).Sum(o => o.FinalAmount),
                     RefundCount = g.Count(o => o.typeOrder == TypeOrder.Refund),
-                    RefundRevenue = g.Where(o => o.typeOrder == TypeOrder.Refund).Sum(o => o.FinalAmount)
+                    RefundRevenue = g.Where(o => o.typeOrder == TypeOrder.Refund && !o.IsOriginalCancelled).Sum(o => o.FinalAmount)
                 })
                 .FirstOrDefaultAsync();
 
@@ -202,20 +226,43 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _context.OrderDetails.AsNoTracking()
                 .Where(od => od.Order.RestaurantId == restaurantId 
-                          && od.Order.Status == OrderStatus.Served 
+                          && (od.Order.Status == OrderStatus.Served || (od.Order.typeOrder == TypeOrder.Refund && od.Order.Status == OrderStatus.Cancelled))
                           && od.Order.CreatedAt >= startDate 
                           && od.Order.CreatedAt <= endDate)
-                .GroupBy(od => new { od.DishId, od.Dish.DishName })
+                .Select(od => new
+                {
+                    od.DishId,
+                    od.Dish.DishName,
+                    od.Quantity,
+                    od.SubTotal,
+                    od.Order.typeOrder,
+                    od.Order.RefundOrderId
+                })
+                .GroupJoin(_context.Orders.AsNoTracking(),
+                    od => od.RefundOrderId,
+                    orig => (Guid?)orig.Id,
+                    (od, origs) => new { od, origs })
+                .SelectMany(x => x.origs.DefaultIfEmpty(),
+                    (x, orig) => new
+                    {
+                        x.od.DishId,
+                        x.od.DishName,
+                        x.od.Quantity,
+                        x.od.SubTotal,
+                        x.od.typeOrder,
+                        IsOriginalCancelled = x.od.typeOrder == TypeOrder.Refund && orig != null && orig.Status == OrderStatus.Cancelled
+                    })
+                .GroupBy(od => new { od.DishId, od.DishName })
                 .Select(g => new
                 {
                     g.Key.DishId,
                     g.Key.DishName,
-                    QuantitySold = g.Sum(x => x.Quantity),
-                    Revenue = g.Sum(x => x.SubTotal)
+                    QuantitySold = g.Sum(x => x.typeOrder == TypeOrder.Regular ? x.Quantity : (x.IsOriginalCancelled ? 0 : -x.Quantity)),
+                    Revenue = g.Sum(x => x.typeOrder == TypeOrder.Regular ? x.SubTotal : (x.IsOriginalCancelled ? 0 : -x.SubTotal))
                 })
                 .OrderByDescending(x => x.QuantitySold)
                 .Take(top)
-                .Select(x => new ValueTuple<int, string, int, decimal>(x.DishId, x.DishName, x.QuantitySold, x.Revenue))
+                .Select(x => new ValueTuple<int, string, int, decimal>(x.DishId, x.DishName, (int)x.QuantitySold, x.Revenue))
                 .ToListAsync();
         }
 
@@ -224,15 +271,38 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             var result = await _dbSet
                 .AsNoTracking()
-                .Where(o => o.Status == OrderStatus.Served)
-                .GroupBy(o => new { o.Restaurant.TenantId, o.Restaurant.Tenant.Name })
+                .Where(o => o.Status == OrderStatus.Served || (o.typeOrder == TypeOrder.Refund && o.Status == OrderStatus.Cancelled))
+                .Select(o => new
+                {
+                    o.Restaurant.TenantId,
+                    TenantName = o.Restaurant.Tenant.Name,
+                    o.RestaurantId,
+                    o.typeOrder,
+                    o.FinalAmount,
+                    o.RefundOrderId
+                })
+                .GroupJoin(_context.Orders.AsNoTracking(),
+                    o => o.RefundOrderId,
+                    orig => (Guid?)orig.Id,
+                    (o, origs) => new { o, origs })
+                .SelectMany(x => x.origs.DefaultIfEmpty(),
+                    (x, orig) => new
+                    {
+                        x.o.TenantId,
+                        x.o.TenantName,
+                        x.o.RestaurantId,
+                        x.o.typeOrder,
+                        x.o.FinalAmount,
+                        IsOriginalCancelled = x.o.typeOrder == TypeOrder.Refund && orig != null && orig.Status == OrderStatus.Cancelled
+                    })
+                .GroupBy(o => new { o.TenantId, o.TenantName })
                 .Select(g => new
                 {
                     TenantId       = g.Key.TenantId,
-                    TenantName     = g.Key.Name ?? string.Empty,
+                    TenantName     = g.Key.TenantName ?? string.Empty,
                     TotalRestaurants = g.Select(o => o.RestaurantId).Distinct().Count(),
-                    TotalOrders    = g.Count(),
-                    TotalRevenue   = g.Sum(o => o.FinalAmount)
+                    TotalOrders    = g.Count(o => o.typeOrder == TypeOrder.Regular),
+                    TotalRevenue   = g.Sum(o => o.typeOrder == TypeOrder.Regular ? o.FinalAmount : (o.IsOriginalCancelled ? 0 : -o.FinalAmount))
                 })
                 .OrderByDescending(x => x.TotalRevenue)
                 .Take(top)
@@ -248,7 +318,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             var query = _dbSet.AsNoTracking()
                 .Where(o => o.Restaurant.TenantId == tenantId
-                         && o.Status == OrderStatus.Served);
+                         && (o.Status == OrderStatus.Served || (o.typeOrder == TypeOrder.Refund && o.Status == OrderStatus.Cancelled)));
 
             if (startDate.HasValue)
             {
@@ -261,14 +331,37 @@ namespace ScanToOrder.Infrastructure.Repositories
             }
 
             var result = await query
+                .Select(o => new
+                {
+                    o.RestaurantId,
+                    o.typeOrder,
+                    o.TotalAmount,
+                    o.FinalAmount,
+                    o.PromotionDiscount,
+                    o.RefundOrderId
+                })
+                .GroupJoin(_context.Orders.AsNoTracking(),
+                    o => o.RefundOrderId,
+                    orig => (Guid?)orig.Id,
+                    (o, origs) => new { o, origs })
+                .SelectMany(x => x.origs.DefaultIfEmpty(),
+                    (x, orig) => new
+                    {
+                        x.o.RestaurantId,
+                        x.o.typeOrder,
+                        x.o.TotalAmount,
+                        x.o.FinalAmount,
+                        x.o.PromotionDiscount,
+                        IsOriginalCancelled = x.o.typeOrder == TypeOrder.Refund && orig != null && orig.Status == OrderStatus.Cancelled
+                    })
                 .GroupBy(o => o.RestaurantId)
                 .Select(g => new
                 {
                     RestaurantId  = g.Key,
-                    TotalOrders   = g.Count(),
-                    GrossRevenue  = g.Sum(o => o.TotalAmount),
-                    NetRevenue    = g.Sum(o => o.FinalAmount),
-                    TotalDiscount = g.Sum(o => o.PromotionDiscount)
+                    TotalOrders   = g.Count(o => o.typeOrder == TypeOrder.Regular),
+                    GrossRevenue  = g.Sum(o => o.typeOrder == TypeOrder.Regular ? o.TotalAmount : 0),
+                    NetRevenue    = g.Sum(o => o.typeOrder == TypeOrder.Regular ? o.FinalAmount : (o.IsOriginalCancelled ? 0 : -o.FinalAmount)),
+                    TotalDiscount = g.Sum(o => o.typeOrder == TypeOrder.Regular ? o.PromotionDiscount : 0)
                 })
                 .ToListAsync();
 
