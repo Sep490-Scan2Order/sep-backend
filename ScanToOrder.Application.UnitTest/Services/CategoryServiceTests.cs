@@ -51,12 +51,13 @@ namespace ScanToOrder.Application.UnitTest.Services
         }
 
         #region 1. CreateCategory
+
         [Fact]
         public async Task CreateCategory_WhenCategoryNameAlreadyExists_ThrowsDomainException()
         {
             // Arrange
             var request = new CreateCategoryRequest { CategoryName = "Khai vị" };
-            _mockUnitOfWork.Setup(u => u.Categories.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Category, bool>>>()))
+            _mockUnitOfWork.Setup(u => u.Categories.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Category, bool>>>(), It.IsAny<Expression<Func<Category, object>>[]>()))
                 .ReturnsAsync(_validCategory);
 
             // Act
@@ -72,7 +73,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             // Arrange
             var request = new CreateCategoryRequest { CategoryName = "Mới" };
-            _mockUnitOfWork.Setup(u => u.Categories.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Category, bool>>>()))
+            _mockUnitOfWork.Setup(u => u.Categories.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Category, bool>>>(), It.IsAny<Expression<Func<Category, object>>[]>()))
                 .ReturnsAsync((Category)null);
             _mockUnitOfWork.Setup(u => u.Tenants.GetByIdAsync(_validTenantId))
                 .ReturnsAsync((Tenant)null);
@@ -90,7 +91,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             // Arrange
             var request = new CreateCategoryRequest { CategoryName = "Mới" };
-            _mockUnitOfWork.Setup(u => u.Categories.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Category, bool>>>())).ReturnsAsync((Category)null);
+            _mockUnitOfWork.Setup(u => u.Categories.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Category, bool>>>(), It.IsAny<Expression<Func<Category, object>>[]>())).ReturnsAsync((Category)null);
             _mockUnitOfWork.Setup(u => u.Tenants.GetByIdAsync(_validTenantId)).ReturnsAsync(_validTenant);
             _mockMapper.Setup(m => m.Map<Category>(request)).Returns(new Category());
 
@@ -101,60 +102,52 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockUnitOfWork.Verify(u => u.Categories.AddAsync(It.IsAny<Category>()), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
+
         #endregion
 
-        #region 2. Permission & Auth Checks
+        #region 2. GetAllCategoriesByTenant
 
         [Fact]
-        public async Task ServiceMethods_WhenProfileIdIsNull_ThrowsDomainException()
+        public async Task GetAllCategoriesByTenant_WhenTenantNotFound_ThrowsDomainException()
         {
             // Arrange
-            _mockAuthService.Setup(a => a.ProfileId).Returns((Guid?)null);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Tenant)null);
 
             // Act
-            // Fix CS9035: Thêm CategoryName vào object initializer
-            var actionUpdate = async () => await _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "Test" });
-            var actionDelete = async () => await _categoryService.DeleteCategory(1);
+            var action = async () => await _categoryService.GetAllCategoriesByTenant(Guid.NewGuid());
 
             // Assert
-            await actionUpdate.Should().ThrowAsync<DomainException>().WithMessage(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
-            await actionDelete.Should().ThrowAsync<DomainException>().WithMessage(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            await action.Should().ThrowAsync<DomainException>()
+                .WithMessage(TenantMessage.TenantError.TENANT_NOT_FOUND);
         }
 
         [Fact]
-        public async Task ServiceMethods_WhenTenantIdNotMatchProfileId_ThrowsDomainException()
+        public async Task GetAllCategoriesByTenant_WhenTenantExists_ReturnsList()
         {
             // Arrange
-            var differentTenantId = Guid.NewGuid();
-            _mockAuthService.Setup(a => a.ProfileId).Returns(differentTenantId);
-            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+            var categories = new List<Category> { _validCategory };
+            var categoryDtos = new List<CategoryDto> { _validCategoryDto };
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetByIdAsync(_validTenantId)).ReturnsAsync(_validTenant);
+
+            // Fix: Xóa tham số thứ 2 của FindAsync
+            _mockUnitOfWork.Setup(u => u.Categories.FindAsync(It.IsAny<Expression<Func<Category, bool>>>()))
+                .ReturnsAsync(categories);
+
+            _mockMapper.Setup(m => m.Map<List<CategoryDto>>(categories)).Returns(categoryDtos);
 
             // Act
-            // Fix CS9035: Thêm CategoryName vào object initializer
-            var actionUpdate = async () => await _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "Test" });
+            var result = await _categoryService.GetAllCategoriesByTenant(_validTenantId);
 
             // Assert
-            await actionUpdate.Should().ThrowAsync<DomainException>()
-                .WithMessage(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
+            result.Should().NotBeNull();
+            result.Should().HaveCount(1);
+            _mockUnitOfWork.Verify(u => u.Categories.FindAsync(It.IsAny<Expression<Func<Category, bool>>>()), Times.Once);
         }
 
         #endregion
 
         #region 3. UpdateCategory
-        [Fact]
-        public async Task UpdateCategory_WhenCategoryNotFound_ThrowsDomainException()
-        {
-            // Arrange
-            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Category)null);
-
-            // Act
-            // Fix CS9035: Thêm CategoryName vào object initializer
-            var action = async () => await _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "Update" });
-
-            // Assert
-            await action.Should().ThrowAsync<DomainException>()
-                .WithMessage(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
-        }
 
         [Fact]
         public async Task UpdateCategory_WhenValid_UpdatesName()
@@ -169,9 +162,11 @@ namespace ScanToOrder.Application.UnitTest.Services
             _validCategory.CategoryName.Should().Be("Món mới");
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
+
         #endregion
 
         #region 4. DeleteCategory
+
         [Fact]
         public async Task DeleteCategory_WhenValid_SoftDeletesAndClearsConfigs()
         {
@@ -180,6 +175,8 @@ namespace ScanToOrder.Application.UnitTest.Services
             var configs = new List<BranchDishConfig> { new BranchDishConfig() };
 
             _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+
+            // Fix: Xóa tham số thứ 2 của FindAsync
             _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>())).ReturnsAsync(dishes);
             _mockUnitOfWork.Setup(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>())).ReturnsAsync(configs);
 
@@ -193,15 +190,53 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockUnitOfWork.Verify(u => u.BranchDishConfigs.RemoveRange(configs), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
+
+        [Fact]
+        public async Task DeleteCategory_WhenNoDishes_SkipsDishAndBranchConfigCleanup()
+        {
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+            _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>()))
+                .ReturnsAsync(new List<Dish>());
+
+            var result = await _categoryService.DeleteCategory(1);
+
+            result.Should().BeTrue();
+            _validCategory.IsDeleted.Should().BeTrue();
+            _mockUnitOfWork.Verify(u => u.Dishes.UpdateRange(It.IsAny<IEnumerable<Dish>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.BranchDishConfigs.RemoveRange(It.IsAny<IEnumerable<BranchDishConfig>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteCategory_WhenDishesExistButNoBranchConfigs_SkipsRemoveRange()
+        {
+            var dishes = new List<Dish> { new Dish { Id = 10 } };
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+            _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>())).ReturnsAsync(dishes);
+            _mockUnitOfWork.Setup(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>()))
+                .ReturnsAsync(new List<BranchDishConfig>());
+
+            var result = await _categoryService.DeleteCategory(1);
+
+            result.Should().BeTrue();
+            dishes[0].IsDeleted.Should().BeTrue();
+            _mockUnitOfWork.Verify(u => u.Dishes.UpdateRange(dishes), Times.Once);
+            _mockUnitOfWork.Verify(u => u.BranchDishConfigs.RemoveRange(It.IsAny<IEnumerable<BranchDishConfig>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
         #endregion
 
         #region 5. DeActive & Active Category
+
         [Fact]
         public async Task DeActiveCategory_WhenValid_SetsIsSellingFalse()
         {
             // Arrange
             var configs = new List<BranchDishConfig> { new BranchDishConfig { IsSelling = true } };
             _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+
+            // Fix: Xóa tham số thứ 2 của FindAsync
             _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>())).ReturnsAsync(new List<Dish> { new Dish { Id = 10 } });
             _mockUnitOfWork.Setup(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>())).ReturnsAsync(configs);
 
@@ -214,11 +249,27 @@ namespace ScanToOrder.Application.UnitTest.Services
         }
 
         [Fact]
+        public async Task DeActiveCategory_WhenNoDishes_SkipsBranchConfigUpdates()
+        {
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+            _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>()))
+                .ReturnsAsync(new List<Dish>());
+
+            await _categoryService.DeActiveCategory(1);
+
+            _validCategory.IsActive.Should().BeFalse();
+            _mockUnitOfWork.Verify(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
+        [Fact]
         public async Task ActiveCategory_WhenValid_SetsIsSellingTrue()
         {
             // Arrange
             var configs = new List<BranchDishConfig> { new BranchDishConfig { IsSelling = false } };
             _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+
+            // Fix: Xóa tham số thứ 2 của FindAsync
             _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>())).ReturnsAsync(new List<Dish> { new Dish { Id = 10, IsDeleted = false, IsAvailable = true } });
             _mockUnitOfWork.Setup(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>())).ReturnsAsync(configs);
 
@@ -229,9 +280,151 @@ namespace ScanToOrder.Application.UnitTest.Services
             configs[0].IsSelling.Should().BeTrue();
             _mockUnitOfWork.Verify(u => u.BranchDishConfigs.UpdateRange(It.IsAny<IEnumerable<BranchDishConfig>>()), Times.Once);
         }
+
+        [Fact]
+        public async Task ActiveCategory_WhenNoDishes_SkipsBranchConfigUpdates()
+        {
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+            _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>()))
+                .ReturnsAsync(new List<Dish>());
+
+            await _categoryService.ActiveCategory(1);
+
+            _validCategory.IsActive.Should().BeTrue();
+            _mockUnitOfWork.Verify(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.BranchDishConfigs.UpdateRange(It.IsAny<IEnumerable<BranchDishConfig>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task ActiveCategory_WhenDishesExistButNoBranchConfigs_SkipsUpdateRange()
+        {
+            var dishes = new List<Dish> { new Dish { Id = 10, IsDeleted = false, IsAvailable = true } };
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(1)).ReturnsAsync(_validCategory);
+            _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>())).ReturnsAsync(dishes);
+            _mockUnitOfWork.Setup(u => u.BranchDishConfigs.FindAsync(It.IsAny<Expression<Func<BranchDishConfig, bool>>>()))
+                .ReturnsAsync(new List<BranchDishConfig>());
+
+            await _categoryService.ActiveCategory(1);
+
+            _mockUnitOfWork.Verify(u => u.BranchDishConfigs.UpdateRange(It.IsAny<IEnumerable<BranchDishConfig>>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
         #endregion
 
-        #region 6. DTO Coverage 
+        #region 6. Exception Branches (Auth, Permission, NotFound)
+
+        [Theory]
+        [InlineData("Update")]
+        [InlineData("Delete")]
+        [InlineData("DeActive")]
+        [InlineData("Active")]
+        public async Task ServiceMethods_WhenProfileIdIsNull_ThrowsDomainException(string method)
+        {
+            // Arrange
+            _mockAuthService.Setup(a => a.ProfileId).Returns((Guid?)null);
+
+            // Act
+            Func<Task> action = method switch
+            {
+                "Update" => () => _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "T" }),
+                "Delete" => () => _categoryService.DeleteCategory(1),
+                "DeActive" => () => _categoryService.DeActiveCategory(1),
+                "Active" => () => _categoryService.ActiveCategory(1),
+                _ => throw new ArgumentException()
+            };
+
+            // Assert
+            await action.Should().ThrowAsync<DomainException>().WithMessage(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+        }
+
+        [Theory]
+        [InlineData("Update")]
+        [InlineData("Delete")]
+        [InlineData("DeActive")]
+        [InlineData("Active")]
+        public async Task ServiceMethods_WhenCategoryNotFound_ThrowsDomainException(string method)
+        {
+            // Arrange
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Category)null);
+
+            // Act
+            Func<Task> action = method switch
+            {
+                "Update" => () => _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "T" }),
+                "Delete" => () => _categoryService.DeleteCategory(1),
+                "DeActive" => () => _categoryService.DeActiveCategory(1),
+                "Active" => () => _categoryService.ActiveCategory(1),
+                _ => throw new ArgumentException()
+            };
+
+            // Assert
+            await action.Should().ThrowAsync<DomainException>().WithMessage(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+        }
+
+        [Theory]
+        [InlineData("Update")]
+        [InlineData("Delete")]
+        [InlineData("DeActive")]
+        [InlineData("Active")]
+        public async Task ServiceMethods_WhenNoPermission_ThrowsDomainException(string method)
+        {
+            // Arrange
+            var differentProfileId = Guid.NewGuid();
+            _mockAuthService.Setup(a => a.ProfileId).Returns(differentProfileId);
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(It.IsAny<int>())).ReturnsAsync(_validCategory);
+
+            // Act
+            Func<Task> action = method switch
+            {
+                "Update" => () => _categoryService.UpdateCategory(1, new UpdateCategoryRequest { CategoryName = "T" }),
+                "Delete" => () => _categoryService.DeleteCategory(1),
+                "DeActive" => () => _categoryService.DeActiveCategory(1),
+                "Active" => () => _categoryService.ActiveCategory(1),
+                _ => throw new ArgumentException()
+            };
+
+            // Assert
+            await action.Should().ThrowAsync<DomainException>().WithMessage(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
+        }
+
+        #endregion
+
+        [Theory]
+        [InlineData("Update")]
+        [InlineData("Delete")]
+        [InlineData("DeActive")]
+        [InlineData("Active")]
+        public async Task CategoryMethods_WhenUserHasNoPermission_ThrowsDomainException(string method)
+        {
+            // Arrange
+            var categoryId = 1;
+            var ownerTenantId = Guid.NewGuid();
+            var hackerProfileId = Guid.NewGuid();
+
+            var existingCategory = new Category { Id = categoryId, TenantId = ownerTenantId };
+
+            _mockAuthService.Setup(a => a.ProfileId).Returns(hackerProfileId);
+            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(categoryId)).ReturnsAsync(existingCategory);
+
+            // Act
+            Func<Task> action = method switch
+            {
+                "Update" => () => _categoryService.UpdateCategory(categoryId, new UpdateCategoryRequest { CategoryName = "Hack" }),
+                "Delete" => () => _categoryService.DeleteCategory(categoryId),
+                "DeActive" => () => _categoryService.DeActiveCategory(categoryId),
+                "Active" => () => _categoryService.ActiveCategory(categoryId),
+                _ => throw new ArgumentException()
+            };
+
+            // Assert
+            await action.Should().ThrowAsync<DomainException>()
+                .WithMessage(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
+        }
+
+        #region 7. DTO Coverage
+
         [Fact]
         public void CategoryDto_Properties_GetAndSetCorrectly()
         {
@@ -255,6 +448,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             dto.CategoryName.Should().Be("Test");
             dto.CreatedAt.Should().Be(date);
         }
+
         #endregion
     }
 }

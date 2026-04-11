@@ -77,8 +77,8 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
 
-       
-            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            var profileTenantId = _authenticatedUserService.ProfileId!.Value;
+            if (existingCategory.TenantId != profileTenantId)
             {
                 throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
@@ -104,7 +104,8 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
 
-            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            var profileTenantId = _authenticatedUserService.ProfileId!.Value;
+            if (existingCategory.TenantId != profileTenantId)
             {
                 throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
@@ -158,7 +159,8 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
 
-            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            var profileTenantId = _authenticatedUserService.ProfileId!.Value;
+            if (existingCategory.TenantId != profileTenantId)
             {
                 throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
@@ -199,7 +201,8 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
             }
 
-            if (existingCategory.TenantId != _authenticatedUserService.ProfileId)
+            var profileTenantId = _authenticatedUserService.ProfileId!.Value;
+            if (existingCategory.TenantId != profileTenantId)
             {
                 throw new DomainException(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
             }
