@@ -112,24 +112,19 @@ namespace ScanToOrder.Application.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // 1. Cập nhật trạng thái đơn hàng nếu hoàn toàn bộ
                 if (request.IsFullRefund)
                 {
                     originalOrder.Status = OrderStatus.Cancelled;
                     _unitOfWork.Orders.Update(originalOrder);
                 }
 
-                // 2. Tính toán các món cần hoàn và số tiền
                 var (refundAmount, refundDetails) = PrepareRefundDetails(originalOrder, request);
 
-                // 3. Tải ảnh minh chứng
                 string? paymentProofUrl = await UploadProofImageAsync(request.ImageFile, originalOrder.OrderCode, "refund_proof");
 
-                // 4. Khởi tạo bản ghi logs refund
                 var refundOrder = CreateRefundLogEntity(originalOrder, request, refundAmount, paymentProofUrl);
                 await _unitOfWork.Orders.AddAsync(refundOrder);
 
-                // 5. Lưu chi tiết các món hoàn tiền
                 foreach (var rd in refundDetails)
                 {
                     rd.OrderId = refundOrder.Id;
@@ -139,7 +134,6 @@ namespace ScanToOrder.Application.Services
                     await _unitOfWork.OrderDetails.AddRangeAsync(refundDetails);
                 }
 
-                // 6. Ghi nhận giao dịch hoàn tiền nếu là tiền mặt
                 await LogRefundTransactionIfCashAsync(originalOrder, refundOrder, refundAmount, request.RefundType);
 
                 await _unitOfWork.SaveAsync();
@@ -167,6 +161,14 @@ namespace ScanToOrder.Application.Services
             if (originalOrder == null)
             {
                 throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
+            }
+
+            var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+                s => s.RestaurantId == originalOrder.RestaurantId && s.Status == ShiftStatus.Open);
+
+            if (activeShift == null)
+            {
+                throw new DomainException("Nhà hàng chưa có ca làm việc nào được mở. Vui lòng Check-in trước khi thực hiện hoàn tiền.");
             }
 
             if (originalOrder.Status == OrderStatus.Cancelled)

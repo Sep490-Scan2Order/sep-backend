@@ -74,17 +74,27 @@ namespace ScanToOrder.Application.Services
                 .FindAsync(t => t.ShiftId == shiftId && t.Status == OrderTransactionStatus.Success))
                 .ToList();
 
-            decimal totalCashOrder = transactions
+            decimal cashPayments = transactions
                 .Where(t => t.PaymentMethod == PaymentMethod.Cash && t.TransactionType == TransactionType.Payment)
-                .Sum(t => t.TotalAmount); 
+                .Sum(t => t.TotalAmount);
 
-            decimal totalTransferOrder = transactions
+            decimal cashRefunds = transactions
+                .Where(t => t.PaymentMethod == PaymentMethod.Cash && t.TransactionType == TransactionType.Refund)
+                .Sum(t => t.TotalAmount);
+
+            decimal totalCashOrder = cashPayments - cashRefunds;
+
+            decimal transferPayments = transactions
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Payment)
                 .Sum(t => t.TotalAmount);
 
-            decimal totalRefundAmount = transactions
-                .Where(t => t.TransactionType == TransactionType.Refund)
+            decimal transferRefunds = transactions
+                .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Refund)
                 .Sum(t => t.TotalAmount);
+
+            decimal totalTransferOrder = transferPayments - transferRefunds; 
+
+            decimal totalRefundAmount = cashRefunds + transferRefunds;
 
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
@@ -94,7 +104,7 @@ namespace ScanToOrder.Application.Services
                 shift.Note = note ?? string.Empty;
                 _unitOfWork.Shifts.Update(shift);
 
-                decimal expectedCash = shift.OpeningCashAmount + totalCashOrder - totalRefundAmount;
+                decimal expectedCash = shift.OpeningCashAmount + totalCashOrder;
                 decimal difference = actualCashAmount - expectedCash;
 
                 var report = new ShiftReport

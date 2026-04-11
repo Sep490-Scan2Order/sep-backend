@@ -63,7 +63,6 @@ namespace ScanToOrder.Application.DTOs.Orders
                 }
             }
 
-            // lọc dữ liệu hợp lệ
             list = list
                 .Where(x => x.OrderDetailId > 0 && x.QuantityToRefund > 0)
                 .ToList();
