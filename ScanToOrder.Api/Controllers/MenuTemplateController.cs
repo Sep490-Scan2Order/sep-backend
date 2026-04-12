@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
@@ -13,6 +14,7 @@ namespace ScanToOrder.Api.Controllers
             _menuTemplateService = menuTemplateService;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateTemplateResponseDto>>> CreateTemplate([FromForm] CreateTemplateRequestDto request)
         {   
@@ -20,6 +22,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [Authorize(Roles = "Admin, Tenant")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<MenuTemplateDto>>>> GetTemplates()
         {
@@ -27,6 +30,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [Authorize(Roles = "Admin, Tenant")]
         [HttpGet("{templateId:int}")]
         public async Task<ActionResult<ApiResponse<MenuTemplateDto>>> GetTemplateById(int templateId)
         {
@@ -34,6 +38,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{templateId:int}")]
         public async Task<ActionResult<ApiResponse<MenuTemplateDto>>> UpdateTemplate(
             int templateId,
@@ -43,6 +48,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [Authorize(Roles = "Admin, Tenant")]
         [HttpGet("restaurant/{restaurantId:int}/template")]
         public async Task<ActionResult<ApiResponse<MenuTemplateRenderDto>>> GetRestaurantMenuFromTemplate(
             int restaurantId)
@@ -50,7 +56,8 @@ namespace ScanToOrder.Api.Controllers
             var result = await _menuTemplateService.GetRestaurantMenuFromTemplateAsync(restaurantId);
             return Success(result);
         }
-
+        
+        [Authorize(Roles = "Admin")]
         [HttpPost("generate-holiday-ai")]
         public async Task<IActionResult> GenerateHolidayThemeAi([FromBody] AiHolidayTemplateRequestDto request)
         {
@@ -73,6 +80,7 @@ namespace ScanToOrder.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin, Tenant")]
         [HttpGet("restaurant/{restaurantId:int}")]
         public async Task<ActionResult<ApiResponse<IEnumerable<MenuTemplateDto>>>> GetTemplatesForRestaurant(int restaurantId)
         {

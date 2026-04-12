@@ -11,7 +11,15 @@ namespace ScanToOrder.Application.DTOs.Orders
         public OrderStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+
+        /// <summary>Số tiền thực trả hiện tại của đơn (sau các lần hoàn một phần nếu đã cập nhật trên Order).</summary>
         public decimal FinalAmount { get; set; }
+
+        /// <summary>
+        /// Tổng tiền thực trả trước khi trừ các lần hoàn (đơn gốc: FinalAmount hiện tại + tổng tiền các phiếu refund log; đơn refund log: bằng FinalAmount của phiếu).
+        /// </summary>
+        public decimal OriginalFinalAmount { get; set; }
+
         public string QrCodeUrl { get; set; } = string.Empty;
 
         public TypeOrder TypeOrder { get; set; }

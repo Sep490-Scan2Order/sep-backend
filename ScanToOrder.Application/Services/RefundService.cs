@@ -112,13 +112,22 @@ namespace ScanToOrder.Application.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var (refundAmount, refundDetails) = PrepareRefundDetails(originalOrder, request);
+
                 if (request.IsFullRefund)
                 {
                     originalOrder.Status = OrderStatus.Cancelled;
+                    originalOrder.FinalAmount = 0;
                     _unitOfWork.Orders.Update(originalOrder);
                 }
-
-                var (refundAmount, refundDetails) = PrepareRefundDetails(originalOrder, request);
+                else if (refundAmount > 0)
+                {
+                    var newFinal = originalOrder.FinalAmount - refundAmount;
+                    if (newFinal < 0)
+                        newFinal = 0;
+                    originalOrder.FinalAmount = (decimal)PricingUtils.RoundToNearestThousand(newFinal);
+                    _unitOfWork.Orders.Update(originalOrder);
+                }
 
                 // Check if all items in the original order are now fully refunded
                 bool isAllItemsRefunded = originalOrder.OrderDetails.All(od => od.RefundedQuantity >= od.Quantity);

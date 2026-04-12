@@ -999,7 +999,9 @@ public class OrderService : IOrderService
 
         var orders = await _unitOfWork.Orders.GetCustomerActiveOrdersAsync(restaurantId, phone);
 
-        return _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
+        var dtos = _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
+        CustomerOrderSummaryAmounts.ApplyOriginalAndFinalFromEntities(orders, dtos);
+        return dtos;
     }
 
     public async Task<List<CustomerOrderSummaryDto>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone)
@@ -1011,9 +1013,10 @@ public class OrderService : IOrderService
 
         var orders = await _unitOfWork.Orders.GetCustomerActiveOrdersAllRestaurantsAsync(phone);
 
-        return _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
+        var dtos = _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
+        CustomerOrderSummaryAmounts.ApplyOriginalAndFinalFromEntities(orders, dtos);
+        return dtos;
     }
-
 
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {

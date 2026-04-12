@@ -1,3 +1,4 @@
+using System.Linq;
 using AutoMapper;
 using ScanToOrder.Application.DTOs.Dishes;
 using ScanToOrder.Application.DTOs.Menu;
@@ -99,7 +100,17 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.DishName,
                     opt => opt.MapFrom(src => src.Dish != null ? src.Dish.DishName : string.Empty))
                 .ForMember(dest => dest.ImageUrl,
-                    opt => opt.MapFrom(src => src.Dish != null ? src.Dish.ImageUrl : string.Empty));
+                    opt => opt.MapFrom(src => src.Dish != null ? src.Dish.ImageUrl : string.Empty))
+                .ForMember(dest => dest.OrderedQuantity, opt => opt.MapFrom(src => src.Quantity))
+                .ForMember(dest => dest.RefundedQuantity, opt => opt.MapFrom(src => src.RefundedQuantity))
+                .ForMember(dest => dest.Quantity,
+                    opt => opt.MapFrom(src => Math.Max(0, src.Quantity - src.RefundedQuantity)))
+                .ForMember(dest => dest.OriginalSubTotal, opt => opt.MapFrom(src => src.SubTotal))
+                .ForMember(dest => dest.SubTotal,
+                    opt => opt.MapFrom(src =>
+                        src.Quantity <= 0
+                            ? 0m
+                            : src.SubTotal * (decimal)Math.Max(0, src.Quantity - src.RefundedQuantity) / src.Quantity));
 
             CreateMap<Order, CustomerOrderSummaryDto>()
                 .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.Id))
@@ -108,7 +119,10 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.UpdatedAt,
                     opt => opt.MapFrom(src => src.UpdatedAt ?? src.CreatedAt))
                 .ForMember(dest => dest.IsRefundLog,
-                    opt => opt.MapFrom(src => src.typeOrder == TypeOrder.Refund));
+                    opt => opt.MapFrom(src => src.typeOrder == TypeOrder.Refund))
+                .ForMember(dest => dest.OriginalFinalAmount, opt => opt.Ignore())
+                .ForMember(dest => dest.OrderDetails,
+                    opt => opt.MapFrom(src => (src.OrderDetails ?? Enumerable.Empty<OrderDetail>()).ToList()));
 
             CreateMap<Restaurant, TenantRestaurantRevenueDto>()
                 .ForMember(dest => dest.RestaurantId, opt => opt.MapFrom(src => src.Id))
