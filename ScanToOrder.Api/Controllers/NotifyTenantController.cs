@@ -20,6 +20,8 @@ namespace ScanToOrder.Api.Controllers
             _notifyTenantService = notifyTenantService;
             _authenticatedUserService = authenticatedUserService;
         }
+
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<List<CreateNotifyTenantDtoResponse>>>> CreateNotifyTenant(CreateNotifyTenantDtoRequest request)
         {
@@ -40,6 +42,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [Authorize(Roles = "Tenant")]
         [HttpPut("update-read-by-tenant")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateStatusToRead([FromBody] UpdateNotifyTenantStatusRequestDto request)
         {
@@ -51,8 +54,8 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpGet("details")]
         [Authorize(Roles = "Tenant")]
+        [HttpGet("details")]
         public async Task<ActionResult<ApiResponse<PagedResult<NotifyDetailDtoResponse>>>> GetNotifiTenantDetails(
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20)
