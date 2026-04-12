@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Notification;
 using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.Interfaces;
@@ -13,6 +14,8 @@ namespace ScanToOrder.Api.Controllers
         {
             _notificationService = notificationService;
         }
+
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<CreateNotificationDtoResponse>>> CreateNotification(CreateNotificationDtoRequest request)
         {
