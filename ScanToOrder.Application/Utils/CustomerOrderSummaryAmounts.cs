@@ -28,6 +28,8 @@ public static class CustomerOrderSummaryAmounts
                 continue;
             }
 
+            refundSumByOriginalId.TryGetValue(entity.Id, out var refundedSum);
+
             if (!HasOrderLevelPromotion(entity))
             {
                 var origLines = SumOriginalLineSubTotals(entity);
@@ -40,10 +42,9 @@ public static class CustomerOrderSummaryAmounts
                 }
             }
 
-            if (refundSumByOriginalId.TryGetValue(entity.Id, out var refundedSum) && refundedSum > 0)
-                dto.OriginalFinalAmount = dto.FinalAmount + refundedSum;
-            else
-                dto.OriginalFinalAmount = dto.FinalAmount;
+            dto.OriginalFinalAmount = refundedSum > 0
+                ? dto.FinalAmount + refundedSum
+                : dto.FinalAmount;
         }
     }
 
