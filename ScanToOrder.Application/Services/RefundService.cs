@@ -129,6 +129,14 @@ namespace ScanToOrder.Application.Services
                     _unitOfWork.Orders.Update(originalOrder);
                 }
 
+                // Check if all items in the original order are now fully refunded
+                bool isAllItemsRefunded = originalOrder.OrderDetails.All(od => od.RefundedQuantity >= od.Quantity);
+                if (!request.IsFullRefund && isAllItemsRefunded && originalOrder.Status != OrderStatus.Cancelled)
+                {
+                    originalOrder.Status = OrderStatus.Cancelled;
+                    _unitOfWork.Orders.Update(originalOrder);
+                }
+
                 string? paymentProofUrl = await UploadProofImageAsync(request.ImageFile, originalOrder.OrderCode, "refund_proof");
 
                 var refundOrder = CreateRefundLogEntity(originalOrder, request, refundAmount, paymentProofUrl);
@@ -149,7 +157,7 @@ namespace ScanToOrder.Application.Services
                 await tx.CommitAsync();
 
                 // 7. Thông báo Realtime
-                await SendRefundNotificationsAsync(originalOrder);
+                await SendRefundNotificationsAsync(originalOrder, refundOrder);
 
                 return true;
             }
@@ -325,17 +333,26 @@ namespace ScanToOrder.Application.Services
             }
         }
 
-        private async Task SendRefundNotificationsAsync(Order originalOrder)
+        private async Task SendRefundNotificationsAsync(Order originalOrder, Order? refundOrder = null)
         {
             try
             {
+                // Thông báo trạng thái đơn hàng gốc
                 await _realtimeService.NotifyOrderStatusChanged(originalOrder.RestaurantId.ToString(), originalOrder.Id.ToString(), (int)originalOrder.Status);
                 await _realtimeService.NotifyCustomerOrderStatusChanged(originalOrder.Id.ToString(), (int)originalOrder.Status);
+
+                // Nếu có đơn Refund log mới, thông báo luôn để app cập nhật danh sách Refund
+                if (refundOrder != null)
+                {
+                    await _realtimeService.NotifyOrderStatusChanged(refundOrder.RestaurantId.ToString(), refundOrder.Id.ToString(), (int)refundOrder.Status);
+                }
 
                 var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(originalOrder.RestaurantId);
                 if (restaurant != null)
                 {
+                    // Gửi ListChanged đến cả TenantId và RestaurantId để đảm bảo Staff app và các bên liên quan đều nhận được
                     await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                    await _realtimeService.NotifyListChanged(originalOrder.RestaurantId.ToString());
                 }
             }
             catch (Exception ex)
