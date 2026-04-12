@@ -6,4 +6,5 @@ public interface IPaymentService
 {
     Task<string> CreatePaymentLinkAsync(CreatePaymentRequest request);
     Task<PaymentResult> VerifyWebhookAsync(object webhookRequest);
+    Task<bool> IsPaymentSuccessfulAsync(long orderCode);
 }

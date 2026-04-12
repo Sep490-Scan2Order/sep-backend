@@ -15,7 +15,6 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<Dictionary<int, Subscription>> GetByRestaurantIds(List<int> restaurantIds)
         {
             return await _dbSet
-                //.AsNoTracking()
                 .Where(r => restaurantIds.Contains(r.RestaurantId) && !r.IsDeleted &&
                             r.Status == SubscriptionStatus.Active)
                 .Include(s => s.Plan)

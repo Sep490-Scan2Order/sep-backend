@@ -361,6 +361,20 @@ public class SubscriptionService : ISubscriptionService
                 .OrThrow("Giao dịch không tồn tại");
         }
 
+        if (paymentTransaction.PaymentTransactionType == PaymentTransactionType.Subscription &&
+            paymentTransaction.Status == PaymentTransactionStatus.Pending)
+        {
+            var isPaidOnGateway = await _paymentService.IsPaymentSuccessfulAsync(transactionCode);
+            if (isPaidOnGateway)
+            {
+                await ProcessPaymentSuccessAsync(transactionCode);
+
+                paymentTransaction = (await _unitOfWork.PaymentTransactions
+                        .FirstOrDefaultAsync(t => t.TransactionCode == transactionCode.ToString()))
+                    .OrThrow("Giao dịch không tồn tại");
+            }
+        }
+
         var isFinal = paymentTransaction.Status == PaymentTransactionStatus.Success ||
                       paymentTransaction.Status == PaymentTransactionStatus.Failed ||
                       paymentTransaction.Status == PaymentTransactionStatus.Canceled;
@@ -442,8 +456,13 @@ public class SubscriptionService : ISubscriptionService
         var restaurantIds = payload.Select(x => x.RestaurantId).Distinct().ToList();
         var newPlanIds = payload.Select(x => x.NewPlanId).Distinct().ToList();
 
-        // Query 1: Fetch all active subscriptions for the target restaurants using Custom Repository Method
-        var currentSubsDict = await _unitOfWork.Subscriptions.GetByRestaurantIds(restaurantIds);
+        // Query 1: Fetch tracked subscriptions for the target restaurants.
+        // Include expired rows so we can reactivate them instead of inserting duplicates.
+        var currentSubs = await _unitOfWork.Subscriptions.FindAsync(s =>
+            restaurantIds.Contains(s.RestaurantId) && !s.IsDeleted);
+        var currentSubsDict = currentSubs
+            .GroupBy(s => s.RestaurantId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.EndDate).First());
 
         // Query 2: Fetch all target plans' details using Custom Repository Method
         var plansDict = await _unitOfWork.Plans.GetByIds(newPlanIds);
@@ -496,20 +515,33 @@ public class SubscriptionService : ISubscriptionService
                 DateTime newExpiredDate = now;
 
                 // Handle different action types: BuyNew, Upgrade, Downgrade, Renew
-                if (item.ActionType == SubscriptionLogStatus.BuyNew || currentSub == null)
+                if (item.ActionType == SubscriptionLogStatus.BuyNew || currentSub == null ||
+                    currentSub.Status == SubscriptionStatus.Expired)
                 {
                     // BuyNew: Start counting from today
                     newExpiredDate = now.AddDays(totalDaysToAdd);
 
-                    var newSub = new Subscription
+                    if (currentSub == null)
                     {
-                        RestaurantId = item.RestaurantId,
-                        PlanId = item.NewPlanId,
-                        StartDate = now,
-                        EndDate = newExpiredDate,
-                        Status = SubscriptionStatus.Active
-                    };
-                    await _unitOfWork.Subscriptions.AddAsync(newSub);
+                        var newSub = new Subscription
+                        {
+                            RestaurantId = item.RestaurantId,
+                            PlanId = item.NewPlanId,
+                            StartDate = now,
+                            EndDate = newExpiredDate,
+                            Status = SubscriptionStatus.Active
+                        };
+                        await _unitOfWork.Subscriptions.AddAsync(newSub);
+                    }
+                    else
+                    {
+                        // Reuse existing expired row to avoid unique RestaurantId violations.
+                        currentSub.PlanId = item.NewPlanId;
+                        currentSub.StartDate = now;
+                        currentSub.EndDate = newExpiredDate;
+                        currentSub.Status = SubscriptionStatus.Active;
+                        _unitOfWork.Subscriptions.Update(currentSub);
+                    }
                 }
                 else if (item.ActionType == SubscriptionLogStatus.Upgrade ||
                          item.ActionType == SubscriptionLogStatus.Downgrade)
@@ -582,7 +614,8 @@ public class SubscriptionService : ISubscriptionService
         catch (Exception ex)
         {
             await dbTxn.RollbackAsync();
-            throw new Exception("Error while updating subscriptions: " + ex.Message);
+            var rootMessage = ex.InnerException?.Message ?? ex.Message;
+            throw new Exception("Error while updating subscriptions: " + rootMessage);
         }
     }
 

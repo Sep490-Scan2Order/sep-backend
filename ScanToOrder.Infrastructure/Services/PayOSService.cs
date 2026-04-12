@@ -5,6 +5,7 @@ using PayOS.Models.Webhooks;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Infrastructure.Configuration;
+using System.Text.Json;
 
 namespace ScanToOrder.Infrastructure.Services;
 
@@ -50,5 +51,44 @@ public class PayOSService : IPaymentService
             BankBin = d.CounterAccountBankId,
             AccountNumber = d.CounterAccountNumber
         };
+    }
+
+    public async Task<bool> IsPaymentSuccessfulAsync(long orderCode)
+    {
+        var paymentInfo = await _payOSClient.PaymentRequests.GetAsync(orderCode);
+
+        var json = JsonSerializer.Serialize(paymentInfo);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        string status = TryGetString(root, "status") ?? string.Empty;
+        string code = TryGetString(root, "code") ?? string.Empty;
+
+        if (status.Equals("PAID", StringComparison.OrdinalIgnoreCase) ||
+            status.Equals("SUCCESS", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (code == "00")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string? TryGetString(JsonElement root, string propertyName)
+    {
+        foreach (var property in root.EnumerateObject())
+        {
+            if (property.Name.Equals(propertyName, StringComparison.OrdinalIgnoreCase) &&
+                property.Value.ValueKind == JsonValueKind.String)
+            {
+                return property.Value.GetString();
+            }
+        }
+
+        return null;
     }
 }
