@@ -350,6 +350,17 @@ public class SubscriptionService : ISubscriptionService
             throw new DomainException(SubscriptionMessage.SubscriptionError.NO_PERMISSION_TO_VIEW_TRANSACTION);
         }
 
+        if (paymentTransaction.PaymentTransactionType == PaymentTransactionType.Subscription &&
+            paymentTransaction.Status == PaymentTransactionStatus.Success &&
+            !await HasProcessedSubscriptionPaymentAsync(paymentTransaction.Id))
+        {
+            await ProcessPaymentSuccessAsync(transactionCode);
+
+            paymentTransaction = (await _unitOfWork.PaymentTransactions
+                    .FirstOrDefaultAsync(t => t.TransactionCode == transactionCode.ToString()))
+                .OrThrow("Giao dịch không tồn tại");
+        }
+
         var isFinal = paymentTransaction.Status == PaymentTransactionStatus.Success ||
                       paymentTransaction.Status == PaymentTransactionStatus.Failed ||
                       paymentTransaction.Status == PaymentTransactionStatus.Canceled;
@@ -389,19 +400,38 @@ public class SubscriptionService : ISubscriptionService
                 t.TransactionCode == transactionCode.ToString()))
             .OrThrow("Giao dịch không tồn tại");
 
-        if (paymentTransaction.Status == PaymentTransactionStatus.Success) return;
-
         switch (paymentTransaction.PaymentTransactionType)
         {
             case PaymentTransactionType.Subscription:
+                if (await HasProcessedSubscriptionPaymentAsync(paymentTransaction.Id))
+                {
+                    if (paymentTransaction.Status != PaymentTransactionStatus.Success)
+                    {
+                        paymentTransaction.Status = PaymentTransactionStatus.Success;
+                        paymentTransaction.PaymentDate = DateTime.UtcNow;
+                        _unitOfWork.PaymentTransactions.Update(paymentTransaction);
+                        await _unitOfWork.SaveAsync();
+                    }
+
+                    return;
+                }
+
                 await ProcessSubscriptionSuccessAsync(paymentTransaction);
                 break;
             case PaymentTransactionType.CommissionFee:
+                if (paymentTransaction.Status == PaymentTransactionStatus.Success) return;
+
                 await ProcessCommissionFeeSuccessAsync(paymentTransaction);
                 break;
             default:
                 throw new DomainException("Loại giao dịch thanh toán không hợp lệ");
         }
+    }
+
+    private async Task<bool> HasProcessedSubscriptionPaymentAsync(int paymentTransactionId)
+    {
+        return await _unitOfWork.SubscriptionLogs.ExistsAsync(log =>
+            log.PaymentTransactionId == paymentTransactionId);
     }
 
     private async Task ProcessSubscriptionSuccessAsync(PaymentTransaction paymentTransaction)
