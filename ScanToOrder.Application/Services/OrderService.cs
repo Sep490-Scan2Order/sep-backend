@@ -947,6 +947,7 @@ public class OrderService : IOrderService
                 DiscountedPrice = od.DiscountedPrice,
                 PromotionAmount = od.PromotionAmount,
                 Quantity = od.Quantity,
+                RefundedQuantity = od.RefundedQuantity,
                 Image = od.Dish.ImageUrl
             }).ToList()
         }).ToList();
