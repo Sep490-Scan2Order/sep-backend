@@ -96,20 +96,7 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.CashierName, opt => opt.MapFrom(src => src.Shift != null && src.Shift.Staffs != null ? src.Shift.Staffs.Name : string.Empty))
                 .ForMember(dest => dest.ExpectedTotalAmount, opt => opt.MapFrom(src => src.Shift != null ? src.Shift.OpeningCashAmount + src.TotalCashOrder + src.TotalTransferOrder : 0));
 
-            // Mapping for standard repository tuple result
-            CreateMap<(ShiftReport Report, decimal OpeningCashAmount, string CashierName), ShiftReportDto>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Report.Id))
-                .ForMember(dest => dest.ShiftId, opt => opt.MapFrom(src => src.Report.ShiftId))
-                .ForMember(dest => dest.ReportDate, opt => opt.MapFrom(src => src.Report.ReportDate))
-                .ForMember(dest => dest.TotalCashOrder, opt => opt.MapFrom(src => src.Report.TotalCashOrder))
-                .ForMember(dest => dest.TotalTransferOrder, opt => opt.MapFrom(src => src.Report.TotalTransferOrder))
-                .ForMember(dest => dest.TotalRefundAmount, opt => opt.MapFrom(src => src.Report.TotalRefundAmount))
-                .ForMember(dest => dest.ExpectedCashAmount, opt => opt.MapFrom(src => src.Report.ExpectedCashAmount))
-                .ForMember(dest => dest.ActualCashAmount, opt => opt.MapFrom(src => src.Report.ActualCashAmount))
-                .ForMember(dest => dest.Difference, opt => opt.MapFrom(src => src.Report.Difference))
-                .ForMember(dest => dest.Note, opt => opt.MapFrom(src => src.Report.Note))
-                .ForMember(dest => dest.ExpectedTotalAmount, opt => opt.MapFrom(src => src.OpeningCashAmount + src.Report.TotalCashOrder + src.Report.TotalTransferOrder))
-                .ForMember(dest => dest.CashierName, opt => opt.MapFrom(src => src.CashierName));
+
         }
     }
 }
