@@ -91,6 +91,12 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive));
 
             CreateMap<Shift, ShiftDto>();
+
+            CreateMap<ShiftReport, ShiftReportDto>()
+                .ForMember(dest => dest.CashierName, opt => opt.MapFrom(src => src.Shift != null && src.Shift.Staffs != null ? src.Shift.Staffs.Name : string.Empty))
+                .ForMember(dest => dest.ExpectedTotalAmount, opt => opt.MapFrom(src => src.Shift != null ? src.Shift.OpeningCashAmount + src.TotalCashOrder + src.TotalTransferOrder : 0));
+
+
         }
     }
 }

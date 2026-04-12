@@ -112,24 +112,28 @@ namespace ScanToOrder.Application.Services
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                // 1. Cập nhật trạng thái đơn hàng nếu hoàn toàn bộ
+                var (refundAmount, refundDetails) = PrepareRefundDetails(originalOrder, request);
+
                 if (request.IsFullRefund)
                 {
                     originalOrder.Status = OrderStatus.Cancelled;
+                    originalOrder.FinalAmount = 0;
+                    _unitOfWork.Orders.Update(originalOrder);
+                }
+                else if (refundAmount > 0)
+                {
+                    var newFinal = originalOrder.FinalAmount - refundAmount;
+                    if (newFinal < 0)
+                        newFinal = 0;
+                    originalOrder.FinalAmount = (decimal)PricingUtils.RoundToNearestThousand(newFinal);
                     _unitOfWork.Orders.Update(originalOrder);
                 }
 
-                // 2. Tính toán các món cần hoàn và số tiền
-                var (refundAmount, refundDetails) = PrepareRefundDetails(originalOrder, request);
-
-                // 3. Tải ảnh minh chứng
                 string? paymentProofUrl = await UploadProofImageAsync(request.ImageFile, originalOrder.OrderCode, "refund_proof");
 
-                // 4. Khởi tạo bản ghi logs refund
                 var refundOrder = CreateRefundLogEntity(originalOrder, request, refundAmount, paymentProofUrl);
                 await _unitOfWork.Orders.AddAsync(refundOrder);
 
-                // 5. Lưu chi tiết các món hoàn tiền
                 foreach (var rd in refundDetails)
                 {
                     rd.OrderId = refundOrder.Id;
@@ -139,7 +143,6 @@ namespace ScanToOrder.Application.Services
                     await _unitOfWork.OrderDetails.AddRangeAsync(refundDetails);
                 }
 
-                // 6. Ghi nhận giao dịch hoàn tiền nếu là tiền mặt
                 await LogRefundTransactionIfCashAsync(originalOrder, refundOrder, refundAmount, request.RefundType);
 
                 await _unitOfWork.SaveAsync();
@@ -169,6 +172,14 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
             }
 
+            var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
+                s => s.RestaurantId == originalOrder.RestaurantId && s.Status == ShiftStatus.Open);
+
+            if (activeShift == null)
+            {
+                throw new DomainException("Nhà hàng chưa có ca làm việc nào được mở. Vui lòng Check-in trước khi thực hiện hoàn tiền.");
+            }
+
             if (originalOrder.Status == OrderStatus.Cancelled)
             {
                 throw new DomainException(OrderMessage.OrderError.ORDER_ALREADY_CANCELLED_OR_REFUNDED);
@@ -196,6 +207,11 @@ namespace ScanToOrder.Application.Services
         {
             decimal refundAmount = 0;
             var refundDetails = new List<OrderDetail>();
+
+            // Tính hệ số thanh toán thực tế (Sau Voucher)
+            decimal paymentRatio = originalOrder.TotalAmount > 0 
+                ? originalOrder.FinalAmount / originalOrder.TotalAmount 
+                : 1;
 
             if (request.IsFullRefund)
             {
@@ -231,7 +247,9 @@ namespace ScanToOrder.Application.Services
                     if (refundQty <= 0) continue;
 
                     decimal ratio = (decimal)refundQty / originalDetail.Quantity;
-                    decimal itemRefundAmount = originalDetail.SubTotal * ratio;
+                    
+                    decimal rawItemRefund = (originalDetail.SubTotal * ratio) * paymentRatio;
+                    decimal itemRefundAmount = (decimal)PricingUtils.RoundToNearestThousand(rawItemRefund);
 
                     refundAmount += itemRefundAmount;
                     originalDetail.RefundedQuantity += refundQty;
@@ -326,25 +344,6 @@ namespace ScanToOrder.Application.Services
             }
         }
 
-        private static (DateTime StartUtc, DateTime EndUtc, int DateInt) GetVietnamDayRangeUtc()
-        {
-            try
-            {
-                var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                var nowVn = TimeZoneInfo.ConvertTime(DateTime.UtcNow, tz);
-                var vnDate = nowVn.Date;
-                var startUtc = TimeZoneInfo.ConvertTimeToUtc(vnDate, tz);
-                var endUtc = TimeZoneInfo.ConvertTimeToUtc(vnDate.AddDays(1), tz);
-                int dateInt = (vnDate.Year * 10000) + (vnDate.Month * 100) + vnDate.Day;
-                return (startUtc, endUtc, dateInt);
-            }
-            catch
-            {
-                var utcDate = DateTime.UtcNow.Date;
-                int dateInt = (utcDate.Year * 10000) + (utcDate.Month * 100) + utcDate.Day;
-                return (utcDate, utcDate.AddDays(1), dateInt);
-            }
-        }
         private async Task<string?> UploadProofImageAsync(Microsoft.AspNetCore.Http.IFormFile? imageFile, int orderCode, string prefix)
         {
             if (imageFile == null || imageFile.Length == 0)
