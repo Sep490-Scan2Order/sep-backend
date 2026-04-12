@@ -6,6 +6,7 @@ using ScanToOrder.Domain.Entities.Shifts;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
+using ScanToOrder.Domain.Entities.Orders;
 
 namespace ScanToOrder.Application.Services
 {
@@ -62,18 +63,36 @@ namespace ScanToOrder.Application.Services
 
         public async Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal actualCashAmount, string? note)
         {
-            var shift = await _unitOfWork.Shifts.GetByIdAsync(shiftId);
+            var shift = await GetAndValidateOpenShiftAsync(shiftId);
+            var transactions = await GetSuccessfulTransactionsAsync(shiftId);
+            var metrics = CalculateShiftMetrics(transactions);
 
+            await PerformCheckOutTransitionAsync(shift, actualCashAmount, metrics, note);
+
+            return _mapper.Map<ShiftDto>(shift);
+        }
+
+        private async Task<Shift> GetAndValidateOpenShiftAsync(int shiftId)
+        {
+            var shift = await _unitOfWork.Shifts.GetByIdAsync(shiftId);
             if (shift == null)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
 
             if (shift.Status != ShiftStatus.Open)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_ALREADY_CLOSED);
 
-            var transactions = (await _unitOfWork.Transactions
-                .FindAsync(t => t.ShiftId == shiftId && t.Status == OrderTransactionStatus.Success))
-                .ToList();
+            return shift;
+        }
 
+        private async Task<List<Transaction>> GetSuccessfulTransactionsAsync(int shiftId)
+        {
+            var transactions = await _unitOfWork.Transactions
+                .FindAsync(t => t.ShiftId == shiftId && t.Status == OrderTransactionStatus.Success);
+            return transactions.ToList();
+        }
+
+        private static ShiftMetrics CalculateShiftMetrics(List<Transaction> transactions)
+        {
             decimal cashPayments = transactions
                 .Where(t => t.PaymentMethod == PaymentMethod.Cash && t.TransactionType == TransactionType.Payment)
                 .Sum(t => t.TotalAmount);
@@ -81,8 +100,6 @@ namespace ScanToOrder.Application.Services
             decimal cashRefunds = transactions
                 .Where(t => t.PaymentMethod == PaymentMethod.Cash && t.TransactionType == TransactionType.Refund)
                 .Sum(t => t.TotalAmount);
-
-            decimal totalCashOrder = cashPayments - cashRefunds;
 
             decimal transferPayments = transactions
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Payment)
@@ -92,10 +109,15 @@ namespace ScanToOrder.Application.Services
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Refund)
                 .Sum(t => t.TotalAmount);
 
-            decimal totalTransferOrder = transferPayments - transferRefunds; 
+            return new ShiftMetrics(
+                TotalCashOrder: cashPayments - cashRefunds,
+                TotalTransferOrder: transferPayments - transferRefunds,
+                TotalRefundAmount: cashRefunds + transferRefunds
+            );
+        }
 
-            decimal totalRefundAmount = cashRefunds + transferRefunds;
-
+        private async Task PerformCheckOutTransitionAsync(Shift shift, decimal actualCashAmount, ShiftMetrics metrics, string? note)
+        {
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
@@ -104,16 +126,16 @@ namespace ScanToOrder.Application.Services
                 shift.Note = note ?? string.Empty;
                 _unitOfWork.Shifts.Update(shift);
 
-                decimal expectedCash = shift.OpeningCashAmount + totalCashOrder;
+                decimal expectedCash = shift.OpeningCashAmount + metrics.TotalCashOrder;
                 decimal difference = actualCashAmount - expectedCash;
 
                 var report = new ShiftReport
                 {
-                    ShiftId = shiftId,
+                    ShiftId = shift.Id,
                     ReportDate = DateTime.UtcNow,
-                    TotalCashOrder = totalCashOrder,
-                    TotalTransferOrder = totalTransferOrder,
-                    TotalRefundAmount = totalRefundAmount,
+                    TotalCashOrder = metrics.TotalCashOrder,
+                    TotalTransferOrder = metrics.TotalTransferOrder,
+                    TotalRefundAmount = metrics.TotalRefundAmount,
                     ExpectedCashAmount = expectedCash,
                     ActualCashAmount = actualCashAmount,
                     Difference = difference,
@@ -121,11 +143,10 @@ namespace ScanToOrder.Application.Services
                 };
 
                 await _unitOfWork.ShiftReports.AddAsync(report);
-
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
+
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
-                return _mapper.Map<ShiftDto>(shift);
             }
             catch
             {
@@ -148,21 +169,7 @@ namespace ScanToOrder.Application.Services
             if (report == null)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_REPORT_NOT_FOUND);
 
-            return new ShiftReportDto
-            {
-                Id = report.Id,
-                ShiftId = report.ShiftId,
-                ReportDate = report.ReportDate,
-                TotalCashOrder = report.TotalCashOrder,
-                TotalTransferOrder = report.TotalTransferOrder,
-                TotalRefundAmount = report.TotalRefundAmount,
-                ExpectedCashAmount = report.ExpectedCashAmount,
-                ActualCashAmount = report.ActualCashAmount,
-                Difference = report.Difference,
-                ExpectedTotalAmount = shift.OpeningCashAmount + report.TotalCashOrder + report.TotalTransferOrder,
-                Note = report.Note,
-                CashierName = staff != null ? staff.Name : string.Empty
-            };
+            return _mapper.Map<ShiftReportDto>((report, shift.OpeningCashAmount, staff?.Name ?? string.Empty));
         }
 
         public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to)
@@ -172,7 +179,7 @@ namespace ScanToOrder.Application.Services
 
             return new PagedResult<ShiftReportDto>
             {
-                Items = result.Items.Select(x => MapToDto(x.Report, x.OpeningCashAmount, x.CashierName)),
+                Items = result.Items.Select(x => _mapper.Map<ShiftReportDto>(x)),
                 TotalCount = result.TotalCount,
                 Page = pageIndex,
                 PageSize = pageSize
@@ -185,7 +192,7 @@ namespace ScanToOrder.Application.Services
 
             return new PagedResult<ShiftReportDto>
             {
-                Items = result.Items.Select(x => MapToDto(x.Report, x.OpeningCashAmount, x.CashierName)),
+                Items = result.Items.Select(x => _mapper.Map<ShiftReportDto>(x)),
                 TotalCount = result.TotalCount,
                 Page = pageIndex,
                 PageSize = pageSize
@@ -201,21 +208,10 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<ShiftDto>(shift);
         }
 
-
-        private static ShiftReportDto MapToDto(Domain.Entities.Shifts.ShiftReport r, decimal openingCash, string cashierName = "") => new()
-        {
-            Id = r.Id,
-            ShiftId = r.ShiftId,
-            ReportDate = r.ReportDate,
-            TotalCashOrder = r.TotalCashOrder,
-            TotalTransferOrder = r.TotalTransferOrder,
-            TotalRefundAmount = r.TotalRefundAmount,
-            ExpectedCashAmount = r.ExpectedCashAmount,
-            ActualCashAmount = r.ActualCashAmount,
-            Difference = r.Difference,
-            ExpectedTotalAmount = openingCash + r.TotalCashOrder + r.TotalTransferOrder,
-            Note = r.Note,
-            CashierName = cashierName
-        };
+        private record ShiftMetrics(
+            decimal TotalCashOrder,
+            decimal TotalTransferOrder,
+            decimal TotalRefundAmount
+        );
     }
 }
