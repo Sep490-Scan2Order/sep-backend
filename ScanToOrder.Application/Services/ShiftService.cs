@@ -169,7 +169,7 @@ namespace ScanToOrder.Application.Services
             if (report == null)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_REPORT_NOT_FOUND);
 
-            return _mapper.Map<ShiftReportDto>((report, shift.OpeningCashAmount, staff?.Name ?? string.Empty));
+            return MapToShiftReportDto(report, shift.OpeningCashAmount, staff?.Name ?? string.Empty);
         }
 
         public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to)
@@ -179,7 +179,7 @@ namespace ScanToOrder.Application.Services
 
             return new PagedResult<ShiftReportDto>
             {
-                Items = result.Items.Select(x => _mapper.Map<ShiftReportDto>(x)),
+                Items = result.Items.Select(x => MapToShiftReportDto(x.Report, x.OpeningCashAmount, x.CashierName)),
                 TotalCount = result.TotalCount,
                 Page = pageIndex,
                 PageSize = pageSize
@@ -192,7 +192,7 @@ namespace ScanToOrder.Application.Services
 
             return new PagedResult<ShiftReportDto>
             {
-                Items = result.Items.Select(x => _mapper.Map<ShiftReportDto>(x)),
+                Items = result.Items.Select(x => MapToShiftReportDto(x.Report, x.OpeningCashAmount, x.CashierName)),
                 TotalCount = result.TotalCount,
                 Page = pageIndex,
                 PageSize = pageSize
@@ -206,6 +206,25 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
 
             return _mapper.Map<ShiftDto>(shift);
+        }
+
+        private static ShiftReportDto MapToShiftReportDto(ShiftReport report, decimal openingCashAmount, string cashierName)
+        {
+            return new ShiftReportDto
+            {
+                Id = report.Id,
+                ShiftId = report.ShiftId,
+                ReportDate = report.ReportDate,
+                TotalCashOrder = report.TotalCashOrder,
+                TotalTransferOrder = report.TotalTransferOrder,
+                TotalRefundAmount = report.TotalRefundAmount,
+                ExpectedCashAmount = report.ExpectedCashAmount,
+                ActualCashAmount = report.ActualCashAmount,
+                Difference = report.Difference,
+                Note = report.Note,
+                ExpectedTotalAmount = openingCashAmount + report.TotalCashOrder + report.TotalTransferOrder,
+                CashierName = cashierName
+            };
         }
 
         private record ShiftMetrics(
