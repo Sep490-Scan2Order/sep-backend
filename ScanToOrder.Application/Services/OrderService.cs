@@ -1000,7 +1000,7 @@ public class OrderService : IOrderService
         var orders = await _unitOfWork.Orders.GetCustomerActiveOrdersAsync(restaurantId, phone);
 
         var dtos = _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
-        ApplyCustomerOrderOriginalFinalAmounts(orders, dtos);
+        CustomerOrderSummaryAmounts.ApplyOriginalAndFinalFromEntities(orders, dtos);
         return dtos;
     }
 
@@ -1014,42 +1014,9 @@ public class OrderService : IOrderService
         var orders = await _unitOfWork.Orders.GetCustomerActiveOrdersAllRestaurantsAsync(phone);
 
         var dtos = _mapper.Map<List<CustomerOrderSummaryDto>>(orders);
-        ApplyCustomerOrderOriginalFinalAmounts(orders, dtos);
+        CustomerOrderSummaryAmounts.ApplyOriginalAndFinalFromEntities(orders, dtos);
         return dtos;
     }
-
-    /// <summary>
-    /// Đơn gốc: OriginalFinalAmount = FinalAmount hiện tại + tổng tiền các phiếu refund (để hiển thị "trước hoàn" vs "sau hoàn").
-    /// Đơn refund log: OriginalFinalAmount = FinalAmount của phiếu.
-    /// </summary>
-    private static void ApplyCustomerOrderOriginalFinalAmounts(IReadOnlyList<Order> orders, List<CustomerOrderSummaryDto> dtos)
-    {
-        if (orders.Count != dtos.Count)
-            return;
-
-        var refundSumByOriginalId = orders
-            .Where(o => o.typeOrder == TypeOrder.Refund && o.RefundOrderId.HasValue)
-            .GroupBy(o => o.RefundOrderId!.Value)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.FinalAmount));
-
-        for (var i = 0; i < dtos.Count; i++)
-        {
-            var entity = orders[i];
-            var dto = dtos[i];
-
-            if (entity.typeOrder == TypeOrder.Refund)
-            {
-                dto.OriginalFinalAmount = dto.FinalAmount;
-                continue;
-            }
-
-            if (refundSumByOriginalId.TryGetValue(entity.Id, out var refundedSum) && refundedSum > 0)
-                dto.OriginalFinalAmount = dto.FinalAmount + refundedSum;
-            else
-                dto.OriginalFinalAmount = dto.FinalAmount;
-        }
-    }
-
 
     public async Task<List<MenuDishItemDto>> GetDishesByIdsWithPromotionAsync(int restaurantId, List<int> dishIds)
     {
