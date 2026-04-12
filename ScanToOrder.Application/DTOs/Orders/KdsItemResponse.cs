@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +15,7 @@ namespace ScanToOrder.Application.DTOs.Orders
         public decimal PromotionAmount { get; set; }
 
         public int Quantity { get; set; }
+        public int RefundedQuantity { get; set; }
         public string Image { get; set; }
     }
 }
