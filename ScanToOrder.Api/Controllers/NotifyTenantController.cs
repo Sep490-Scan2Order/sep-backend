@@ -20,6 +20,8 @@ namespace ScanToOrder.Api.Controllers
             _notifyTenantService = notifyTenantService;
             _authenticatedUserService = authenticatedUserService;
         }
+
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<List<CreateNotifyTenantDtoResponse>>>> CreateNotifyTenant(CreateNotifyTenantDtoRequest request)
         {
