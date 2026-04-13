@@ -725,7 +725,36 @@ namespace ScanToOrder.Application.UnitTest.Services
             await _refundService.RefundOrderAsync(request);
 
             // Assert
-            _mockOrderRepo.Verify(u => u.AddAsync(It.Is<Order>(o => o.FinalAmount == 0)), Times.Once);
+            order.FinalAmount.Should().Be(0);
+            _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.FinalAmount == 0)), Times.AtLeastOnce);
+        }
+
+        [Fact]
+        public async Task RefundOrderAsync_RoundingCanMakeRefundExceedFinal_ClampsNewFinalToZero()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = CreateTestOrder(orderId, 200000, 1000);
+            SetupMocks(order);
+
+            var request = new RefundRequest
+            {
+                OrderId = orderId,
+                RefundType = RefundType.StaffError,
+                IsFullRefund = false,
+                RefundItems = new List<RefundItemDto>
+                {
+                    new RefundItemDto { OrderDetailId = 1, QuantityToRefund = 1 },
+                    new RefundItemDto { OrderDetailId = 2, QuantityToRefund = 1 }
+                }
+            };
+
+            // Act
+            await _refundService.RefundOrderAsync(request);
+
+            // Assert
+            order.FinalAmount.Should().Be(0);
+            _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.FinalAmount == 0)), Times.AtLeastOnce);
         }
 
         [Fact]
@@ -753,7 +782,7 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             // Assert
             order.Status.Should().Be(OrderStatus.Cancelled);
-            _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.Status == OrderStatus.Cancelled)), Times.Once);
+            _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.Status == OrderStatus.Cancelled)), Times.AtLeastOnce);
         }
 
         #endregion

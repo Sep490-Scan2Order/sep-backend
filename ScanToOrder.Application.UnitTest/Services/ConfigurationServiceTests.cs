@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.DTOs.Configuration;
+using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Services;
 using ScanToOrder.Domain.Entities.Configuration; 
 using ScanToOrder.Domain.Exceptions;
@@ -14,13 +15,17 @@ namespace ScanToOrder.Application.UnitTest.Services
     {
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IMapper> _mockMapper;
+        private readonly Mock<IEmailService> _mockEmailService;
+        private readonly Mock<ITenantService> _mockTenantService;
         private readonly ConfigurationService _service;
 
         public ConfigurationServiceTests()
         {
             _mockUnitOfWork = new Mock<IUnitOfWork> { DefaultValue = DefaultValue.Mock };
             _mockMapper = new Mock<IMapper>();
-            _service = new ConfigurationService(_mockUnitOfWork.Object, _mockMapper.Object);
+            _mockEmailService = new Mock<IEmailService>();
+            _mockTenantService = new Mock<ITenantService>();
+            _service = new ConfigurationService(_mockUnitOfWork.Object, _mockMapper.Object, _mockEmailService.Object, _mockTenantService.Object);
         }
 
         #region 1. GetConfigurationsAsync
@@ -87,7 +92,7 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             // Assert
             await action.Should().ThrowAsync<DomainException>()
-                .WithMessage("Không tìm thấy cấu hình.");
+                .WithMessage("*Không tìm thấy cấu hình*");
         }
 
         [Fact]

@@ -222,7 +222,7 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             // Assert
             await act.Should().ThrowAsync<DomainException>()
-                .WithMessage("*số tiền mặt tối thiểu*");
+                .WithMessage("*mức tối thiểu*");
         }
 
         #endregion
