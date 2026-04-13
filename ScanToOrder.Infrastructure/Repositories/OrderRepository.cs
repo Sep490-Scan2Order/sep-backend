@@ -30,6 +30,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<List<Order>> GetOrdersForKdsAsync(int restaurantId)
         {
             return await _context.Orders
+                .Include(o => o.Promotion)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
                 .Where(o => o.RestaurantId == restaurantId
@@ -60,6 +61,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                                 t.OrderId == o.Id &&
                                 t.PaymentMethod == PaymentMethod.Cash &&
                                 t.Status == OrderTransactionStatus.Pending))
+                .Include(o => o.Promotion)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Dish)
                 .OrderByDescending(o => o.CreatedAt)
