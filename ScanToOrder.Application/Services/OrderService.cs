@@ -1295,10 +1295,38 @@ public class OrderService : IOrderService
         string? keyword = null,
         OrderStatus? status = null,
         DateTime? fromDate = null,
-        DateTime? toDate = null)
+        DateTime? toDate = null,
+        TypeOrder? typeOrder = null,
+        RefundType? refundType = null)
     {
         var result = await _unitOfWork.Orders.GetTenantOrdersPagedAsync(
-            restaurantId, pageIndex, pageSize, keyword, status, fromDate, toDate);
+            restaurantId, pageIndex, pageSize, keyword, status, fromDate, toDate, typeOrder, refundType);
+
+        var staffIds = result.Items
+            .Where(o => o.ResponsibleStaffId.HasValue)
+            .Select(o => o.ResponsibleStaffId!.Value)
+            .Distinct()
+            .ToList();
+
+        var refundOrderIds = result.Items
+            .Where(o => o.RefundOrderId.HasValue)
+            .Select(o => o.RefundOrderId!.Value)
+            .Distinct()
+            .ToList();
+
+        var staffNames = new Dictionary<Guid, string>();
+        if (staffIds.Any())
+        {
+            var staffs = await _unitOfWork.Staffs.FindAsync(s => staffIds.Contains(s.Id));
+            staffNames = staffs.ToDictionary(s => s.Id, s => s.Name);
+        }
+
+        var originalOrderCodes = new Dictionary<Guid, int>();
+        if (refundOrderIds.Any())
+        {
+            var originalOrders = await _unitOfWork.Orders.FindAsync(o => refundOrderIds.Contains(o.Id));
+            originalOrderCodes = originalOrders.ToDictionary(o => o.Id, o => o.OrderCode);
+        }
 
         return new PagedResult<TenantOrderResponseDto>
         {
@@ -1318,6 +1346,14 @@ public class OrderService : IOrderService
                 Type = o.Type,
                 PaymentProofUrl = o.PaymentProofUrl,
                 TypeOrder = o.typeOrder,
+                RefundType = o.RefundType,
+                RefundOrderId = o.RefundOrderId,
+                OriginalOrderCode = o.RefundOrderId.HasValue && originalOrderCodes.ContainsKey(o.RefundOrderId.Value) 
+                    ? originalOrderCodes[o.RefundOrderId.Value] 
+                    : null,
+                ResponsibleStaffName = o.ResponsibleStaffId.HasValue && staffNames.ContainsKey(o.ResponsibleStaffId.Value)
+                    ? staffNames[o.ResponsibleStaffId.Value]
+                    : null,
                 CreatedAt = o.CreatedAt,
                 OrderDetails = o.OrderDetails?.Select(od => new TenantOrderDetailDto
                 {
@@ -1327,7 +1363,8 @@ public class OrderService : IOrderService
                     SubTotal = od.SubTotal,
                     OriginalPrice = od.OriginalPrice,
                     DiscountedPrice = od.DiscountedPrice,
-                    PromotionAmount = od.PromotionAmount
+                    PromotionAmount = od.PromotionAmount,
+                    RefundedQuantity = od.RefundedQuantity
                 }).ToList() ?? new List<TenantOrderDetailDto>()
             }),
             TotalCount = result.TotalCount,

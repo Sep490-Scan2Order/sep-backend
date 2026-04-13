@@ -9,5 +9,6 @@ namespace ScanToOrder.Application.DTOs.Orders
         public decimal OriginalPrice { get; set; }
         public decimal DiscountedPrice { get; set; }
         public decimal PromotionAmount { get; set; }
+        public int RefundedQuantity { get; set; }
     }
 }

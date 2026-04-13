@@ -18,6 +18,10 @@ namespace ScanToOrder.Application.DTOs.Orders
         public string Type { get; set; } = null!;
         public string? PaymentProofUrl { get; set; }
         public TypeOrder TypeOrder { get; set; }
+        public RefundType? RefundType { get; set; }
+        public Guid? RefundOrderId { get; set; }
+        public int? OriginalOrderCode { get; set; }
+        public string? ResponsibleStaffName { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<TenantOrderDetailDto> OrderDetails { get; set; } = new List<TenantOrderDetailDto>();
     }

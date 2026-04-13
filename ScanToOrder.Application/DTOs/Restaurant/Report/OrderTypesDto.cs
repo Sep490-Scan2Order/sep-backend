@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +9,6 @@ namespace ScanToOrder.Application.DTOs.Restaurant.Report
     public class OrderTypesDto
     {
         public OrderTypeStatsDto Regular { get; set; } = new OrderTypeStatsDto();
-        public OrderTypeStatsDto Refund { get; set; } = new OrderTypeStatsDto();
+        public RefundStatsDto Refund { get; set; } = new RefundStatsDto();
     }
 }

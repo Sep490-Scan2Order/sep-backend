@@ -35,6 +35,8 @@ public interface IOrderService
         string? keyword = null,
         OrderStatus? status = null,
         DateTime? fromDate = null,
-        DateTime? toDate = null);
+        DateTime? toDate = null,
+        TypeOrder? typeOrder = null,
+        RefundType? refundType = null);
 }
 

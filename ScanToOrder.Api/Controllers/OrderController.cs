@@ -191,10 +191,12 @@ public class OrderController : BaseController
         [FromQuery] string? keyword = null,
         [FromQuery] OrderStatus? status = null,
         [FromQuery] DateTime? fromDate = null,
-        [FromQuery] DateTime? toDate = null)
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] TypeOrder? typeOrder = null,
+        [FromQuery] RefundType? refundType = null)
     {
         var result = await _orderService.GetTenantOrdersAsync(
-            restaurantId, pageIndex, pageSize, keyword, status, fromDate, toDate);
+            restaurantId, pageIndex, pageSize, keyword, status, fromDate, toDate, typeOrder, refundType);
         return Success(result);
     }
 }

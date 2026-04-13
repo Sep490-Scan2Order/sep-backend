@@ -64,6 +64,13 @@ namespace ScanToOrder.Application.Services
         public async Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal actualCashAmount, string? note)
         {
             var shift = await GetAndValidateOpenShiftAsync(shiftId);
+
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+            if (restaurant != null && actualCashAmount < restaurant.MinCashAmount)
+            {
+                throw new DomainException(Message.ShiftMessage.ShiftError.CASH_AMOUNT_INVALID);
+            }
+
             var transactions = await GetSuccessfulTransactionsAsync(shiftId);
             var metrics = CalculateShiftMetrics(transactions);
 
@@ -109,11 +116,12 @@ namespace ScanToOrder.Application.Services
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Refund)
                 .Sum(t => t.TotalAmount);
 
-            return new ShiftMetrics(
-                TotalCashOrder: cashPayments - cashRefunds,
-                TotalTransferOrder: transferPayments - transferRefunds,
-                TotalRefundAmount: cashRefunds + transferRefunds
-            );
+            return new ShiftMetrics
+            {
+                TotalCashOrder = cashPayments - cashRefunds,
+                TotalTransferOrder = transferPayments - transferRefunds,
+                TotalRefundAmount = cashRefunds + transferRefunds
+            };
         }
 
         private async Task PerformCheckOutTransitionAsync(Shift shift, decimal actualCashAmount, ShiftMetrics metrics, string? note)
@@ -226,11 +234,5 @@ namespace ScanToOrder.Application.Services
                 CashierName = cashierName
             };
         }
-
-        private record ShiftMetrics(
-            decimal TotalCashOrder,
-            decimal TotalTransferOrder,
-            decimal TotalRefundAmount
-        );
     }
 }

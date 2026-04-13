@@ -1,5 +1,6 @@
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Models;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -20,7 +21,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<List<Order>> GetCustomerActiveOrdersAsync(int restaurantId, string phone);
         Task<List<Order>> GetCustomerActiveOrdersAllRestaurantsAsync(string phone);
 
-        Task<(int TotalOrders, decimal GrossRevenue, decimal NetRevenue, decimal TotalDiscount, int RegularCount, decimal RegularRevenue, int RefundCount, decimal RefundRevenue)> GetRevenueMetricsAsync(int restaurantId, DateTime startDate, DateTime endDate);
+        Task<OrderRevenueMetrics> GetRevenueSummaryAsync(int restaurantId, DateTime startDate, DateTime endDate);
         Task<List<(int DishId, string DishName, int QuantitySold, decimal Revenue)>> GetTopSellingDishesAsync(int restaurantId, DateTime startDate, DateTime endDate, int top);
 
         Task<List<(Guid TenantId, string TenantName, int TotalRestaurants, int TotalOrders, decimal TotalRevenue)>>
@@ -36,6 +37,8 @@ namespace ScanToOrder.Domain.Interfaces
             string? keyword = null,
             OrderStatus? status = null,
             DateTime? fromDate = null,
-            DateTime? toDate = null);
+            DateTime? toDate = null,
+            TypeOrder? typeOrder = null,
+            RefundType? refundType = null);
     }
 }

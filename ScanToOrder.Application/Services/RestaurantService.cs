@@ -626,9 +626,12 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             }
 
-            var metrics = await _unitOfWork.Orders.GetRevenueMetricsAsync(restaurantId, startDate, endDate);
-            var paymentMetrics = await _unitOfWork.ShiftReports.GetPaymentMetricsAsync(restaurantId, startDate, endDate);
+            var metrics = await _unitOfWork.Orders.GetRevenueSummaryAsync(restaurantId, startDate, endDate);
             var topDishes = await _unitOfWork.Orders.GetTopSellingDishesAsync(restaurantId, startDate, endDate, 10);
+            
+            // To maintain compatibility with TotalRefund logic, we will still fetch it from ShiftReports if specifically needed, 
+            // but the Dashboard API design just reads from metrics.RefundRevenue now. We can still get total refund from ShiftReports just for TotalRefund field if necessary.
+            var shiftMetrics = await _unitOfWork.ShiftReports.GetPaymentMetricsAsync(restaurantId, startDate, endDate);
 
             var result = new RevenueSummaryDto
             {
@@ -644,16 +647,25 @@ namespace ScanToOrder.Application.Services
             result.Summary.NetRevenue = metrics.NetRevenue;
             result.Summary.TotalDiscount = metrics.TotalDiscount;
             result.Summary.AverageOrderValue = metrics.TotalOrders > 0 ? (metrics.NetRevenue / metrics.TotalOrders) : 0;
-            result.Summary.TotalRefund = paymentMetrics.TotalRefund;
+            result.Summary.TotalRefund = shiftMetrics.TotalRefund; // Keep using shift report for this specific legacy field if necessary, or use metrics.RefundRevenue
 
             result.OrderTypes.Regular.Count = metrics.RegularCount;
             result.OrderTypes.Regular.Revenue = metrics.RegularRevenue;
             
             result.OrderTypes.Refund.Count = metrics.RefundCount;
             result.OrderTypes.Refund.Revenue = metrics.RefundRevenue;
+            
+            result.OrderTypes.Refund.Objective.Count = metrics.RefundObjectiveCount;
+            result.OrderTypes.Refund.Objective.Revenue = metrics.RefundObjectiveRevenue;
+            
+            result.OrderTypes.Refund.StaffError.Count = metrics.RefundStaffErrorCount;
+            result.OrderTypes.Refund.StaffError.Revenue = metrics.RefundStaffErrorRevenue;
+            
+            result.OrderTypes.Refund.SystemError.Count = metrics.RefundSystemErrorCount;
+            result.OrderTypes.Refund.SystemError.Revenue = metrics.RefundSystemErrorRevenue;
 
-            result.PaymentMethods.Cash = paymentMetrics.TotalCash;
-            result.PaymentMethods.Transfer = paymentMetrics.TotalTransfer;
+            result.PaymentMethods.Cash = metrics.TotalCash;
+            result.PaymentMethods.Transfer = metrics.TotalTransfer;
 
             result.TopSellingDishes = topDishes.Select(d => new TopSellingDishDto
             {
