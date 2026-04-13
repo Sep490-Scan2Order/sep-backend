@@ -22,6 +22,7 @@ namespace ScanToOrder.Application.Message
             public const string DEFAULT_SUBJECT = "Thông báo từ Scan2Order";
             public const string RESET_PASSWORD_SUBJECT = "Đặt lại mật khẩu Scan2Order";
             public const string CREATE_STAFF_SUBJECT = "Tài khoản nhân viên Scan2Order";
+            public const string UPDATE_CONFIGURATION_SUBJECT = "Cập nhật cấu hình Scan2Order";
         }
 
         public class EmailDomain

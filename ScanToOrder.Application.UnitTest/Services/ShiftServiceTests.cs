@@ -205,6 +205,26 @@ namespace ScanToOrder.Application.UnitTest.Services
             await act.Should().ThrowAsync<DomainException>();
         }
 
+        [Fact]
+        public async Task CheckOutShiftAsync_ActualCashBelowMinimum_ShouldThrowDomainException()
+        {
+            // Arrange
+            var shiftId = 1;
+            var restaurantId = 10;
+            var shift = new Shift { Id = shiftId, RestaurantId = restaurantId, Status = ShiftStatus.Open };
+            var restaurant = new Restaurant { Id = restaurantId, MinCashAmount = 500000, Slug = "test-store" };
+
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+            _mockRestaurantRepo.Setup(r => r.GetByIdAsync(restaurantId)).ReturnsAsync(restaurant);
+
+            // Act
+            Func<Task> act = async () => await _shiftService.CheckOutShiftAsync(shiftId, 100000, "Too low cash");
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>()
+                .WithMessage("*số tiền mặt tối thiểu*");
+        }
+
         #endregion
 
         #region 3. Query Tests
@@ -338,6 +358,65 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             result.Should().NotBeNull();
             result.Items.First().CashierName.Should().Be("Staff");
+        }
+
+        #endregion
+
+        #region 4. GetShiftPreview Tests 
+
+        [Fact]
+        public async Task GetShiftPreviewAsync_Success_ReturnsCorrectPreview()
+        {
+            // Arrange
+            var shiftId = 1;
+            var staffId = Guid.NewGuid();
+            var shift = new Shift
+            {
+                Id = shiftId,
+                StaffId = staffId,
+                OpeningCashAmount = 100000,
+                Status = ShiftStatus.Open,
+                Note = "Ca sáng"
+            };
+            var staff = new Staff { Id = staffId, Name = "Đạt D" };
+            var transactions = new List<Transaction>
+            {
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 50000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment },
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 150000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment }
+            };
+
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+            _mockStaffRepo.Setup(s => s.GetByIdAsync(staffId)).ReturnsAsync(staff);
+            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(transactions);
+
+            // Act
+            var result = await _shiftService.GetShiftPreviewAsync(shiftId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.CashierName.Should().Be("Đạt D");
+            result.ExpectedCashAmount.Should().Be(150000); 
+            result.ExpectedTotalAmount.Should().Be(300000); 
+            result.Note.Should().Be("Ca sáng");
+        }
+
+        [Fact]
+        public async Task GetShiftPreviewAsync_WhenStaffAndNoteAreNull_ReturnsEmptyStrings()
+        {
+            // Arrange
+            var shiftId = 1;
+            var shift = new Shift { Id = shiftId, StaffId = Guid.NewGuid(), Status = ShiftStatus.Open, Note = null };
+
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+            _mockStaffRepo.Setup(s => s.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Staff)null);
+            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(new List<Transaction>());
+
+            // Act
+            var result = await _shiftService.GetShiftPreviewAsync(shiftId);
+
+            // Assert
+            result.CashierName.Should().Be(string.Empty);
+            result.Note.Should().Be(string.Empty);
         }
 
         #endregion

@@ -32,6 +32,11 @@ namespace ScanToOrder.Infrastructure.Services
             return _emailOptions.Get(EmailMessage.EmailDomain.ID_DOMAIN);
         }
 
+        private EmailSettings GetIDsSettings(IEnumerable<string> toEmail)
+        {
+            return _emailOptions.Get(EmailMessage.EmailDomain.ID_DOMAIN);
+        }
+
         public async Task<bool> SendEmailViaIoDomainAsync(string to, string subject, string htmlContent)
         {
             var settings = _emailOptions.Get(EmailMessage.EmailDomain.IO_DOMAIN);
@@ -128,6 +133,44 @@ namespace ScanToOrder.Infrastructure.Services
                 from = settings.FromEmail,
                 to = new[] { to },
                 subject,    
+                template = new
+                {
+                    id = templateId,
+                    variables = templateParams
+                }
+            };
+
+            var json = JsonSerializer.Serialize(requestData);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {settings.ApiKey}");
+
+            var response = await _httpClient.PostAsync(settings.ApiUrl, content);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation($"{EmailMessage.EmailSuccess.EMAIL_SENT_VIA_TEMPLATE} tới {to}");
+                return true;
+            }
+
+            _logger.LogError($"Resend Error: {responseBody}");
+            throw new DomainException(responseBody);
+        }
+
+        public async Task<bool> SendEmailsWithTemplateIdDomainAsync(
+                IEnumerable<string> to,
+                string subject,
+                string templateId,
+                object templateParams)
+        {
+            var settings = GetIDsSettings(to);
+            var requestData = new
+            {
+                from = settings.FromEmail,
+                to = to.ToArray(),
+                subject,
                 template = new
                 {
                     id = templateId,

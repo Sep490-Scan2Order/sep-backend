@@ -15,6 +15,12 @@
                 string templateId,
                 object templateParams);
 
+        Task<bool> SendEmailsWithTemplateIdDomainAsync(
+                IEnumerable<string> to,
+                string subject,
+                string templateId,
+                object templateParams);
+
         Task<bool> SendEmailWithTemplateIoDomainAsync(
                 string to,
                 string subject,

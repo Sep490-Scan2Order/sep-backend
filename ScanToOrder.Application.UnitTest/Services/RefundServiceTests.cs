@@ -703,5 +703,59 @@ namespace ScanToOrder.Application.UnitTest.Services
         }
 
         #endregion
+
+        #region 7. Branch & Corner Case Coverage (Fixing Red/Yellow lines)
+        [Fact]
+        public async Task RefundOrderAsync_RefundAmountExceedsFinalAmount_ShouldSetFinalToZero()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = CreateTestOrder(orderId, 100000, 50000);
+            SetupMocks(order);
+
+            var request = new RefundRequest
+            {
+                OrderId = orderId,
+                RefundType = RefundType.StaffError,
+                IsFullRefund = false,
+                RefundItems = new List<RefundItemDto> { new RefundItemDto { OrderDetailId = 1, QuantityToRefund = 1 } }
+            };
+
+            // Act
+            await _refundService.RefundOrderAsync(request);
+
+            // Assert
+            _mockOrderRepo.Verify(u => u.AddAsync(It.Is<Order>(o => o.FinalAmount == 0)), Times.Once);
+        }
+
+        [Fact]
+        public async Task RefundOrderAsync_PartialRefundAllItems_ShouldAutoCancelOrder()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = CreateTestOrder(orderId, 250000, 250000);
+            SetupMocks(order);
+
+            var request = new RefundRequest
+            {
+                OrderId = orderId,
+                RefundType = RefundType.StaffError,
+                IsFullRefund = false,
+                RefundItems = new List<RefundItemDto>
+                {
+                    new RefundItemDto { OrderDetailId = 1, QuantityToRefund = 1 },
+                    new RefundItemDto { OrderDetailId = 2, QuantityToRefund = 1 }
+                }
+            };
+
+            // Act
+            await _refundService.RefundOrderAsync(request);
+
+            // Assert
+            order.Status.Should().Be(OrderStatus.Cancelled);
+            _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.Status == OrderStatus.Cancelled)), Times.Once);
+        }
+
+        #endregion
     }
 }
