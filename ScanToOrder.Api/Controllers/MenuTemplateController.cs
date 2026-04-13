@@ -48,7 +48,6 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [Authorize(Roles = "Admin, Tenant")]
         [HttpGet("restaurant/{restaurantId:int}/template")]
         public async Task<ActionResult<ApiResponse<MenuTemplateRenderDto>>> GetRestaurantMenuFromTemplate(
             int restaurantId)

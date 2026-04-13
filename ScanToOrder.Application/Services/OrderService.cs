@@ -930,10 +930,14 @@ public class OrderService : IOrderService
             RequestedPickupAt = order.RequestedPickupAt,
             ConfirmedPickupAt = order.ConfirmedPickupAt,
             Amount = order.FinalAmount,
+            TotalAmount = order.TotalAmount,
+            FinalAmount = order.FinalAmount,
             Phone = order.NumberPhone,
             Status = (int)order.Status,
             IsPreOrder = order.IsPreOrder,
             Type = order.Type,
+            TypeOrder = (int)order.typeOrder,
+            RefundType = order.RefundType.HasValue ? (int)order.RefundType.Value : null,
 
             Items = order.OrderDetails.Select(od => new KdsItemResponse
             {
@@ -943,6 +947,7 @@ public class OrderService : IOrderService
                 DiscountedPrice = od.DiscountedPrice,
                 PromotionAmount = od.PromotionAmount,
                 Quantity = od.Quantity,
+                RefundedQuantity = od.RefundedQuantity,
                 Image = od.Dish.ImageUrl
             }).ToList()
         }).ToList();

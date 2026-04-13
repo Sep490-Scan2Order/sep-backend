@@ -17,10 +17,14 @@ namespace ScanToOrder.Application.DTOs.Orders
         public DateTime? RequestedPickupAt { get; set; }
         public DateTime? ConfirmedPickupAt { get; set; }
         public decimal Amount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal FinalAmount { get; set; }
         public bool IsPreOrder { get; set; }
 
         public int Status { get; set; }
         public string? Type { get; set; }
+        public int TypeOrder { get; set; }
+        public int? RefundType { get; set; }
         public List<KdsItemResponse> Items { get; set; }
     }
 }
