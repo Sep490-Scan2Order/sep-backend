@@ -35,6 +35,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}/updateStatus")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateTenantStatus(Guid id, [FromQuery] bool isActive)
         {
