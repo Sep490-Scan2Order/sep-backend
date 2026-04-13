@@ -19,6 +19,8 @@ namespace ScanToOrder.Application.DTOs.Orders
         public decimal Amount { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal FinalAmount { get; set; }
+        public decimal PromotionDiscount { get; set; }
+        public string? PromotionName { get; set; }
         public bool IsPreOrder { get; set; }
 
         public int Status { get; set; }

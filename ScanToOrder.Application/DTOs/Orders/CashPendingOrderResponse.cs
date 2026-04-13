@@ -10,6 +10,9 @@ namespace ScanToOrder.Application.DTOs.Orders
         public DateTime CreatedAt { get; set; }
   
         public decimal Amount { get; set; }
+        public decimal FinalAmount { get; set; }
+        public decimal PromotionDiscount { get; set; }
+        public string? PromotionName { get; set; }
         public string Phone { get; set; } = null!;
         public string? Note { get; set; }
         public int Status { get; set; }
