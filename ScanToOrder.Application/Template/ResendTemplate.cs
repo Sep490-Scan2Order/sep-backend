@@ -16,5 +16,7 @@ namespace ScanToOrder.Application.Template
 
         public const string EXPIRED_SUBSCRIPTION_TEMPLATE_ID = "663be958-2baa-4f72-a044-250549f70aa2";
         public const string EXPIRING_SUBSCRIPTION_TEMPLATE_ID = "f6a039e5-612a-4c9f-aabe-57df879fdeeb";
+
+        public const string UPDATE_CONFIGURATION_TEMPLATE_ID = "23112217-d466-4232-b023-7d2fbceafa46";
     }
 }
