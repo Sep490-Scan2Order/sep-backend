@@ -12,6 +12,7 @@ namespace ScanToOrder.Application.Interfaces
     {
         Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, decimal openingCashAmount, string? note);
         Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal closingCashAmount, string? note);
+        Task<ShiftReportDto> GetShiftPreviewAsync(int shiftId);
         Task<ShiftReportDto> GetShiftReportAsync(int shiftId);
         Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to);
         Task<PagedResult<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId, int pageIndex, int pageSize);

@@ -180,6 +180,33 @@ namespace ScanToOrder.Application.Services
             return MapToShiftReportDto(report, shift.OpeningCashAmount, staff?.Name ?? string.Empty);
         }
 
+        public async Task<ShiftReportDto> GetShiftPreviewAsync(int shiftId)
+        {
+            var shift = await GetAndValidateOpenShiftAsync(shiftId);
+            var staff = await _unitOfWork.Staffs.GetByIdAsync(shift.StaffId);
+
+            var transactions = await GetSuccessfulTransactionsAsync(shiftId);
+            var metrics = CalculateShiftMetrics(transactions);
+
+            decimal expectedCash = shift.OpeningCashAmount + metrics.TotalCashOrder;
+
+            return new ShiftReportDto
+            {
+                Id = 0,
+                ShiftId = shift.Id,
+                ReportDate = DateTime.UtcNow,
+                TotalCashOrder = metrics.TotalCashOrder,
+                TotalTransferOrder = metrics.TotalTransferOrder,
+                TotalRefundAmount = metrics.TotalRefundAmount,
+                ExpectedCashAmount = expectedCash,
+                ActualCashAmount = 0,
+                Difference = 0,
+                Note = shift.Note ?? string.Empty,
+                ExpectedTotalAmount = shift.OpeningCashAmount + metrics.TotalCashOrder + metrics.TotalTransferOrder,
+                CashierName = staff?.Name ?? string.Empty
+            };
+        }
+
         public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to)
         {
             var result = await _unitOfWork.ShiftReports

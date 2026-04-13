@@ -52,6 +52,13 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
+        [HttpGet("{shiftId}/preview")]
+        public async Task<ActionResult<ApiResponse<ShiftReportDto>>> GetShiftPreview([FromRoute] int shiftId)
+        {
+            var result = await _shiftService.GetShiftPreviewAsync(shiftId);
+            return Success(result);
+        }
+
         [HttpGet("reports")]
         public async Task<ActionResult<ApiResponse<PagedResult<ShiftReportDto>>>> GetAllShiftReports(
             [FromQuery] int restaurantId,
