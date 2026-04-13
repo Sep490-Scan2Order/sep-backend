@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Other;
 using ScanToOrder.Application.DTOs.SystemBlog;
 using ScanToOrder.Application.Interfaces;
@@ -15,6 +16,8 @@ namespace ScanToOrder.Api.Controllers
         {
             _systemBlogService = systemBlogService;
         }
+
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<ApiResponse<AddSystemBlogDtoResponse>>> AddSystemBlog([FromForm] AddSystemBlogDtoRequest request)
