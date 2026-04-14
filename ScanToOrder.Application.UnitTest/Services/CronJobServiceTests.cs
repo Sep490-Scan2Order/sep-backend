@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Services;
+using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Restaurants;
@@ -318,6 +319,94 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             restaurants[0].IsOpened.Should().BeTrue();
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
+
+        [Fact]
+        public async Task UpdateStatus_NormalHours_WithinRange_FixedTime_BothSidesOfAndEvaluated_OpensRestaurant()
+        {
+            TimeUtils.VietnamNowOverride = () => new DateTime(2026, 4, 14, 15, 0, 0);
+            try
+            {
+                var restaurants = new List<Restaurant>
+                {
+                    new Restaurant
+                    {
+                        Id = 1, Slug = "test-slug", IsActive = true,
+                        OpenTime = new TimeOnly(12, 0), CloseTime = new TimeOnly(18, 0),
+                        IsOpened = false
+                    }
+                };
+                _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+                    .ReturnsAsync(restaurants);
+
+                await _service.UpdateRestaurantOpeningStatusAsync();
+
+                restaurants[0].IsOpened.Should().BeTrue();
+                _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+            }
+            finally
+            {
+                TimeUtils.VietnamNowOverride = null;
+            }
+        }
+
+        [Fact]
+        public async Task UpdateStatus_NormalHours_BeforeOpen_FixedTime_FirstComparisonFalse_ShortCircuitsAnd()
+        {
+            TimeUtils.VietnamNowOverride = () => new DateTime(2026, 4, 14, 10, 0, 0);
+            try
+            {
+                var restaurants = new List<Restaurant>
+                {
+                    new Restaurant
+                    {
+                        Id = 1, Slug = "test-slug", IsActive = true,
+                        OpenTime = new TimeOnly(12, 0), CloseTime = new TimeOnly(18, 0),
+                        IsOpened = true, IsReceivingOrders = false
+                    }
+                };
+                _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+                    .ReturnsAsync(restaurants);
+
+                await _service.UpdateRestaurantOpeningStatusAsync();
+
+                restaurants[0].IsOpened.Should().BeFalse();
+                _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+            }
+            finally
+            {
+                TimeUtils.VietnamNowOverride = null;
+            }
+        }
+
+        [Fact]
+        public async Task UpdateStatus_NormalHours_AfterClose_FixedTime_SecondComparisonFalse()
+        {
+            TimeUtils.VietnamNowOverride = () => new DateTime(2026, 4, 14, 20, 0, 0);
+            try
+            {
+                var restaurants = new List<Restaurant>
+                {
+                    new Restaurant
+                    {
+                        Id = 1, Slug = "test-slug", IsActive = true,
+                        OpenTime = new TimeOnly(12, 0), CloseTime = new TimeOnly(18, 0),
+                        IsOpened = true, IsReceivingOrders = false
+                    }
+                };
+                _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+                    .ReturnsAsync(restaurants);
+
+                await _service.UpdateRestaurantOpeningStatusAsync();
+
+                restaurants[0].IsOpened.Should().BeFalse();
+                _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+            }
+            finally
+            {
+                TimeUtils.VietnamNowOverride = null;
+            }
         }
 
         [Fact]

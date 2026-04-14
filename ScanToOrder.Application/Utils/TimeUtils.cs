@@ -5,9 +5,14 @@ namespace ScanToOrder.Application.Utils
     public static class TimeUtils
     {
         public static readonly string VietnamTimeZoneId = "SE Asia Standard Time";
-        
+
+        internal static Func<DateTime>? VietnamNowOverride;
+
         public static DateTime GetVietnamTimeNow()
         {
+            if (VietnamNowOverride != null)
+                return VietnamNowOverride();
+
             try
             {
                 var tz = TimeZoneInfo.FindSystemTimeZoneById(VietnamTimeZoneId);

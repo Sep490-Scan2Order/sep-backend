@@ -29,4 +29,8 @@
     <ProjectReference Include="..\ScanToOrder.Domain\ScanToOrder.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ScanToOrder.Application.UnitTest" />
+  </ItemGroup>
+
 </Project>
