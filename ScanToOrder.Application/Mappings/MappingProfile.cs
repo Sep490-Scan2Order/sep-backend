@@ -50,7 +50,7 @@ namespace ScanToOrder.Application.Mappings
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
                 .ForMember(dest => dest.Verified, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(_ => Role.Staff));
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role));
 
             CreateMap<CreateStaffRequest, Staff>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))

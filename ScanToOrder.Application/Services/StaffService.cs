@@ -35,10 +35,16 @@ namespace ScanToOrder.Application.Services
 
         public async Task<StaffDto> CreateStaff(CreateStaffRequest staffDto)
         {
-            var existingUser = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(staffDto.Phone);
-            if (existingUser != null)
+            var existingUserByPhone = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(staffDto.Phone);
+            if (existingUserByPhone != null)
             {
                throw new DomainException(StaffMessage.StaffError.STAFF_ALREADY_EXISTS);
+            }
+
+            var existingUserByEmail = await _unitOfWork.AuthenticationUsers.GetByEmailAsync(staffDto.Email);
+            if (existingUserByEmail != null)
+            {
+                throw new DomainException(StaffMessage.StaffError.EMAIL_ALREADY_EXISTS);
             }
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(staffDto.RestaurantId);
 

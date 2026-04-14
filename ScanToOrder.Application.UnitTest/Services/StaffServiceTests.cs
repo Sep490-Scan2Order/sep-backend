@@ -60,7 +60,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         public async Task CreateStaff_Success_ShouldCreateStaffAndSendEmail()
         {
             // Arrange
-            var request = new CreateStaffRequest { RestaurantId = 1, Phone = "0123456789", Email = "staff@test.com", Name = "Staff Name" };
+            var request = new CreateStaffRequest { RestaurantId = 1, Phone = "0123456789", Email = "staff@test.com", Name = "Staff Name", Role = Role.Staff };
             _mockAuthUserRepo.Setup(r => r.GetByPhoneAsync(request.Phone)).ReturnsAsync((AuthenticationUser)null);
             _mockRestaurantRepo.Setup(r => r.GetByIdAsync(request.RestaurantId)).ReturnsAsync(new Restaurant { Id = 1, Slug = "test" });
             _mockPlanLimitationService.Setup(s => s.GetRestaurantFeaturesAsync(request.RestaurantId)).ReturnsAsync(new PlanFeaturesConfig());
@@ -89,7 +89,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         public async Task CreateStaff_AlreadyExists_ShouldThrowDomainException()
         {
             // Arrange
-            var request = new CreateStaffRequest { Phone = "0123456789", RestaurantId = 1, Email = "staff@test.com", Name = "Staff" };
+            var request = new CreateStaffRequest { Phone = "0123456789", RestaurantId = 1, Email = "staff@test.com", Name = "Staff", Role = Role.Staff };
             _mockAuthUserRepo.Setup(r => r.GetByPhoneAsync(request.Phone)).ReturnsAsync(new AuthenticationUser());
 
             // Act
@@ -99,13 +99,26 @@ namespace ScanToOrder.Application.UnitTest.Services
             await act.Should().ThrowAsync<DomainException>();
         }
 
+        [Fact]
+        public async Task CreateStaff_EmailAlreadyExists_ShouldThrowDomainException()
+        {
+            var request = new CreateStaffRequest { Phone = "0123456789", RestaurantId = 1, Email = "staff@test.com", Name = "Staff", Role = Role.Staff };
+            _mockAuthUserRepo.Setup(r => r.GetByPhoneAsync(request.Phone)).ReturnsAsync((AuthenticationUser)null);
+            _mockAuthUserRepo.Setup(r => r.GetByEmailAsync(request.Email)).ReturnsAsync(new AuthenticationUser());
+
+            Func<Task> act = async () => await _staffService.CreateStaff(request);
+
+            await act.Should().ThrowAsync<DomainException>();
+        }
+
         // Verifies that CreateStaff throws a DomainException if the specified restaurant is not found.
         [Fact]
         public async Task CreateStaff_RestaurantNotFound_ShouldThrowDomainException()
         {
             // Arrange
-            var request = new CreateStaffRequest { Phone = "0123456789", RestaurantId = 1, Email = "staff@test.com", Name = "Staff" };
+            var request = new CreateStaffRequest { Phone = "0123456789", RestaurantId = 1, Email = "staff@test.com", Name = "Staff", Role = Role.Staff };
             _mockAuthUserRepo.Setup(r => r.GetByPhoneAsync(request.Phone)).ReturnsAsync((AuthenticationUser)null);
+            _mockAuthUserRepo.Setup(r => r.GetByEmailAsync(request.Email)).ReturnsAsync((AuthenticationUser)null);
             _mockRestaurantRepo.Setup(r => r.GetByIdAsync(request.RestaurantId)).ReturnsAsync((Restaurant)null);
 
             // Act
