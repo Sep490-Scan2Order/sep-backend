@@ -242,10 +242,6 @@ public class SubscriptionService : ISubscriptionService
         try
         {
             var amountToPay = (long)Math.Ceiling(tenant.TotalDebtAmount);
-            if (amountToPay <= 0)
-            {
-                throw new DomainException("Không có khoản nợ hoa hồng nào cần thanh toán.");
-            }
 
             var transactionCode = BankQrLinkUtils.GeneratePayOsOrderCode();
             var transaction = new PaymentTransaction

@@ -579,6 +579,49 @@ public class SubscriptionServiceTests
         var result = await _subscriptionService.GetPaymentStatusAsync(123, tenantId);
         result.IsFinal.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetStatus_LastUpdatedAt_UsesUpdatedAtWhenPresent_OtherwiseUsesPaymentDate()
+    {
+        var tenantId = Guid.NewGuid();
+        var paymentDate = DateTime.UtcNow.AddMinutes(-10);
+        var updatedAt = DateTime.UtcNow;
+
+        var ptWithUpdatedAt = new PaymentTransaction
+        {
+            Id = 1,
+            TenantId = tenantId,
+            PaymentTransactionType = PaymentTransactionType.CommissionFee,
+            Status = PaymentTransactionStatus.Pending,
+            TransactionCode = "123",
+            PaymentDate = paymentDate,
+            UpdatedAt = updatedAt
+        };
+
+        var ptWithNullUpdatedAt = new PaymentTransaction
+        {
+            Id = 2,
+            TenantId = tenantId,
+            PaymentTransactionType = PaymentTransactionType.CommissionFee,
+            Status = PaymentTransactionStatus.Pending,
+            TransactionCode = "124",
+            PaymentDate = paymentDate,
+            UpdatedAt = null
+        };
+
+        _mockUnitOfWork
+            .SetupSequence(x => x.PaymentTransactions.FirstOrDefaultAsync(
+                It.IsAny<Expression<Func<PaymentTransaction, bool>>>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(ptWithUpdatedAt)
+            .ReturnsAsync(ptWithNullUpdatedAt);
+
+        var result1 = await _subscriptionService.GetPaymentStatusAsync(123, tenantId);
+        result1.LastUpdatedAt.Should().Be(updatedAt);
+
+        var result2 = await _subscriptionService.GetPaymentStatusAsync(124, tenantId);
+        result2.LastUpdatedAt.Should().Be(paymentDate);
+    }
     #endregion
 
     #region ProcessPaymentSuccessAsync & ProcessSubscriptionSuccessAsync
@@ -846,6 +889,76 @@ public class SubscriptionServiceTests
         await _subscriptionService.ProcessPaymentSuccessAsync(123);
 
         (currentSub.EndDate - DateTime.UtcNow).TotalDays.Should().BeApproximately(365, 0.1); // No extra days
+    }
+
+    [Fact]
+    public async Task ProcessSubscription_BalanceConverted_Monthly_CoversNewDailyRateMonth()
+    {
+        var pt = SetupPt(PaymentTransactionType.Subscription, PaymentTransactionStatus.Pending);
+        pt.SetSubscriptionPayload(new List<OrderPayloadItemPlan>
+        {
+            new()
+            {
+                RestaurantId = 1,
+                NewPlanId = 2,
+                ActionType = SubscriptionLogStatus.Upgrade,
+                Cycle = BillingCycle.Monthly,
+                Quantity = 1,
+                BalanceConverted = 50
+            }
+        });
+
+        _mockUnitOfWork.Setup(x => x.SubscriptionLogs.ExistsAsync(It.IsAny<Expression<Func<SubscriptionLog, bool>>>()))
+            .ReturnsAsync(false);
+        var currentSub = new Subscription { RestaurantId = 1, PlanId = 1 };
+        _mockUnitOfWork.Setup(x => x.Subscriptions.FindAsync(It.IsAny<Expression<Func<Subscription, bool>>>()))
+            .ReturnsAsync(new List<Subscription> { currentSub });
+        _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>()))
+            .ReturnsAsync(new Dictionary<int, Plan> { { 2, new Plan { Id = 2, DailyRateMonth = 10 } } });
+        _mockUnitOfWork.Setup(x => x.MenuTemplates.FirstOrDefaultAsync(It.IsAny<Expression<Func<MenuTemplate, bool>>>(), It.IsAny<string>()))
+            .ReturnsAsync((MenuTemplate?)null);
+        _mockUnitOfWork.Setup(x => x.MenuRestaurants.FirstOrDefaultAsync(It.IsAny<Expression<Func<MenuRestaurant, bool>>>(), It.IsAny<string>()))
+            .ReturnsAsync((MenuRestaurant?)null);
+
+        await _subscriptionService.ProcessPaymentSuccessAsync(123);
+
+        currentSub.PlanId.Should().Be(2);
+        pt.Status.Should().Be(PaymentTransactionStatus.Success);
+    }
+
+    [Fact]
+    public async Task ProcessSubscription_SaveAsyncThrows_WithInnerException_UsesInnerMessageInWrappedException()
+    {
+        var pt = SetupPt(PaymentTransactionType.Subscription, PaymentTransactionStatus.Pending);
+        pt.SetSubscriptionPayload(new List<OrderPayloadItemPlan>
+        {
+            new()
+            {
+                RestaurantId = 1,
+                NewPlanId = 1,
+                ActionType = SubscriptionLogStatus.BuyNew,
+                Cycle = BillingCycle.Monthly,
+                Quantity = 1
+            }
+        });
+
+        _mockUnitOfWork.Setup(x => x.SubscriptionLogs.ExistsAsync(It.IsAny<Expression<Func<SubscriptionLog, bool>>>()))
+            .ReturnsAsync(false);
+        _mockUnitOfWork.Setup(x => x.Subscriptions.FindAsync(It.IsAny<Expression<Func<Subscription, bool>>>()))
+            .ReturnsAsync(new List<Subscription>());
+        _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>()))
+            .ReturnsAsync(new Dictionary<int, Plan> { { 1, new Plan { Id = 1 } } });
+        _mockUnitOfWork.Setup(x => x.MenuTemplates.FirstOrDefaultAsync(It.IsAny<Expression<Func<MenuTemplate, bool>>>(), It.IsAny<string>()))
+            .ReturnsAsync((MenuTemplate?)null);
+        _mockUnitOfWork.Setup(x => x.MenuRestaurants.FirstOrDefaultAsync(It.IsAny<Expression<Func<MenuRestaurant, bool>>>(), It.IsAny<string>()))
+            .ReturnsAsync((MenuRestaurant?)null);
+
+        _mockUnitOfWork.Setup(x => x.SaveAsync())
+            .ThrowsAsync(new Exception("outer", new Exception("inner")));
+
+        Func<Task> act = async () => await _subscriptionService.ProcessPaymentSuccessAsync(123);
+        await act.Should().ThrowAsync<Exception>()
+            .WithMessage("Error while updating subscriptions: inner");
     }
 
     [Fact]
@@ -1154,6 +1267,109 @@ public class SubscriptionServiceTests
     }
 
     [Fact]
+    public async Task ProcessExpirations_ExpiredSubs_TenantNull_FiltersOutAndSkipsEmail()
+    {
+        var expiredSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = new Restaurant { Slug = "test", Id = 1, Tenant = null! }
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription> { expiredSub }) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription>()); // 2. Expiring subs
+
+        _mockUnitOfWork.Setup(x => x.Subscriptions.FindAsync(It.IsAny<Expression<Func<Subscription, bool>>>()))
+            .ReturnsAsync(new List<Subscription>());
+        _mockUnitOfWork.Setup(x => x.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+            .ReturnsAsync(new List<Restaurant>());
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExpirations_ExpiredSubs_AccountNull_FiltersOutAndSkipsEmail()
+    {
+        var expiredSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = new Restaurant
+            {
+                Slug = "test",
+                Id = 1,
+                Tenant = new Tenant { Account = null! }
+            }
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription> { expiredSub }) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription>()); // 2. Expiring subs
+
+        _mockUnitOfWork.Setup(x => x.Subscriptions.FindAsync(It.IsAny<Expression<Func<Subscription, bool>>>()))
+            .ReturnsAsync(new List<Subscription>());
+        _mockUnitOfWork.Setup(x => x.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+            .ReturnsAsync(new List<Restaurant>());
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExpirations_ExpiredSubs_EmailNull_FiltersOutAndSkipsEmail()
+    {
+        var expiredSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = new Restaurant
+            {
+                Slug = "test",
+                Id = 1,
+                Tenant = new Tenant { Account = new AuthenticationUser { Email = null! } }
+            }
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription> { expiredSub }) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription>()); // 2. Expiring subs
+
+        _mockUnitOfWork.Setup(x => x.Subscriptions.FindAsync(It.IsAny<Expression<Func<Subscription, bool>>>()))
+            .ReturnsAsync(new List<Subscription>());
+        _mockUnitOfWork.Setup(x => x.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+            .ReturnsAsync(new List<Restaurant>());
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task ProcessExpirations_WithExpiringSubs_SendsWarningEmails()
     {
         var expiringSub = new Subscription 
@@ -1207,6 +1423,126 @@ public class SubscriptionServiceTests
                 {
                     Account = new AuthenticationUser { Email = "" }
                 }
+            },
+            EndDate = DateTime.UtcNow.AddHours(12)
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription>()) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription> { expiringSub }); // 2. Expiring subs
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExpirations_ExpiringSubs_RestaurantNull_FiltersOutAndSkipsWarningEmails()
+    {
+        var expiringSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = null!,
+            EndDate = DateTime.UtcNow.AddHours(12)
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription>()) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription> { expiringSub }); // 2. Expiring subs
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExpirations_ExpiringSubs_TenantNull_FiltersOutAndSkipsWarningEmails()
+    {
+        var expiringSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = new Restaurant { Slug = "test", Id = 1, RestaurantName = "R2", Tenant = null! },
+            EndDate = DateTime.UtcNow.AddHours(12)
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription>()) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription> { expiringSub }); // 2. Expiring subs
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExpirations_ExpiringSubs_AccountNull_FiltersOutAndSkipsWarningEmails()
+    {
+        var expiringSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = new Restaurant
+            {
+                Slug = "test",
+                Id = 1,
+                RestaurantName = "R2",
+                Tenant = new Tenant { Account = null! }
+            },
+            EndDate = DateTime.UtcNow.AddHours(12)
+        };
+
+        _mockUnitOfWork.SetupSequence(x => x.Subscriptions.GetAllAsync(
+                It.IsAny<Expression<Func<Subscription, bool>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>(),
+                It.IsAny<Expression<Func<Subscription, object>>>()
+            ))
+            .ReturnsAsync(new List<Subscription>()) // 1. Expired subs
+            .ReturnsAsync(new List<Subscription> { expiringSub }); // 2. Expiring subs
+
+        await _subscriptionService.ProcessSubscriptionExpirationsAsync();
+
+        _mockEmailService.Verify(
+            e => e.SendEmailWithTemplateIdDomainAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessExpirations_ExpiringSubs_EmailNull_FiltersOutAndSkipsWarningEmails()
+    {
+        var expiringSub = new Subscription
+        {
+            Id = 1,
+            Restaurant = new Restaurant
+            {
+                Slug = "test",
+                Id = 1,
+                RestaurantName = "R2",
+                Tenant = new Tenant { Account = new AuthenticationUser { Email = null! } }
             },
             EndDate = DateTime.UtcNow.AddHours(12)
         };
