@@ -922,6 +922,19 @@ public class OrderService : IOrderService
 
         if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();
 
+        var refundOrderIds = orders
+            .Where(o => o.RefundOrderId.HasValue)
+            .Select(o => o.RefundOrderId!.Value)
+            .Distinct()
+            .ToList();
+
+        var originalOrderCodes = new Dictionary<Guid, int>();
+        if (refundOrderIds.Any())
+        {
+            var originalOrders = await _unitOfWork.Orders.FindAsync(o => refundOrderIds.Contains(o.Id));
+            originalOrderCodes = originalOrders.ToDictionary(o => o.Id, o => o.OrderCode);
+        }
+
         return orders.Select(order => new KdsOrderResponse
         {
             Id = order.Id.ToString(),
@@ -940,6 +953,9 @@ public class OrderService : IOrderService
             Type = order.Type,
             TypeOrder = (int)order.typeOrder,
             RefundType = order.RefundType.HasValue ? (int)order.RefundType.Value : null,
+            OriginalOrderCode = order.RefundOrderId.HasValue && originalOrderCodes.ContainsKey(order.RefundOrderId.Value)
+                ? originalOrderCodes[order.RefundOrderId.Value]
+                : null,
 
             Items = order.OrderDetails.Select(od => new KdsItemResponse
             {

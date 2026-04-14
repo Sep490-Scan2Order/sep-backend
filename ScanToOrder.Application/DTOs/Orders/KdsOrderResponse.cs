@@ -22,6 +22,7 @@ namespace ScanToOrder.Application.DTOs.Orders
         public decimal PromotionDiscount { get; set; }
         public string? PromotionName { get; set; }
         public bool IsPreOrder { get; set; }
+        public int? OriginalOrderCode { get; set; }
 
         public int Status { get; set; }
         public string? Type { get; set; }
