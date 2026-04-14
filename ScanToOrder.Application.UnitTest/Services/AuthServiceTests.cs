@@ -466,7 +466,7 @@ public class AuthServiceTests
             .ReturnsAsync(tenant);
 
         // Act
-        var result = await _authService.CompleteResetPasswordAsync(email, token, "NewPass123");
+        var result = await _authService.CompleteResetPasswordAsync(email, token, "NewPass123@");
 
         // Assert
         result.Should().Be(TenantMessage.TenantSuccess.TENANT_RESET_PASSWORD);
@@ -536,7 +536,7 @@ public class AuthServiceTests
         {
             Email = "s@test.com",
             OldPassword = "correct_old",
-            NewPassword = "NewPassword123"
+            NewPassword = "NewPassword123@"
         });
 
         result.Should().Be(StaffMessage.StaffSuccess.STAFF_RESET_PASSWORD);
@@ -635,7 +635,7 @@ public class AuthServiceTests
         _mockUnitOfWork.Setup(u => u.Staffs.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Staff, bool>>>(), It.IsAny<Expression<Func<Staff, object>>[]>()))
             .ReturnsAsync(staff);
 
-        var result = await _authService.CompleteForgotPasswordStaffAsync(new CompleteResetPasswordRequest { Email = "s@test.com", ResetToken = "valid_token", NewPassword = "NewPassword123" });
+        var result = await _authService.CompleteForgotPasswordStaffAsync(new CompleteResetPasswordRequest { Email = "s@test.com", ResetToken = "valid_token", NewPassword = "NewPassword123@" });
 
         result.Should().Be(StaffMessage.StaffSuccess.STAFF_RESET_PASSWORD);
         _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);

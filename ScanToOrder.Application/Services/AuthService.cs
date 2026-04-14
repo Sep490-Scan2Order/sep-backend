@@ -3,6 +3,7 @@ using ScanToOrder.Application.DTOs.Auth;
 using ScanToOrder.Application.DTOs.User;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
+using ScanToOrder.Application.Utils;
 using ScanToOrder.Domain.Entities.Authentication;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Exceptions;
@@ -228,6 +229,9 @@ namespace ScanToOrder.Application.Services
 
             if (tenant == null) throw new DomainException(TenantMessage.TenantError.TENANT_NOT_FOUND);
 
+            if (!ValidationUtils.IsValidPassword(newPassword))
+                throw new DomainException(StaffMessage.StaffError.INVALID_PASSWORD);
+
             tenant.Account.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
             _unitOfWork.Tenants.Update(tenant);
             await _unitOfWork.SaveAsync();
@@ -250,6 +254,9 @@ namespace ScanToOrder.Application.Services
             {
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
             }
+
+            if (!ValidationUtils.IsValidPassword(request.NewPassword))
+                throw new DomainException(StaffMessage.StaffError.INVALID_PASSWORD);
 
             staff.Account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             _unitOfWork.Staffs.Update(staff);
@@ -305,6 +312,9 @@ namespace ScanToOrder.Application.Services
             );
 
             if (staff == null) throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+
+            if (!ValidationUtils.IsValidPassword(request.NewPassword))
+                throw new DomainException(StaffMessage.StaffError.INVALID_PASSWORD);
 
             staff.Account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             _unitOfWork.Staffs.Update(staff);

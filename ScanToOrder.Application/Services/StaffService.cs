@@ -56,7 +56,8 @@ namespace ScanToOrder.Application.Services
             var features = await _planLimitationService.GetRestaurantFeaturesAsync(staffDto.RestaurantId);
             var currentStaffs = await _unitOfWork.Staffs.FindAsync(s => s.RestaurantId == staffDto.RestaurantId);
 
-            var generatedPassword = Guid.NewGuid().ToString("N").Substring(0, 8);
+            var randomPart = Guid.NewGuid().ToString("N").Substring(0, 6).ToLower();
+            var generatedPassword = "A1@" + randomPart; 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(generatedPassword);
             var userEntity = _mapper.Map<AuthenticationUser>(staffDto);
             userEntity.Password = passwordHash;
