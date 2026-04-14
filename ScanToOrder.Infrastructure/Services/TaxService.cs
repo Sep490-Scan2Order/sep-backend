@@ -92,9 +92,8 @@ namespace ScanToOrder.Infrastructure.Services
 
                 if (jsonString.Trim().StartsWith("["))
                 {
-                    var results =
-                        System.Text.Json.JsonSerializer.Deserialize<List<TaxValidationResponse>>(jsonString, options);
-                    item = results?.FirstOrDefault();
+                    var results = System.Text.Json.JsonSerializer.Deserialize<List<TaxValidationResponse>>(jsonString, options)!;
+                    item = results.FirstOrDefault();
                 }
                 else
                 {
