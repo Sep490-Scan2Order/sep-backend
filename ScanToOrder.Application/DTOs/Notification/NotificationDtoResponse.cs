@@ -6,5 +6,6 @@
         public string NotifyTitle { get; set; } = string.Empty;
         public string NotifySub { get; set; } = string.Empty;
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
+        public string SystemBlogUrl { get; set; } = string.Empty;
     }
 }

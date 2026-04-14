@@ -42,7 +42,8 @@ namespace ScanToOrder.Application.Services
                 NotificationId = n.NotificationId,
                 NotifyTitle = n.NotifyTitle,
                 NotifySub = n.NotifySub,
-                SentAt = n.SentAt
+                SentAt = n.SentAt,
+                SystemBlogUrl = n.SystemBlogUrl!
             }).ToList();
 
             return (responseItems, totalCount);
