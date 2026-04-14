@@ -1202,15 +1202,10 @@ public class OrderService : IOrderService
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
             {
-                order.Status = OrderStatus.Cancelled;
-                order.IsDeleted = true;
-                _unitOfWork.Orders.Update(order);
-
                 var dishQuantitiesToRefund = new Dictionary<int, int>();
 
                 foreach (var detail in order.OrderDetails)
                 {
-                    detail.IsDeleted = true;
                     if (dishQuantitiesToRefund.ContainsKey(detail.DishId))
                         dishQuantitiesToRefund[detail.DishId] += detail.Quantity;
                     else
@@ -1238,14 +1233,15 @@ public class OrderService : IOrderService
                 var transactions = (await _unitOfWork.Transactions.FindAsync(t => t.OrderId == order.Id)).ToList();
                 if (transactions.Any())
                 {
-                    foreach (var t in transactions)
-                    {
-                        if (t.Status == OrderTransactionStatus.Pending)
-                            t.Status = OrderTransactionStatus.Canceled;
-                        t.IsDeleted = true;
-                    }
-                    _unitOfWork.Transactions.UpdateRange(transactions);
+                    _unitOfWork.Transactions.RemoveRange(transactions);
                 }
+
+                if (order.OrderDetails.Any())
+                {
+                    _unitOfWork.OrderDetails.RemoveRange(order.OrderDetails);
+                }
+
+                _unitOfWork.Orders.Delete(order);
 
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
