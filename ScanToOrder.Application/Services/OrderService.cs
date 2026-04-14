@@ -347,7 +347,7 @@ public class OrderService : IOrderService
             throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
 
         if (isPreOrder && requestedPickupAt == null)
-            throw new DomainException("RequestedPickupAt is required for preorder.");
+            throw new DomainException("RequestedPickupAt là bắt buộc cho đơn đặt trước.");
 
         var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
             s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
@@ -357,10 +357,10 @@ public class OrderService : IOrderService
         
         // Treat null as "not explicitly disabled" to avoid null-casts.
         if (restaurant.IsActive == false)
-            throw new DomainException("Restaurant is currently inactive.");
+            throw new DomainException("Nhà hàng hiện không hoạt động.");
 
         if (restaurant.IsReceivingOrders == false)
-            throw new DomainException("Restaurant is not receiving orders at the moment.");
+            throw new DomainException("Nhà hàng hiện không nhận đơn.");
 
         decimal promotionDiscount = 0;
         if (appliedPromotionId.HasValue)
