@@ -16,7 +16,6 @@ namespace ScanToOrder.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtService _jwtService;
-        private readonly ISmsSender _smsSender;
         private readonly IOtpRedisService _otpRedisService;
         private readonly IDatabase _redisDb;
         private readonly IConnectionMultiplexer _connectionMultiplexer;
@@ -25,14 +24,12 @@ namespace ScanToOrder.Application.Services
         public AuthService(
             IUnitOfWork unitOfWork,
             IJwtService jwtService,
-            ISmsSender smsSender,
             IOtpRedisService otpRedisService,
             IConnectionMultiplexer connectionMultiplexer,
             IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _jwtService = jwtService;
-            _smsSender = smsSender;
             _otpRedisService = otpRedisService;
             _connectionMultiplexer = connectionMultiplexer;
             _mapper = mapper;

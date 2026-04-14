@@ -21,7 +21,6 @@ public class AuthServiceTests
 {
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IJwtService> _mockJwtService;
-    private readonly Mock<ISmsSender> _mockSmsSender;
     private readonly Mock<IOtpRedisService> _mockOtpRedisService;
     private readonly Mock<IConnectionMultiplexer> _mockConnectionMultiplexer;
     private readonly Mock<IDatabase> _mockRedisDb;
@@ -32,7 +31,6 @@ public class AuthServiceTests
     {
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockJwtService = new Mock<IJwtService>();
-        _mockSmsSender = new Mock<ISmsSender>();
         _mockOtpRedisService = new Mock<IOtpRedisService>();
         _mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
         _mockRedisDb = new Mock<IDatabase>();
@@ -45,7 +43,6 @@ public class AuthServiceTests
         _authService = new AuthService(
             _mockUnitOfWork.Object,
             _mockJwtService.Object,
-            _mockSmsSender.Object,
             _mockOtpRedisService.Object,
             _mockConnectionMultiplexer.Object,
             _mockMapper.Object
