@@ -94,6 +94,7 @@ public class OrderController : BaseController
     }
 
     [HttpGet("kds/active-orders/{restaurantId}")]
+    [Authorize(Roles = "Tenant, Admin, Cashier")]
     public async Task<ActionResult<ApiResponse<List<KdsOrderResponse>>>> GetKdsActiveOrders([FromRoute] int restaurantId)
     {
         var result = await _orderService.GetKdsActiveOrders(restaurantId);
@@ -102,6 +103,7 @@ public class OrderController : BaseController
 
 
     [HttpPut("update-status/{orderId}")]
+    [Authorize(Roles = "Tenant, Cashier")]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateOrderStatus([FromRoute] Guid orderId, [FromQuery] OrderStatus newStatus)
     {
         var result = await _orderService.UpdateOrderStatus(orderId, newStatus);
@@ -138,6 +140,7 @@ public class OrderController : BaseController
     }
 
     [HttpPost("scan-qr")]
+    [Authorize(Roles = "Tenant, Cashier")]
     public async Task<ActionResult<ApiResponse<string>>> ValidateQrCode([FromBody] ScanQrRequest request)
     {
         var isValid = await _orderService.ValidateQrCodeAsync(request.QrContent, request.OrderNumber);
@@ -183,7 +186,7 @@ public class OrderController : BaseController
     }
 
     [HttpGet("tenant/restaurant/{restaurantId}")]
-    [Authorize]
+    [Authorize(Roles = "Tenant, Cashier")]
     public async Task<ActionResult<ApiResponse<PagedResult<TenantOrderResponseDto>>>> GetTenantOrders(
         [FromRoute] int restaurantId,
         [FromQuery] int pageIndex = 1,

@@ -918,6 +918,11 @@ public class OrderService : IOrderService
 
     public async Task<List<KdsOrderResponse>> GetKdsActiveOrders(int restaurantId)
     {
+        var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
+        if (restaurant == null)
+            throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+
         var orders = await _unitOfWork.Orders.GetOrdersForKdsAsync(restaurantId);
 
         if (orders == null || !orders.Any()) return new List<KdsOrderResponse>();

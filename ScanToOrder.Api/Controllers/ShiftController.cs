@@ -46,6 +46,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
         [HttpGet("{shiftId}/report")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         public async Task<ActionResult<ApiResponse<ShiftReportDto>>> GetShiftReport([FromRoute] int shiftId)
         {
             var result = await _shiftService.GetShiftReportAsync(shiftId);
@@ -53,6 +54,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("{shiftId}/preview")]
+        [Authorize(Roles = " Cashier")]
         public async Task<ActionResult<ApiResponse<ShiftReportDto>>> GetShiftPreview([FromRoute] int shiftId)
         {
             var result = await _shiftService.GetShiftPreviewAsync(shiftId);
@@ -60,6 +62,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("reports")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         public async Task<ActionResult<ApiResponse<PagedResult<ShiftReportDto>>>> GetAllShiftReports(
             [FromQuery] int restaurantId,
             [FromQuery] int pageIndex = 1,
@@ -72,7 +75,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("reports/staff/{staffId}")]
-        [Authorize]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         public async Task<ActionResult<ApiResponse<PagedResult<ShiftReportDto>>>> GetShiftReportsByStaff(
             [FromRoute] Guid staffId,
             [FromQuery] int pageIndex = 1,
@@ -83,7 +86,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("current")]
-        [Authorize]
+        [Authorize(Roles = "Cashier")]
         public async Task<ActionResult<ApiResponse<ShiftDto>>> GetCurrentShift()
         {
             var staffId = _authenticatedUserService.ProfileId.Value;

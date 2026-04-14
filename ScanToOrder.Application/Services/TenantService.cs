@@ -141,6 +141,7 @@ namespace ScanToOrder.Application.Services
             var qrResult = BankQrLinkUtils.GenerateSePayQrUrl(accountNumber, bankExists.ShortName, 10000, PaymentIntent.TenantVerification);
 
             string urlToDisplay = qrResult.QrUrl;
+            Console.WriteLine(urlToDisplay);
             string codeToSave = qrResult.PaymentCode;
             await _transactionRedisService.SaveTransactionCodeAsync(codeToSave, tenantId);
             return urlToDisplay;
