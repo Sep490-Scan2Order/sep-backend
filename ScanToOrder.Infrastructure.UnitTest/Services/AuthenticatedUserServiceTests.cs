@@ -22,8 +22,8 @@ namespace ScanToOrder.Infrastructure.UnitTest.Services
             // Arrange
             var userId = Guid.NewGuid();
             var profileId = Guid.NewGuid();
-            var email = "administrator@scan2order.id.vn";
-            var phone = "sep490";
+            var email = "test@example.com";
+            var phone = "0123456789";
             var role = "Admin";
 
             var claims = new List<Claim>
