@@ -18,6 +18,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Tenant, Cashier")]
         public async Task<ActionResult<ApiResponse<bool>>> RefundOrder([FromForm] RefundRequest request)
         {
             var result = await _refundService.RefundOrderAsync(request);
@@ -26,6 +27,7 @@ namespace ScanToOrder.Api.Controllers
 
         }
         [HttpPost("confirm-system-payment")]
+        [Authorize(Roles = "Tenant, Cashier")]
         public async Task<ActionResult<ApiResponse<bool>>> ConfirmSystemPayment([FromForm] ConfirmSystemPaymentRequest request)
         {
             var result = await _refundService.ConfirmSystemErrorPaymentAsync(request);

@@ -318,7 +318,9 @@ namespace ScanToOrder.Application.UnitTest.Services
             await _service.UpdateRestaurantOpeningStatusAsync();
 
             restaurants[0].IsOpened.Should().BeTrue();
+            restaurants[0].IsReceivingOrders.Should().BeTrue();
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+            _mockRealtimeService.Verify(r => r.NotifyReceivingOrdersChanged("1", true), Times.Once);
         }
 
 
@@ -343,7 +345,9 @@ namespace ScanToOrder.Application.UnitTest.Services
                 await _service.UpdateRestaurantOpeningStatusAsync();
 
                 restaurants[0].IsOpened.Should().BeTrue();
+                restaurants[0].IsReceivingOrders.Should().BeTrue();
                 _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+                _mockRealtimeService.Verify(r => r.NotifyReceivingOrdersChanged("1", true), Times.Once);
             }
             finally
             {
@@ -492,7 +496,9 @@ namespace ScanToOrder.Application.UnitTest.Services
             await _service.UpdateRestaurantOpeningStatusAsync();
 
             restaurants[0].IsOpened.Should().BeTrue();
+            restaurants[0].IsReceivingOrders.Should().BeTrue();
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+            _mockRealtimeService.Verify(r => r.NotifyReceivingOrdersChanged("1", true), Times.Once);
         }
 
         [Fact]

@@ -177,8 +177,16 @@ public class CronJobService : ICronJobService
                         if (r.IsOpened != true)
                         {
                             r.IsOpened = true;
+
+                            // Bổ sung: Tự động cho phép nhận đơn khi tới giờ mở cửa
+                            if (r.IsReceivingOrders != true)
+                            {
+                                r.IsReceivingOrders = true;
+                                await _realtimeService.NotifyReceivingOrdersChanged(r.Id.ToString(), true);
+                            }
+
                             hasChanges = true;
-                            _logger.LogInformation("Nhà hàng {Name} ({Id}) tự động MỞ.", r.RestaurantName, r.Id);
+                            _logger.LogInformation("Nhà hàng {Name} ({Id}) tự động MỞ và cho phép nhận đơn.", r.RestaurantName, r.Id);
                         }
                     }
                     else
