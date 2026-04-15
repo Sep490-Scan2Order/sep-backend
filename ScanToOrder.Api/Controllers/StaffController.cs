@@ -16,7 +16,7 @@ namespace ScanToOrder.Api.Controllers
             _staffService = staffService;
         }
 
-        [Authorize(Roles = "Admin, Tenant")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         [HttpPost("create-staff")]
         public async Task<ActionResult<ApiResponse<StaffDto>>> AddStaff([FromBody] CreateStaffRequest request)
         {
@@ -24,7 +24,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [Authorize(Roles = "Admin, Tenant")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         [HttpGet ("get-all")]
         public async Task<IActionResult> GetAllStaff(int restaurantId, int page = 1, int pageSize = 10)
         {
@@ -32,7 +32,7 @@ namespace ScanToOrder.Api.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Admin, Tenant")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         [HttpGet("available-cashiers")]
         public async Task<IActionResult> GetAvailableCashiers()
         {
@@ -40,7 +40,7 @@ namespace ScanToOrder.Api.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Admin, Tenant")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         [HttpGet("restaurant")]
         public async Task<ActionResult<ApiResponse<List<StaffDto>>>> GetStaffByRestaurant(int restaurantId)
         {
