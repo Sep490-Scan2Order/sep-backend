@@ -1,4 +1,5 @@
 using Hangfire;
+using Microsoft.Extensions.ML;
 using Microsoft.AspNetCore.HttpOverrides;
 using ScanToOrder.Api.Extensions;
 using ScanToOrder.Api.Middleware;
@@ -23,6 +24,13 @@ builder.Services.AddPayOSConfig(builder.Configuration);
 builder.Services.AddSignalR();
 builder.Services.AddBackgroundJobs(builder.Configuration);
 
+// [AI Upsell] Register PredictionEnginePool for ML.NET - auto-loads if model exists
+var modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SmartUpsellModel.zip");
+if (File.Exists(modelPath))
+{
+    builder.Services.AddPredictionEnginePool<ScanToOrder.Infrastructure.Models.AI.DishCoOccurrence, ScanToOrder.Infrastructure.Models.AI.DishPrediction>()
+        .FromFile(modelName: "UpsellModel", filePath: modelPath, watchForChanges: true);
+}
 builder.Services.AddCors(options =>
 
 {

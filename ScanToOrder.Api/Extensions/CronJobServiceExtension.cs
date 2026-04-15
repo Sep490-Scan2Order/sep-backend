@@ -86,5 +86,12 @@ public static class CronJobServiceExtension
             Cron.Daily(2, 30),
             options
         );
+
+        recurringJobManager.AddOrUpdate<ScanToOrder.Infrastructure.Services.AITrainingJob>(
+            "AI-Upsell-Model-Training",
+            job => job.ExecuteAsync(),
+            Cron.Daily(3, 00), // Run daily at 3:00 AM VN time (sau khi sync data xong)
+            options
+        );
     }
 }
