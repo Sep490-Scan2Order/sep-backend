@@ -59,18 +59,21 @@ namespace ScanToOrder.Application.Services
                 _unitOfWork.Orders.Update(order);
 
                 var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-                    s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
+                    s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open)
+                    ?? throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
 
-                var transaction = new Transaction
+                // Tìm giao dịch của đơn hàng này để cập nhật thành công và gán vào ca hiện tại
+                var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(t => t.OrderId == order.Id);
+                
+                if (transaction == null)
                 {
-                    OrderId = order.Id,
-                    TotalAmount = order.FinalAmount,
-                    PaymentMethod = PaymentMethod.BankTransfer,
-                    Status = OrderTransactionStatus.Success,
-                    ShiftId = activeShift?.Id,
-                    TransactionType = TransactionType.Payment
-                };
-                await _unitOfWork.Transactions.AddAsync(transaction);
+                    throw new DomainException(OrderMessage.OrderError.TRANSACTION_NOT_FOUND);
+                }
+
+                transaction.Status = OrderTransactionStatus.Success;
+                transaction.ShiftId = activeShift.Id;
+                transaction.TransactionType = TransactionType.Payment;
+                _unitOfWork.Transactions.Update(transaction);
 
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
@@ -330,6 +333,7 @@ namespace ScanToOrder.Application.Services
                     TransactionType = TransactionType.Refund
                 };
                 await _unitOfWork.Transactions.AddAsync(transaction);
+                await _unitOfWork.SaveAsync();
             }
         }
 
