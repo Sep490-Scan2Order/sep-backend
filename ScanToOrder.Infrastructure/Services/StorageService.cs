@@ -121,7 +121,7 @@ namespace ScanToOrder.Infrastructure.Services
                 model = "gpt-4o-mini-tts",
                 voice = "cedar",
                 input = text,
-                instructions = "Generate a clear and natural-sounding audio announcement for the given text, suitable for a restaurant environment."
+                instructions = "Generate a clear and natural-sounding audio announcement for the given text, suitable for a restaurant environment. The audio should be concise and easily understandable, with a friendly and inviting tone."
             };
 
             string jsonPayload = JsonSerializer.Serialize(payload);

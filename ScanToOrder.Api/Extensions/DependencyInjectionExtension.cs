@@ -64,6 +64,15 @@ namespace ScanToOrder.Api.Extensions
             services.Configure<AiSettings>(configuration.GetSection("AiSettings"));
             services.Configure<SupabaseSettings>(configuration.GetSection("Supabase"));
             
+            services.AddSingleton<Supabase.Client>(sp =>
+            {
+                var settings = sp.GetRequiredService<IOptions<SupabaseSettings>>().Value;
+                var options = new Supabase.SupabaseOptions { AutoConnectRealtime = false };
+                var client = new Supabase.Client(settings.Url, settings.Key, options);
+                client.InitializeAsync().GetAwaiter().GetResult();
+                return client;
+            });
+            
             services.AddHttpClient<IGeminiService, GeminiService>();
             services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
             
