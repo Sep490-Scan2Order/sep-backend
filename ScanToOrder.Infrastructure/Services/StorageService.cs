@@ -11,8 +11,8 @@ namespace ScanToOrder.Infrastructure.Services
 {
     public class StorageService : IStorageService
     {
-        private readonly Supabase.Client _supabase;
         private readonly HttpClient _httpClient;
+        private readonly ISupabaseStorageService _supabaseStorageService;
 
         private readonly string _vpsBaseUrl;
         private readonly string _uploadApiUrl;
@@ -20,17 +20,17 @@ namespace ScanToOrder.Infrastructure.Services
         private readonly string _openAiSpeechUrl;
 
         public StorageService(
-            IOptions<SupabaseSettings> supabaseOptions,
             IOptions<VpsSettings> vpsOptions,
             IOptions<OpenAiSettings> openAiOptions,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            ISupabaseStorageService supabaseStorageService)
         {
             _httpClient = httpClient;
-            _supabase = new Supabase.Client(supabaseOptions.Value.Url, supabaseOptions.Value.Key);
             _vpsBaseUrl = vpsOptions.Value.VpsBaseUrl;
             _uploadApiUrl = vpsOptions.Value.UploadApiUrl;
             _openAiApiKey = openAiOptions.Value.ApiKey;
             _openAiSpeechUrl = openAiOptions.Value.SpeechUrl;
+            _supabaseStorageService = supabaseStorageService;
         }
 
         public async Task<string> UploadFromBytesAsync(byte[] imageBytes, string fileName,
@@ -43,19 +43,14 @@ namespace ScanToOrder.Infrastructure.Services
 
             try
             {
-                await _supabase.Storage
-                    .From(bucketName)
-                    .Upload(imageBytes, fileName,
-                        new Supabase.Storage.FileOptions { ContentType = "image/png", Upsert = true });
-
-                return _supabase.Storage.From(bucketName).GetPublicUrl(fileName);
+                await _supabaseStorageService.UploadAsync(bucketName, imageBytes, fileName, "image/png");
+                return _supabaseStorageService.GetPublicUrl(bucketName, fileName);
             }
             catch (Exception ex)
             {
                 throw new DomainException($"{StorageMessage.StorageError.UPLOAD_FAILED}: {ex.Message}");
             }
         }
-
 
         public async Task<string> GetOrGenerateOrderAudioAsync(int orderNumber, string textToSpeak)
         {
@@ -68,7 +63,6 @@ namespace ScanToOrder.Infrastructure.Services
             }
 
             byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
-
             await UploadAudioToVpsAsync(audioBytes, fileName);
 
             return expectedUrl;
@@ -85,7 +79,6 @@ namespace ScanToOrder.Infrastructure.Services
             }
 
             byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
-
             await UploadAudioToVpsAsync(audioBytes, fileName);
 
             return expectedUrl;
@@ -98,6 +91,7 @@ namespace ScanToOrder.Infrastructure.Services
 
             if (await CheckFileExistsAsync(expectedUrl))
                 return expectedUrl;
+
             string textToSpeak = $"Đã nhận được tiền số tiền mặt cho đơn hàng {orderCode} ";
             byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
             await UploadAudioToVpsAsync(audioBytes, fileName);
@@ -127,8 +121,7 @@ namespace ScanToOrder.Infrastructure.Services
                 model = "gpt-4o-mini-tts",
                 voice = "cedar",
                 input = text,
-                instructions =
-                    "Generate a clear and natural-sounding audio announcement for the given text, suitable for a restaurant environment. The audio should be concise and easily understandable, with a friendly and inviting tone."
+                instructions = "Generate a clear and natural-sounding audio announcement for the given text, suitable for a restaurant environment."
             };
 
             string jsonPayload = JsonSerializer.Serialize(payload);
@@ -142,17 +135,16 @@ namespace ScanToOrder.Infrastructure.Services
 
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadAsByteArrayAsync(); 
+                return await response.Content.ReadAsByteArrayAsync();
             }
 
             string errorDetails = await response.Content.ReadAsStringAsync();
             throw new Exception($"Lỗi gọi API OpenAI: {errorDetails}");
         }
-        
+
         private async Task UploadAudioToVpsAsync(byte[] audioBytes, string fileName)
         {
             using var content = new MultipartFormDataContent();
-
             content.Add(new StringContent(fileName), "filename");
 
             var audioContent = new ByteArrayContent(audioBytes);
@@ -177,17 +169,8 @@ namespace ScanToOrder.Infrastructure.Services
 
             try
             {
-                await _supabase.Storage
-                    .From(bucketName)
-                    .Upload(qrBytes, fileName, new Supabase.Storage.FileOptions
-                    {
-                        ContentType = "image/png",
-                        Upsert = true
-                    });
-
-                return _supabase.Storage
-                    .From(bucketName)
-                    .GetPublicUrl(fileName);
+                await _supabaseStorageService.UploadAsync(bucketName, qrBytes, fileName, "image/png");
+                return _supabaseStorageService.GetPublicUrl(bucketName, fileName);
             }
             catch (Exception ex)
             {
@@ -203,12 +186,9 @@ namespace ScanToOrder.Infrastructure.Services
         public string GetOrderQrUrl(Guid orderId)
         {
             const string bucketName = "order_qr_codes";
-
             string fileName = $"orders/{orderId}.png";
 
-            return _supabase.Storage
-                .From(bucketName)
-                .GetPublicUrl(fileName);
+            return _supabaseStorageService.GetPublicUrl(bucketName, fileName);
         }
     }
 }
