@@ -133,7 +133,7 @@ namespace ScanToOrder.Application.Services
 
             if (request.Items == null || !request.Items.Any())
             {
-                throw new DomainException("Combo phải có ít nhất 1 món ăn.");
+                throw new DomainException(DishMessage.DishError.COMBO_MUST_HAVE_AT_LEAST_ONE_DISH);
             }
 
             var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();
@@ -141,12 +141,12 @@ namespace ScanToOrder.Application.Services
             
             if (dishes == null || dishes.Count() != dishIds.Count)
             {
-                throw new DomainException("Một hoặc nhiều món ăn không tồn tại.");
+                throw new DomainException(DishMessage.DishError.ONE_OR_MORE_DISHES_NOT_FOUND);
             }
 
             if (dishes.Any(d => d.Type != DishType.Single))
             {
-                throw new DomainException("Combo chỉ được bao gồm các món ăn lẻ (Single).");
+                throw new DomainException(DishMessage.DishError.COMBO_JUST_HAVE_SINGLE_DISH);
             }
 
             string uploadImageUrl = string.Empty;
