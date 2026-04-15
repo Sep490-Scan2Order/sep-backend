@@ -2084,7 +2084,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"lamtranmonkey213@gmail.com\",\n  \"password\": \"@Lamtran213\"\n}",
+                      "raw": "{\n  \"email\": \"lamtranmonkey@gmail.com\",\n  \"password\": \"123asd\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -8869,6 +8869,11 @@
                               {
                                 "key": "Accept",
                                 "value": "text/plain"
+                              },
+                              {
+                                "key": "Authorization",
+                                "value": "{{tenant_access_token}}",
+                                "type": "text"
                               }
                             ],
                             "body": {
@@ -8892,7 +8897,7 @@
                                 {
                                   "key": "ImageUrl",
                                   "type": "file",
-                                  "src": "/C:/Users/ADMIN/Downloads/kem-chuoi.jfif"
+                                  "src": "/C:/Users/ADMIN/Downloads/images.png"
                                 }
                               ]
                             },
@@ -8911,11 +8916,11 @@
                               "variable": [
                                 {
                                   "key": "categoryId",
-                                  "value": "11"
+                                  "value": "10"
                                 },
                                 {
                                   "key": "dishId",
-                                  "value": "35"
+                                  "value": "25"
                                 }
                               ]
                             }
@@ -13773,6 +13778,9 @@
             {
               "name": "/api/NotifyTenant [200 OK]",
               "request": {
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "GET",
                 "header": [
                   {
@@ -13934,6 +13942,38 @@
                 },
                 {
                   "name": "/api/Order/add-to-cart [200 OK]",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "// 1. Chuyển đổi response body sang định dạng JSON\r",
+                          "var jsonData = pm.response.json();\r",
+                          "\r",
+                          "// 2. Kiểm tra điều kiện success và có dữ liệu data hay không\r",
+                          "if (jsonData.isSuccess === true && jsonData.data) {\r",
+                          "    \r",
+                          "    // Lưu cartId vào biến môi trường\r",
+                          "    if (jsonData.data.cartId) {\r",
+                          "        pm.environment.set(\"cartId\", jsonData.data.cartId);\r",
+                          "        console.log(\"✅ Đã lưu cartId mới: \" + jsonData.data.cartId);\r",
+                          "    }\r",
+                          "    \r",
+                          "    // Tiện thể, bạn có thể lưu luôn restaurantId nếu cần cho các request sau\r",
+                          "    if (jsonData.data.restaurantId) {\r",
+                          "        pm.environment.set(\"restaurantId\", jsonData.data.restaurantId);\r",
+                          "    }\r",
+                          "\r",
+                          "} else {\r",
+                          "    console.error(\"❌ Request thất bại hoặc không có data: \" + jsonData.message);\r",
+                          "}"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
                   "request": {
                     "method": "POST",
                     "header": [
@@ -14145,7 +14185,7 @@
                         ],
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"cartId\": \"b63fa207f1a947b183950b518a5f58b5\",\n  \"phone\": \"0908948249\",\n  \"isPreOrder\": true,\n  \"requestedPickupAt\": \"2026-04-14T08:00:11.189Z\",\n  \"appliedPromotionId\": null\n}",
+                          "raw": "{\n  \"cartId\": \"{{cartId}}\",\n  \"phone\": \"0908948249\",\n  \"isPreOrder\": true,\n  \"requestedPickupAt\": \"2026-04-14T08:00:11.189Z\",\n  \"appliedPromotionId\": null\n}",
                           "options": {
                             "raw": {
                               "headerFamily": "json",
