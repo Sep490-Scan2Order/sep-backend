@@ -42,6 +42,12 @@ namespace ScanToOrder.Application.Message
             public const string SYSTEM_ERROR_MANUAL_ONLY = "Lỗi hệ thống trong mô hình trả trước chỉ được xử lý qua chức năng Xác nhận thanh toán thủ công.";
             public const string ITEM_NOT_FOUND_IN_CART = "Không tìm thấy món này trong giỏ hàng.";
             public const string QUANTITY_EXCEEDS_AVAILABLE_STOCK = "Số lượng yêu cầu vượt quá số lượng còn lại ({0} còn lại).";
+            public const string RESTAURANT_SHIFT_NOT_OPENED = "Nhà hàng chưa có ca làm việc nào được mở. Vui lòng Check-in trước khi thực hiện hành động này.";
+            public const string REFUND_UNPAID_ORDER_NOT_SUPPORTED = "Đơn hàng chưa thanh toán, không thể thực hiện hoàn tiền. Vui lòng thực hiện hủy đơn nếu cần.";
+            public const string REFUND_OBJECTIVE_PROOF_REQUIRED = "Trường hợp khách quan bắt buộc phải có ảnh minh chứng chuyển khoản.";
+            public const string PARTIAL_REFUND_ITEMS_REQUIRED = "Với trường hợp hoàn tiền một phần, bạn phải chọn ít nhất một món ăn để hoàn.";
+            public const string REFUND_ITEMS_NOT_FOUND = "Không tìm thấy món ăn hợp lệ trong đơn hàng gốc. Kiểm tra lại thông tin.";
+            public const string UPLOAD_PROOF_ERROR = "Lỗi khi tải ảnh minh chứng lên: {0}";
         }
 
         public class OrderSuccess

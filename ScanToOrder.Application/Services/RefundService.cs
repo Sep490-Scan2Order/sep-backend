@@ -185,7 +185,7 @@ namespace ScanToOrder.Application.Services
 
             if (activeShift == null)
             {
-                throw new DomainException("Nhà hàng chưa có ca làm việc nào được mở. Vui lòng Check-in trước khi thực hiện hoàn tiền.");
+                throw new DomainException(OrderMessage.OrderError.RESTAURANT_SHIFT_NOT_OPENED);
             }
 
             if (originalOrder.Status == OrderStatus.Cancelled)
@@ -195,17 +195,17 @@ namespace ScanToOrder.Application.Services
 
             if (originalOrder.Status == OrderStatus.Unpaid)
             {
-                throw new DomainException("Đơn hàng chưa thanh toán, không thể thực hiện hoàn tiền. Vui lòng thực hiện hủy đơn nếu cần.");
+                throw new DomainException(OrderMessage.OrderError.REFUND_UNPAID_ORDER_NOT_SUPPORTED);
             }
 
             if (request.RefundType == RefundType.Objective && (request.ImageFile == null || request.ImageFile.Length == 0))
             {
-                throw new DomainException("Trường hợp khách quan bắt buộc phải có ảnh minh chứng chuyển khoản.");
+                throw new DomainException(OrderMessage.OrderError.REFUND_OBJECTIVE_PROOF_REQUIRED);
             }
 
             if (!request.IsFullRefund && (request.RefundItems == null || !request.RefundItems.Any()))
             {
-                throw new DomainException("Với trường hợp hoàn tiền một phần, bạn phải chọn ít nhất một món ăn để hoàn.");
+                throw new DomainException(OrderMessage.OrderError.PARTIAL_REFUND_ITEMS_REQUIRED);
             }
 
             return originalOrder;
@@ -276,7 +276,7 @@ namespace ScanToOrder.Application.Services
 
                 if (!refundDetails.Any())
                 {
-                    throw new DomainException("Không tìm thấy món ăn hợp lệ trong đơn hàng gốc. Kiểm tra lại OrderDetailId.");
+                    throw new DomainException(OrderMessage.OrderError.REFUND_ITEMS_NOT_FOUND);
                 }
             }
 
@@ -380,7 +380,7 @@ namespace ScanToOrder.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tải ảnh minh chứng ({Prefix}) cho OrderCode {OrderCode}", prefix, orderCode);
-                throw new DomainException($"Lỗi khi tải ảnh minh chứng lên: {ex.Message}");
+                throw new DomainException(string.Format(OrderMessage.OrderError.UPLOAD_PROOF_ERROR, ex.Message));
             }
         }
     }
