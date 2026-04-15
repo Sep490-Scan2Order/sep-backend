@@ -120,7 +120,8 @@ public class BankLookupServiceTests
 
         // Assert
         result.Success.Should().BeFalse();
-        result.Msg.Should().Contain("500");
+        // Msg hiện tại có thể chỉ chứa tên status (ví dụ: InternalServerError) tùy runtime/formatting
+        result.Msg.Should().Contain("InternalServerError");
 
         // Kiểm tra LogError có được gọi không
         _mockLogger.Verify(

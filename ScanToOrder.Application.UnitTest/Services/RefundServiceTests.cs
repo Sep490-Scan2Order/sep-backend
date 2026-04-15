@@ -341,6 +341,8 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
             _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
                 .ReturnsAsync(new Shift { Id = 10 });
+            _mockTransactionRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Transaction { OrderId = orderId, PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment });
 
             var mockFile = new Mock<IFormFile>();
             mockFile.Setup(f => f.Length).Returns(100);
@@ -358,10 +360,11 @@ namespace ScanToOrder.Application.UnitTest.Services
             result.Should().BeTrue();
             order.Status.Should().Be(OrderStatus.Pending);
             order.RefundType.Should().Be(RefundType.SystemError);
-            _mockTransactionRepo.Verify(u => u.AddAsync(It.Is<Transaction>(t => 
-                t.OrderId == orderId && 
-                t.PaymentMethod == PaymentMethod.BankTransfer && 
-                t.ShiftId == 10)), Times.Once);
+            _mockTransactionRepo.Verify(u => u.Update(It.Is<Transaction>(t =>
+                t.OrderId == orderId &&
+                t.ShiftId == 10 &&
+                t.Status == OrderTransactionStatus.Success &&
+                t.TransactionType == TransactionType.Payment)), Times.Once);
             _mockRealtimeService.Verify(r => r.NotifyOrderStatusChanged(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Once);
         }
 
@@ -395,6 +398,10 @@ namespace ScanToOrder.Application.UnitTest.Services
             var orderId = Guid.NewGuid();
             var order = new Order { Id = orderId, Status = OrderStatus.Unpaid, FinalAmount = 100000, RestaurantId = 1 };
             _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
+            _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Shift { Id = 10, Status = ShiftStatus.Open });
+            _mockTransactionRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Transaction { OrderId = orderId, PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment });
             _mockRealtimeService.Setup(r => r.NotifyOrderStatusChanged(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
                 .ThrowsAsync(new Exception("SignalR Down"));
 
@@ -418,6 +425,10 @@ namespace ScanToOrder.Application.UnitTest.Services
             var orderId = Guid.NewGuid();
             var order = new Order { Id = orderId, Status = OrderStatus.Unpaid, RestaurantId = 1 };
             _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
+            _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Shift { Id = 10, Status = ShiftStatus.Open });
+            _mockTransactionRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Transaction { OrderId = orderId, PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment });
             _mockUnitOfWork.Setup(u => u.SaveAsync()).ThrowsAsync(new Exception("DB Dead"));
 
             var request = new ConfirmSystemPaymentRequest { OrderId = orderId };
@@ -564,6 +575,10 @@ namespace ScanToOrder.Application.UnitTest.Services
             var order = new Order { Id = orderId, Status = OrderStatus.Unpaid, RestaurantId = 1 };
             _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
             _mockOrderRepo.Setup(u => u.GetOrderWithDetailsForKdsAsync(orderId)).ReturnsAsync((Order)null);
+            _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Shift { Id = 10, Status = ShiftStatus.Open });
+            _mockTransactionRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Transaction { OrderId = orderId, PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment });
 
             var request = new ConfirmSystemPaymentRequest { OrderId = orderId };
 
@@ -653,6 +668,10 @@ namespace ScanToOrder.Application.UnitTest.Services
             var orderId = Guid.NewGuid();
             var order = new Order { Id = orderId, Status = OrderStatus.Unpaid, RestaurantId = 1, OrderCode = 1234, FinalAmount = 50000 };
             _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
+            _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Shift { Id = 10, Status = ShiftStatus.Open });
+            _mockTransactionRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Transaction { OrderId = orderId, PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment });
             
             var orderDetails = new Order { Id = orderId, OrderCode = 1234 };
             _mockOrderRepo.Setup(u => u.GetOrderWithDetailsForKdsAsync(orderId)).ReturnsAsync(orderDetails);
