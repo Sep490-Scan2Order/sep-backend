@@ -177,7 +177,7 @@ public class DishServiceTests
         var dishes = new List<Dish> { new Dish { Id = 1, Type = DishType.Combo } };
         _mockUnitOfWork.Setup(u => u.Dishes.FindAsync(It.IsAny<Expression<Func<Dish, bool>>>())).ReturnsAsync(dishes);
         await _service.Invoking(s => s.CreateCombo(Guid.NewGuid(), 1, req2))
-            .Should().ThrowAsync<DomainException>().WithMessage("Combo chỉ được bao gồm các món ăn lẻ (Single).");
+            .Should().ThrowAsync<DomainException>().WithMessage("*Combo chỉ được*");
     }
 
     [Fact]

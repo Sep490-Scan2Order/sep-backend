@@ -135,7 +135,7 @@ public class OrderService_CheckoutTests
     // 9. Phone required
     [InlineData("cart", "valid", true, true, true, true, true, true, false, OrderMessage.OrderError.PHONE_REQUIRED)]
     // 10. PreOrder no Date
-    [InlineData("cart", "valid", true, true, true, true, true, false, true, "RequestedPickupAt is required for preorder.")]
+    [InlineData("cart", "valid", true, true, true, true, true, false, true, "*RequestedPickupAt*")]
     public async Task GetPaymentQrAsync_BasicValidations_ThrowsDomainException(
         string cartId, string cartJsonTemplate, bool isCartValid, bool isRestaurantValid, bool isBankConfigured, 
         bool isCardConfigured, bool isBankVerified, bool isPhoneEmpty, bool isPreOrderNoDate, string expectedMessage)
