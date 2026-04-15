@@ -439,6 +439,47 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockTransaction.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
+        [Fact]
+        public async Task ConfirmSystemErrorPaymentAsync_NoActiveShift_ShouldThrowDomainException()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = new Order { Id = orderId, Status = OrderStatus.Unpaid, RestaurantId = 1 };
+            _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
+
+            _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync((Shift)null);
+
+            var request = new ConfirmSystemPaymentRequest { OrderId = orderId };
+
+            // Act
+            Func<Task> act = async () => await _refundService.ConfirmSystemErrorPaymentAsync(request);
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>().WithMessage("*ca làm đang mở*");
+        }
+
+        [Fact]
+        public async Task ConfirmSystemErrorPaymentAsync_TransactionNotFound_ShouldThrowDomainException()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = new Order { Id = orderId, Status = OrderStatus.Unpaid, RestaurantId = 1 };
+            _mockOrderRepo.Setup(u => u.GetByIdAsync(orderId)).ReturnsAsync(order);
+            _mockShiftRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync(new Shift { Id = 10 });
+
+            _mockTransactionRepo.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<string>()))
+                .ReturnsAsync((Transaction)null);
+
+            var request = new ConfirmSystemPaymentRequest { OrderId = orderId };
+
+            // Act
+            Func<Task> act = async () => await _refundService.ConfirmSystemErrorPaymentAsync(request);
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>().WithMessage("*Giao dịch không tồn tại*");
+        }
         #endregion
 
         #region 6. Complete Logic Coverage (Exceptions & Branches)
@@ -804,6 +845,39 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.Status == OrderStatus.Cancelled)), Times.AtLeastOnce);
         }
 
+        [Fact]
+        public async Task RefundOrderAsync_PartialRefund_ExactlyAllItems_ShouldAutoCancel()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = new Order
+            {
+                Id = orderId,
+                Status = OrderStatus.Served,
+                FinalAmount = 100000,
+                TotalAmount = 100000,
+                OrderDetails = new List<OrderDetail>
+                {
+                    new OrderDetail { Id = 1, Quantity = 2, RefundedQuantity = 0, SubTotal = 100000, DiscountedPrice = 50000 }
+                }
+            };
+            SetupMocks(order);
+
+            var request = new RefundRequest
+            {
+                OrderId = orderId,
+                RefundType = RefundType.StaffError,
+                IsFullRefund = false, 
+                RefundItems = new List<RefundItemDto> { new RefundItemDto { OrderDetailId = 1, QuantityToRefund = 2 } } 
+            };
+
+            // Act
+            await _refundService.RefundOrderAsync(request);
+
+            // Assert
+            order.Status.Should().Be(OrderStatus.Cancelled);
+            _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.Status == OrderStatus.Cancelled)), Times.AtLeastOnce);
+        }
         #endregion
     }
 }
