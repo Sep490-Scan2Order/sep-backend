@@ -42,7 +42,8 @@ jobs:
             "values": [
               { "key": "admin_email", "value": "${{ secrets.ADMIN_EMAIL }}", "enabled": true },
               { "key": "admin_password", "value": "${{ secrets.ADMIN_PASSWORD }}", "enabled": true },
-              { "key": "baseUrl", "value": "https://api.scan2order.id.vn", "enabled": true }
+              { "key": "baseUrl", "value": "https://api.scan2order.io.vn", "enabled": true },
+              { "key": "access_token", "value": "", "enabled": true }
             ]
           }' > env_vars.json
 
