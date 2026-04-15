@@ -956,6 +956,8 @@ public class OrderService : IOrderService
             Status = (int)order.Status,
             IsPreOrder = order.IsPreOrder,
             Type = order.Type,
+            Note = order.Note,
+            PaymentProofUrl = order.PaymentProofUrl,
             TypeOrder = (int)order.typeOrder,
             RefundType = order.RefundType.HasValue ? (int)order.RefundType.Value : null,
             OriginalOrderCode = order.RefundOrderId.HasValue && originalOrderCodes.ContainsKey(order.RefundOrderId.Value)

@@ -26,6 +26,8 @@ namespace ScanToOrder.Application.DTOs.Orders
 
         public int Status { get; set; }
         public string? Type { get; set; }
+        public string? Note { get; set; }
+        public string? PaymentProofUrl { get; set; }
         public int TypeOrder { get; set; }
         public int? RefundType { get; set; }
         public List<KdsItemResponse> Items { get; set; }
