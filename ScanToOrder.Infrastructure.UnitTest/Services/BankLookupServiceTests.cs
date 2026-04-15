@@ -106,6 +106,71 @@ public class BankLookupServiceTests
     }
 
     [Fact]
+    public async Task LookupAccountAsync_WhenApiReturnsErrorStatusCode_ShouldLogErrorAndReturnFailure()
+    {
+        // Arrange
+        var request = new BankLookRequest { Bank = "970415", Account = "123" };
+        var errorContent = "Internal Server Error";
+
+        // Giả lập trả về mã lỗi 500
+        SetupMockHttpResponse(HttpStatusCode.InternalServerError, errorContent);
+
+        // Act
+        var result = await _service.LookupAccountAsync(request);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.Msg.Should().Contain("500");
+
+        // Kiểm tra LogError có được gọi không
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("API BankLookup lỗi hệ thống")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task LookupAccountAsync_WhenApiResponseIsNull_ShouldLogWarningAndReturnNull()
+    {
+        // Arrange
+        var request = new BankLookRequest { Bank = "970415", Account = "123" };
+
+        // Giả lập API trả về nội dung rỗng (null khi deserialize)
+        var response = new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent("null", System.Text.Encoding.UTF8, "application/json")
+        };
+
+        _mockHttpMessageHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _service.LookupAccountAsync(request);
+
+        // Assert
+        result.Should().BeNull();
+
+        // Kiểm tra LogWarning có được gọi khi result null không
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("API trả về thất bại")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task LookupAccountAsync_WhenApiReturnsSuccessFalse_ShouldLogWarningAndReturnResult()
     {
         // Arrange
