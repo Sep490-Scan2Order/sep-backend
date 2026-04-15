@@ -94,33 +94,35 @@ namespace ScanToOrder.Application.Services
         private async Task<List<Transaction>> GetSuccessfulTransactionsAsync(int shiftId)
         {
             var transactions = await _unitOfWork.Transactions
-                .FindAsync(t => t.ShiftId == shiftId && t.Status == OrderTransactionStatus.Success);
+                .GetAllAsync(t => t.ShiftId == shiftId && t.Status == OrderTransactionStatus.Success, t => t.Order);
             return transactions.ToList();
         }
 
         private static ShiftMetrics CalculateShiftMetrics(List<Transaction> transactions)
         {
-            decimal cashPayments = transactions
-                .Where(t => t.PaymentMethod == PaymentMethod.Cash && t.TransactionType == TransactionType.Payment)
-                .Sum(t => t.TotalAmount);
+            // Chỉ lấy các giao dịch Thanh toán của đơn hàng đã Served
+            var servedPayments = transactions
+                .Where(t => t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served)
+                .ToList();
 
-            decimal cashRefunds = transactions
-                .Where(t => t.PaymentMethod == PaymentMethod.Cash && t.TransactionType == TransactionType.Refund)
-                .Sum(t => t.TotalAmount);
+            decimal totalCash = servedPayments
+                .Where(t => t.PaymentMethod == PaymentMethod.Cash)
+                .Sum(t => t.Order.FinalAmount);
 
-            decimal transferPayments = transactions
-                .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Payment)
-                .Sum(t => t.TotalAmount);
+            decimal totalTransfer = servedPayments
+                .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer)
+                .Sum(t => t.Order.FinalAmount);
 
-            decimal transferRefunds = transactions
-                .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer && t.TransactionType == TransactionType.Refund)
+            // Tiền hoàn vẫn tính từ Transaction để hiển thị thông tin
+            decimal totalRefund = transactions
+                .Where(t => t.TransactionType == TransactionType.Refund)
                 .Sum(t => t.TotalAmount);
 
             return new ShiftMetrics
             {
-                TotalCashOrder = cashPayments - cashRefunds,
-                TotalTransferOrder = transferPayments - transferRefunds,
-                TotalRefundAmount = cashRefunds + transferRefunds
+                TotalCashOrder = totalCash,
+                TotalTransferOrder = totalTransfer,
+                TotalRefundAmount = totalRefund
             };
         }
 
@@ -186,7 +188,11 @@ namespace ScanToOrder.Application.Services
             var staff = await _unitOfWork.Staffs.GetByIdAsync(shift.StaffId);
 
             var transactions = await GetSuccessfulTransactionsAsync(shiftId);
-            var metrics = CalculateShiftMetrics(transactions);
+            var filteredTransactions = transactions.Where(t => 
+                (t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served) || 
+                (t.TransactionType == TransactionType.Refund)
+            ).ToList();
+            var metrics = CalculateShiftMetrics(filteredTransactions);
 
             decimal expectedCash = shift.OpeningCashAmount + metrics.TotalCashOrder;
 

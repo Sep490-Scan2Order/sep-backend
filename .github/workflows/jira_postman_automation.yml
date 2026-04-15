@@ -34,19 +34,31 @@ jobs:
         run: |
           npm install -g newman newman-reporter-htmlextra newman-reporter-csv
 
-      # BƯỚC 1: TẠO FILE MÔI TRƯỜNG TỪ SECRETS (PHẢI CHẠY TRƯỚC)
+      # BƯỚC 1: KHỞI TẠO TẤT CẢ BIẾN MÔI TRƯỜNG (Fix lỗi 401 do thiếu biến)
       - name: Create Environment File
         run: |
           echo '{
             "name": "GitHub_Actions_Env",
             "values": [
+              { "key": "baseUrl", "value": "https://api.scan2order.io.vn", "enabled": true },
               { "key": "admin_email", "value": "${{ secrets.ADMIN_EMAIL }}", "enabled": true },
               { "key": "admin_password", "value": "${{ secrets.ADMIN_PASSWORD }}", "enabled": true },
-              { "key": "baseUrl", "value": "https://api.scan2order.id.vn", "enabled": true }
+              { "key": "access_token", "value": "", "enabled": true },
+              { "key": "tenant_access_token", "value": "", "enabled": true },
+              { "key": "staff_access_token", "value": "", "enabled": true },
+              { "key": "otp_key", "value": "", "enabled": true },
+              { "key": "forgot_password_otp_key", "value": "", "enabled": true },
+              { "key": "test_email", "value": "test@gmail.com", "enabled": true },
+              { "key": "reset_token", "value": "", "enabled": true },
+              { "key": "register_otp_code", "value": "", "enabled": true },
+              { "key": "change_password_otp_key", "value": "", "enabled": true },
+              { "key": "cartId", "value": "", "enabled": true },
+              { "key": "restaurantId", "value": "", "enabled": true },
+              { "key": "testURL", "value": "", "enabled": true }
             ]
           }' > env_vars.json
 
-      # BƯỚC 2: CHẠY NEWMAN
+      # BƯỚC 2: CHẠY NEWMAN (Đã sửa để xuất báo cáo HTML và CSV vào TestResults)
       - name: Execute Postman Collections
         run: |
           COLLECTION_DIR="ScanToOrder.Api.IntegrationTest/Postman"
@@ -55,23 +67,30 @@ jobs:
           
           mkdir -p TestResults
 
-          # Kiểm tra nếu chạy thủ công một file cụ thể
+          run_newman() {
+            local file_path=$1
+            local out_name=$2
+            newman run "$file_path" \
+              -e env_vars.json \
+              --reporters cli,json,htmlextra,csv \
+              --reporter-json-export "TestResults/${out_name}_results.json" \
+              --reporter-htmlextra-export "TestResults/${out_name}_report.html" \
+              --reporter-csv-export "TestResults/${out_name}_report.csv" \
+              --insecure || true
+          }
+
           if [[ "$FILE" != "all" && "$FILE" != "" ]]; then
-             if [[ "$FOLDER" != "all" && "$FOLDER" != "" ]]; then
+              if [[ "$FOLDER" != "all" && "$FOLDER" != "" ]]; then
                 echo "🚀 Running Folder [$FOLDER] in file [$FILE]"
-                newman run "$COLLECTION_DIR/$FILE" -e env_vars.json --folder "$FOLDER" --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${FILE}_results.json" --insecure || true
-             else
-                echo "📂 Running entire file [$FILE]"
-                newman run "$COLLECTION_DIR/$FILE" -e env_vars.json --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${FILE}_results.json" --insecure || true
-             fi
+                newman run "$COLLECTION_DIR/$FILE" -e env_vars.json --folder "$FOLDER" --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${FILE}_results.json" --reporter-htmlextra-export "TestResults/${FILE}_report.html" --reporter-csv-export "TestResults/${FILE}_report.csv" --insecure || true
+              else
+                run_newman "$COLLECTION_DIR/$FILE" "$FILE"
+              fi
           else
-             # Chạy tất cả các file .json trong thư mục nếu là Push hoặc chọn 'all'
-             echo "🔄 Running all collections in $COLLECTION_DIR"
-             for f in "$COLLECTION_DIR"/*.json; do
+              for f in "$COLLECTION_DIR"/*.json; do
                 filename=$(basename "$f")
-                echo "Testing $filename..."
-                newman run "$f" -e env_vars.json --reporters cli,json,htmlextra,csv --reporter-json-export "TestResults/${filename}_results.json" --insecure || true
-             done
+                run_newman "$f" "$filename"
+              done
           fi
 
       # BƯỚC 3: CẬP NHẬT JIRA
@@ -79,10 +98,7 @@ jobs:
         shell: pwsh
         run: |
           $results = Get-ChildItem "TestResults/*_results.json"
-          if ($null -eq $results) { 
-            Write-Host "⚠️ No results found to update Jira."
-            exit 0 
-          }
+          if ($null -eq $results) { exit 0 }
           foreach ($file in $results) {
               $report = Get-Content $file.FullName -Raw | ConvertFrom-Json
               foreach ($execution in $report.run.executions) {
@@ -96,16 +112,16 @@ jobs:
                       $runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                       $plainText = "h1. 🤖 POSTMAN REPORT: $testName`n*Kết quả*: $status`n*Chi tiết*: [Xem tại GitHub|$runUrl]`n*API*: https://api.scan2order.io.vn"
                       $jsonBody = @{ body = $plainText } | ConvertTo-Json -Compress
-                      curl -X POST "https://fpt-team-cijvpo93.atlassian.net/rest/api/2/issue/$issueKey/comment" `
+                      curl -X POST "https://fpt-team-cijvpo93.atlassian.net/rest/api/2/issue/$issueKey/comment" \
                         -H "Authorization: Basic $auth" -H "Content-Type: application/json" -d $jsonBody
                   }
               }
           }
 
-      # BƯỚC 4: LƯU BÁO CÁO
+      # BƯỚC 4: LƯU BÁO CÁO (Gồm HTML chuyên nghiệp và CSV cho Excel)
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-        if: always() # Luôn upload báo cáo kể cả khi test fail
+        if: always()
         with:
           name: Professional-Reports
           path: TestResults/

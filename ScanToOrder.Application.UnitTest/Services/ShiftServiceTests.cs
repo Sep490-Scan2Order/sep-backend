@@ -142,11 +142,12 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             var transactions = new List<Transaction>
             {
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Payment, TotalAmount = 200000, Status = OrderTransactionStatus.Success },
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Refund, TotalAmount = 50000, Status = OrderTransactionStatus.Success },
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment, TotalAmount = 300000, Status = OrderTransactionStatus.Success }
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Payment, TotalAmount = 200000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served } },
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Refund, TotalAmount = 50000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served } },
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment, TotalAmount = 300000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served } }
             };
-            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(transactions);
+            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+                .ReturnsAsync(transactions);
 
             // expectedCash = 100k + (200k - 50k) = 250k
             // actualCash = 260k
@@ -172,7 +173,8 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             var shift = new Shift { Id = 1, Status = ShiftStatus.Open };
             _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(shift);
-            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(new List<Transaction>());
+            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+                .ReturnsAsync(new List<Transaction>());
 
             await _shiftService.CheckOutShiftAsync(1, 0, null);
 
@@ -186,7 +188,8 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             var shift = new Shift { Id = 1, Status = ShiftStatus.Open };
             _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(shift);
-            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(new List<Transaction>());
+            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+                .ReturnsAsync(new List<Transaction>());
             _mockUnitOfWork.Setup(u => u.SaveAsync()).ThrowsAsync(new Exception("Fail"));
 
             Func<Task> act = async () => await _shiftService.CheckOutShiftAsync(1, 100, null);
@@ -381,13 +384,16 @@ namespace ScanToOrder.Application.UnitTest.Services
             var staff = new Staff { Id = staffId, Name = "Đạt D" };
             var transactions = new List<Transaction>
             {
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 50000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment },
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 150000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment }
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 50000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served } },
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 150000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served } },
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 100000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Preparing } }, // Filtered out
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 20000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Refund, Order = new Order { Status = OrderStatus.Cancelled } } // Included
             };
-
+            
             _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
             _mockStaffRepo.Setup(s => s.GetByIdAsync(staffId)).ReturnsAsync(staff);
-            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(transactions);
+            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+                .ReturnsAsync(transactions);
 
             // Act
             var result = await _shiftService.GetShiftPreviewAsync(shiftId);
@@ -395,8 +401,12 @@ namespace ScanToOrder.Application.UnitTest.Services
             // Assert
             result.Should().NotBeNull();
             result.CashierName.Should().Be("Đạt D");
+            // Cash: 50k - 0refund = 50k. ExpectedCash = 100k open + 50k = 150k
             result.ExpectedCashAmount.Should().Be(150000); 
-            result.ExpectedTotalAmount.Should().Be(300000); 
+            // Transfer: 150k - 20k refund = 130k.
+            result.TotalTransferOrder.Should().Be(130000);
+            // ExpectedTotal = 100k open + 50k cash + 130k transfer = 280k
+            result.ExpectedTotalAmount.Should().Be(280000);
             result.Note.Should().Be("Ca sáng");
         }
 
@@ -409,7 +419,8 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
             _mockStaffRepo.Setup(s => s.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Staff)null);
-            _mockTransactionRepo.Setup(t => t.FindAsync(It.IsAny<Expression<Func<Transaction, bool>>>())).ReturnsAsync(new List<Transaction>());
+            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+                .ReturnsAsync(new List<Transaction>());
 
             // Act
             var result = await _shiftService.GetShiftPreviewAsync(shiftId);
