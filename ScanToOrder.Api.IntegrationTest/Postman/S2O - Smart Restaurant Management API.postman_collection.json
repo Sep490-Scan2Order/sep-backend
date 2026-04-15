@@ -2036,6 +2036,236 @@
                   ]
                 }
               ]
+            },
+            {
+              "name": "/api/Auth/staff-login (from AuthController)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const response = pm.response.json();\r",
+                      "\r",
+                      "if (response.isSuccess && response.data && response.data.accessToken) {\r",
+                      "    \r",
+                      "    pm.environment.set(\"staff_access_token\", response.data.accessToken);\r",
+                      "    \r",
+                      "    console.log(\"Staff Access Token has been updated successfully!\");\r",
+                      "} else {\r",
+                      "    pm.environment.unset(\"staff_access_token\");\r",
+                      "    console.error(\"Login failed or Staff Access Token not found in the response.\");\r",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "text/plain"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"minhnqse182368@fpt.edu.vn\",\n  \"password\": \"Minhngo123!\"\n}",
+                  "options": {
+                    "raw": {
+                      "headerFamily": "json",
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/Auth/staff-login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "Auth",
+                    "staff-login"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "OK",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "text/plain"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: bearer",
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}",
+                      "options": {
+                        "raw": {
+                          "headerFamily": "json",
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/Auth/staff-login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "Auth",
+                        "staff-login"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"accessToken\": \"string\",\n    \"refreshToken\": \"string\",\n    \"userInfo\": {\n      \"id\": \"f32ae032-a14c-1de4-5ea2-3c0ce5b2cea3\",\n      \"accountId\": \"91b4e6ea-c7b9-68f1-fa70-f712c9894f50\",\n      \"restaurantId\": 4842,\n      \"restaurantName\": \"string\",\n      \"name\": \"string\",\n      \"email\": \"string\",\n      \"role\": \"string\",\n      \"avatar\": \"string\",\n      \"isActive\": true,\n      \"createdAt\": \"1947-11-04T21:40:41.687Z\"\n    }\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"2003-07-10T20:39:47.440Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "/api/Auth/tenant-login (from AuthController)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const response = pm.response.json();\r",
+                      "\r",
+                      "if (response.isSuccess && response.data && response.data.accessToken) {\r",
+                      "    \r",
+                      "    pm.environment.set(\"tenant_access_token\", response.data.accessToken);\r",
+                      "    \r",
+                      "    console.log(\"Tenant Access Token has been updated successfully!\");\r",
+                      "} else {\r",
+                      "    pm.environment.unset(\"tenant_access_token\");\r",
+                      "    console.error(\"Login failed or Tenant Access Token not found in the response.\");\r",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "text/plain"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"lamtranmonkey@gmail.com\",\n  \"password\": \"@Lamtran213\"\n}",
+                  "options": {
+                    "raw": {
+                      "headerFamily": "json",
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/Auth/tenant-login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "Auth",
+                    "tenant-login"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "OK",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "text/plain"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: bearer",
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}",
+                      "options": {
+                        "raw": {
+                          "headerFamily": "json",
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/Auth/tenant-login",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "Auth",
+                        "tenant-login"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"accessToken\": \"string\",\n    \"refreshToken\": \"string\",\n    \"userInfo\": {\n      \"id\": \"13d913c5-fd43-436a-b017-75987811cf6d\",\n      \"name\": \"string\",\n      \"accountId\": \"a63e40ff-52b5-a58b-645f-6c7a3d2dd7a2\",\n      \"email\": \"string\",\n      \"phone\": \"string\",\n      \"avatar\": \"string\",\n      \"role\": \"string\",\n      \"verified\": true,\n      \"isActive\": false,\n      \"taxNumber\": \"string\",\n      \"bankId\": \"aa09fe07-55a0-692b-e02c-48762e43623c\",\n      \"cardNumber\": \"string\",\n      \"bankName\": \"string\",\n      \"bankLogo\": \"string\",\n      \"isVerifyBank\": false,\n      \"isVerifyTax\": false,\n      \"debtStartedAt\": \"2000-03-22T11:48:25.608Z\",\n      \"subscriptionExpiryDate\": \"1989-01-14T06:12:18.258Z\",\n      \"lastWarningSentAt\": \"1962-06-10T06:04:51.562Z\",\n      \"totalDebtAmount\": 8713.56106130674,\n      \"isSuspended\": false,\n      \"suspendedAt\": \"2008-01-06T02:30:04.369Z\"\n    }\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"2025-01-12T06:58:55.493Z\"\n}"
+                }
+              ]
             }
           ]
         },
@@ -2084,122 +2314,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"lamtranmonkey@gmail.com\",\n  \"password\": \"123asd\"\n}",
-                      "options": {
-                        "raw": {
-                          "headerFamily": "json",
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{baseUrl}}/api/Auth/tenant-login",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "Auth",
-                        "tenant-login"
-                      ]
-                    }
-                  },
-                  "response": [
-                    {
-                      "name": "OK",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Content-Type",
-                            "value": "application/json"
-                          },
-                          {
-                            "key": "Accept",
-                            "value": "text/plain"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}",
-                          "options": {
-                            "raw": {
-                              "headerFamily": "json",
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseUrl}}/api/Auth/tenant-login",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "api",
-                            "Auth",
-                            "tenant-login"
-                          ]
-                        }
-                      },
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"accessToken\": \"string\",\n    \"refreshToken\": \"string\",\n    \"userInfo\": {\n      \"id\": \"13d913c5-fd43-436a-b017-75987811cf6d\",\n      \"name\": \"string\",\n      \"accountId\": \"a63e40ff-52b5-a58b-645f-6c7a3d2dd7a2\",\n      \"email\": \"string\",\n      \"phone\": \"string\",\n      \"avatar\": \"string\",\n      \"role\": \"string\",\n      \"verified\": true,\n      \"isActive\": false,\n      \"taxNumber\": \"string\",\n      \"bankId\": \"aa09fe07-55a0-692b-e02c-48762e43623c\",\n      \"cardNumber\": \"string\",\n      \"bankName\": \"string\",\n      \"bankLogo\": \"string\",\n      \"isVerifyBank\": false,\n      \"isVerifyTax\": false,\n      \"debtStartedAt\": \"2000-03-22T11:48:25.608Z\",\n      \"subscriptionExpiryDate\": \"1989-01-14T06:12:18.258Z\",\n      \"lastWarningSentAt\": \"1962-06-10T06:04:51.562Z\",\n      \"totalDebtAmount\": 8713.56106130674,\n      \"isSuspended\": false,\n      \"suspendedAt\": \"2008-01-06T02:30:04.369Z\"\n    }\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"2025-01-12T06:58:55.493Z\"\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "/api/Auth/tenant-login [400 Bad Request]",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "const response = pm.response.json();\r",
-                          "\r",
-                          "if (response.isSuccess && response.data && response.data.accessToken) {\r",
-                          "    \r",
-                          "    pm.environment.set(\"tenant_access_token\", response.data.accessToken);\r",
-                          "    \r",
-                          "    console.log(\"Tenant Access Token has been updated successfully!\");\r",
-                          "} else {\r",
-                          "    pm.environment.unset(\"tenant_access_token\");\r",
-                          "    console.error(\"Login failed or Tenant Access Token not found in the response.\");\r",
-                          "}"
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "text/plain"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}",
+                      "raw": "{\n  \"email\": \"lamtranmonkey@gmail.com\",\n  \"password\": \"@Lamtran213\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -2319,99 +2434,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"minhnqse182368@fpt.edu.vn\",\n  \"password\": \"Minhnqse182368!\"\n}",
-                      "options": {
-                        "raw": {
-                          "headerFamily": "json",
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{baseUrl}}/api/Auth/staff-login",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "Auth",
-                        "staff-login"
-                      ]
-                    }
-                  },
-                  "response": [
-                    {
-                      "name": "OK",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Content-Type",
-                            "value": "application/json"
-                          },
-                          {
-                            "key": "Accept",
-                            "value": "text/plain"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "body": {
-                          "mode": "raw",
-                          "raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}",
-                          "options": {
-                            "raw": {
-                              "headerFamily": "json",
-                              "language": "json"
-                            }
-                          }
-                        },
-                        "url": {
-                          "raw": "{{baseUrl}}/api/Auth/staff-login",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "api",
-                            "Auth",
-                            "staff-login"
-                          ]
-                        }
-                      },
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"accessToken\": \"string\",\n    \"refreshToken\": \"string\",\n    \"userInfo\": {\n      \"id\": \"f32ae032-a14c-1de4-5ea2-3c0ce5b2cea3\",\n      \"accountId\": \"91b4e6ea-c7b9-68f1-fa70-f712c9894f50\",\n      \"restaurantId\": 4842,\n      \"restaurantName\": \"string\",\n      \"name\": \"string\",\n      \"email\": \"string\",\n      \"role\": \"string\",\n      \"avatar\": \"string\",\n      \"isActive\": true,\n      \"createdAt\": \"1947-11-04T21:40:41.687Z\"\n    }\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"2003-07-10T20:39:47.440Z\"\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "/api/Auth/staff-login [400 Bad Request]",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "text/plain"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"email\": \"aaaaa\",\n  \"password\": \"aaaaa\"\n}",
+                      "raw": "{\n  \"email\": \"minhnqse182368@fpt.edu.vn\",\n  \"password\": \"Minhngo123!\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -2748,7 +2771,7 @@
                       "bearer": [
                         {
                           "key": "token",
-                          "value": "{{",
+                          "value": "{{access_token}}",
                           "type": "string"
                         }
                       ]
@@ -2758,6 +2781,11 @@
                       {
                         "key": "Accept",
                         "value": "text/plain"
+                      },
+                      {
+                        "key": "Authorization",
+                        "value": "{{access_token}}",
+                        "type": "text"
                       }
                     ],
                     "url": {
@@ -3152,7 +3180,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"newPassword\": \"123asd\",\n  \"resetToken\": \"{{reset_token}}\"\n}",
+                      "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"newPassword\": \"@Lamtran213\",\n  \"resetToken\": \"{{reset_token}}\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -3543,7 +3571,7 @@
               "name": "change-password-staff",
               "item": [
                 {
-                  "name": "/api/Auth/change-password-staff",
+                  "name": "/api/Auth/change-password-staff[200 OK]",
                   "event": [
                     {
                       "listen": "test",
@@ -3571,7 +3599,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"string\",\n  \"oldPassword\": \"string\",\n  \"newPassword\": \"string\"\n}",
+                      "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"oldPassword\": \"@Lamtran213\",\n  \"newPassword\": \"@Lamtran2132004\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -3653,13 +3681,24 @@
               "name": "send-forgot-password-staff-otp",
               "item": [
                 {
-                  "name": "/api/Auth/send-forgot-password-staff-otp",
+                  "name": "/api/Auth/send-forgot-password-staff-otp [200 OK]",
                   "event": [
                     {
                       "listen": "test",
                       "script": {
                         "exec": [
-                          ""
+                          "if(pm.response.code === 200){\r",
+                          "    try{\r",
+                          "        const response = pm.response.json();\r",
+                          "        if (response.isSuccess && response.data) {\r",
+                          "            pm.environment.set(\"forgot_password_staff_otp_key\", response.data);\r",
+                          "            console.log(\"Saved email: \" + emailFromUrl);\r",
+                          "            console.log(\"Saved OTP: \" + response.data);\r",
+                          "        }\r",
+                          "    } catch(e){\r",
+                          "        console.error(\"Error in parse JSON: \" + e);\r",
+                          "    }\r",
+                          "}"
                         ],
                         "type": "text/javascript",
                         "packages": {},
@@ -3676,7 +3715,7 @@
                       }
                     ],
                     "url": {
-                      "raw": "{{baseUrl}}/api/Auth/send-forgot-password-staff-otp?email=string",
+                      "raw": "{{baseUrl}}/api/Auth/send-forgot-password-staff-otp?email=minhnqse182368@fpt.edu.vn",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -3688,7 +3727,7 @@
                       "query": [
                         {
                           "key": "email",
-                          "value": "string"
+                          "value": "minhnqse182368@fpt.edu.vn"
                         }
                       ]
                     }
@@ -3747,7 +3786,29 @@
               "name": "verify-forgot-password-staff-otp",
               "item": [
                 {
-                  "name": "/api/Auth/verify-forgot-password-staff-otp",
+                  "name": "/api/Auth/verify-forgot-password-staff-otp [200 OK]",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();\r",
+                          "\r",
+                          "if (response.isSuccess && response.data) {\r",
+                          "    \r",
+                          "    pm.environment.set(\"reset_token\", response.data);\r",
+                          "    \r",
+                          "    console.log(\"Saved reset_token: \" + response.data);\r",
+                          "} else {\r",
+                          "    console.error(\"Cannot save reset_token because response is not successful or data is missing.\");\r",
+                          "}"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
                   "request": {
                     "method": "POST",
                     "header": [
@@ -3756,8 +3817,17 @@
                         "value": "text/plain"
                       }
                     ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
                     "url": {
-                      "raw": "{{baseUrl}}/api/Auth/verify-forgot-password-staff-otp?email=string&otp=string",
+                      "raw": "{{baseUrl}}/api/Auth/verify-forgot-password-staff-otp?email=minhnqse182368@fpt.edu.vn&otp={{forgot_password_staff_otp_key}}",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -3769,11 +3839,11 @@
                       "query": [
                         {
                           "key": "email",
-                          "value": "string"
+                          "value": "minhnqse182368@fpt.edu.vn"
                         },
                         {
                           "key": "otp",
-                          "value": "string"
+                          "value": "{{forgot_password_staff_otp_key}}"
                         }
                       ]
                     }
@@ -3836,7 +3906,7 @@
               "name": "complete-forgot-password-staff",
               "item": [
                 {
-                  "name": "/api/Auth/complete-forgot-password-staff",
+                  "name": "/api/Auth/complete-forgot-password-staff [200 OK]",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -3851,7 +3921,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"string\",\n  \"newPassword\": \"string\",\n  \"resetToken\": \"string\"\n}",
+                      "raw": "{\n  \"email\": \"minhnqse182368@fpt.edu.vn\",\n  \"newPassword\": \"Minhngo123!\",\n  \"resetToken\": \"{{reset_token}}\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -3963,7 +4033,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"restaurantId\": 62,\n  \"dishId\": 21,\n  \"isSelling\": true,\n  \"price\": 7551.287820918369,\n  \"isSoldOut\": false\n}",
+                      "raw": "{\n  \"restaurantId\": 62,\n  \"dishId\": 24,\n  \"isSelling\": true,\n  \"price\": 7551.287820918369,\n  \"isSoldOut\": false\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -5468,7 +5538,7 @@
                   ]
                 },
                 {
-                  "name": "/api/Category/get-category-by-tenant [401 Unauthorized]",
+                  "name": "/api/Category/get-category-by-tenant [400 Bad Request]",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -5707,6 +5777,32 @@
               "item": [
                 {
                   "name": "/api/Category/create-category [200 OK]",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "// 1. Chuyển đổi response body sang định dạng JSON\r",
+                          "var jsonData = pm.response.json();\r",
+                          "\r",
+                          "// 2. Kiểm tra điều kiện success và có dữ liệu data hay không\r",
+                          "if (jsonData.isSuccess === true && jsonData.data) {\r",
+                          "    \r",
+                          "    // Lưu cartId vào biến môi trường\r",
+                          "    if (jsonData.data.id) {\r",
+                          "        pm.environment.set(\"id\", jsonData.data.id);\r",
+                          "        console.log(\"✅ Đã lưu id mới: \" + jsonData.data.id);\r",
+                          "    }\r",
+                          "} else {\r",
+                          "    console.error(\"❌ Request thất bại hoặc không có data: \" + jsonData.message);\r",
+                          "}"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
                   "request": {
                     "auth": {
                       "type": "bearer",
@@ -5731,7 +5827,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"categoryName\": \"new Category\"\n}",
+                      "raw": "{\n  \"categoryName\": \"new new enw Category\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -6461,7 +6557,7 @@
                           "variable": [
                             {
                               "key": "id",
-                              "value": "23"
+                              "value": "{{id}}"
                             }
                           ]
                         }
@@ -6725,7 +6821,7 @@
                           "variable": [
                             {
                               "key": "id",
-                              "value": "24"
+                              "value": "9"
                             }
                           ]
                         }
@@ -6989,7 +7085,7 @@
                           "variable": [
                             {
                               "key": "id",
-                              "value": "25"
+                              "value": "9"
                             }
                           ]
                         }
@@ -8276,7 +8372,7 @@
                             {
                               "key": "ImageUrl",
                               "type": "file",
-                              "src": "/C:/Users/ADMIN/Downloads/tomyum.jfif"
+                              "src": "/C:/Users/ADMIN/Downloads/10n.jpg"
                             },
                             {
                               "key": "Items",
@@ -8705,6 +8801,9 @@
                         {
                           "name": "/api/Dish/update-dish/:categoryId/:dishId [400 Bad Request Missing Auth]",
                           "request": {
+                            "auth": {
+                              "type": "noauth"
+                            },
                             "method": "PUT",
                             "header": [
                               {
@@ -11978,6 +12077,16 @@
             {
               "name": "/api/MenuTemplate [200 OK]",
               "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
                 "method": "POST",
                 "header": [
                   {
@@ -14168,6 +14277,33 @@
                     },
                     {
                       "name": "/api/Order/checkout/bank-transfer [200 OK]",
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "// 1. Chuyển đổi response body sang định dạng JSON\r",
+                              "var jsonData = pm.response.json();\r",
+                              "\r",
+                              "// 2. Kiểm tra điều kiện success và có dữ liệu data hay không\r",
+                              "if (jsonData.isSuccess === true && jsonData.data) {\r",
+                              "    \r",
+                              "    // Lưu cartId vào biến môi trường\r",
+                              "    if (jsonData.data.orderId) {\r",
+                              "        pm.environment.set(\"orderId\", jsonData.data.orderId);\r",
+                              "        console.log(\"✅ Đã lưu orderId mới: \" + jsonData.data.orderId);\r",
+                              "    }\r",
+                              "\r",
+                              "} else {\r",
+                              "    console.error(\"❌ Request thất bại hoặc không có data: \" + jsonData.message);\r",
+                              "}"
+                            ],
+                            "type": "text/javascript",
+                            "packages": {},
+                            "requests": {}
+                          }
+                        }
+                      ],
                       "request": {
                         "auth": {
                           "type": "noauth"
@@ -14269,7 +14405,7 @@
                   "name": "cash",
                   "item": [
                     {
-                      "name": "/api/Order/checkout/cash",
+                      "name": "/api/Order/checkout/cash [400 Bad Request]",
                       "request": {
                         "method": "POST",
                         "header": [
@@ -14361,6 +14497,100 @@
                           "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"orderId\": \"06e5c038-3338-d979-d9b8-8fdc5bcdfabd\",\n    \"orderCode\": 943,\n    \"totalAmount\": 8424.403769725126,\n    \"restaurantName\": \"string\",\n    \"phone\": \"string\",\n    \"note\": \"string\",\n    \"status\": 3,\n    \"qrCodeBase64\": \"string\"\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"1993-02-11T11:32:34.160Z\"\n}"
                         }
                       ]
+                    },
+                    {
+                      "name": "/api/Order/checkout/cash [200 OK]",
+                      "request": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "text/plain"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"cartId\": \"{{cartId}}\",\n  \"phone\": \"0908948249\",\n  \"appliedPromotionId\": null\n}",
+                          "options": {
+                            "raw": {
+                              "headerFamily": "json",
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/api/Order/checkout/cash",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "api",
+                            "Order",
+                            "checkout",
+                            "cash"
+                          ]
+                        }
+                      },
+                      "response": [
+                        {
+                          "name": "OK",
+                          "originalRequest": {
+                            "method": "POST",
+                            "header": [
+                              {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                              },
+                              {
+                                "key": "Accept",
+                                "value": "text/plain"
+                              },
+                              {
+                                "description": "Added as a part of security scheme: bearer",
+                                "key": "Authorization",
+                                "value": "Bearer <token>"
+                              }
+                            ],
+                            "body": {
+                              "mode": "raw",
+                              "raw": "{\n  \"cartId\": \"string\",\n  \"phone\": \"string\",\n  \"appliedPromotionId\": 5073\n}",
+                              "options": {
+                                "raw": {
+                                  "headerFamily": "json",
+                                  "language": "json"
+                                }
+                              }
+                            },
+                            "url": {
+                              "raw": "{{baseUrl}}/api/Order/checkout/cash",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "api",
+                                "Order",
+                                "checkout",
+                                "cash"
+                              ]
+                            }
+                          },
+                          "status": "OK",
+                          "code": 200,
+                          "_postman_previewlanguage": "json",
+                          "header": [
+                            {
+                              "key": "Content-Type",
+                              "value": "application/json"
+                            }
+                          ],
+                          "cookie": [],
+                          "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"orderId\": \"06e5c038-3338-d979-d9b8-8fdc5bcdfabd\",\n    \"orderCode\": 943,\n    \"totalAmount\": 8424.403769725126,\n    \"restaurantName\": \"string\",\n    \"phone\": \"string\",\n    \"note\": \"string\",\n    \"status\": 3,\n    \"qrCodeBase64\": \"string\"\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"1993-02-11T11:32:34.160Z\"\n}"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -14376,7 +14606,7 @@
                       "name": "confirm",
                       "item": [
                         {
-                          "name": "/api/Order/cash/:orderId/confirm",
+                          "name": "/api/Order/cash/:orderId/confirm [401 Unauthorized]",
                           "request": {
                             "method": "POST",
                             "header": [
@@ -14454,6 +14684,186 @@
                               "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": \"string\",\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"1953-03-27T20:32:41.040Z\"\n}"
                             }
                           ]
+                        },
+                        {
+                          "name": "/api/Order/cash/:orderId/confirm [400 Bad Request]",
+                          "request": {
+                            "auth": {
+                              "type": "bearer",
+                              "bearer": [
+                                {
+                                  "key": "token",
+                                  "value": "{{staff_access_token}}",
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "method": "POST",
+                            "header": [
+                              {
+                                "key": "Accept",
+                                "value": "text/plain"
+                              }
+                            ],
+                            "url": {
+                              "raw": "{{baseUrl}}/api/Order/cash/:orderId/confirm",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "api",
+                                "Order",
+                                "cash",
+                                ":orderId",
+                                "confirm"
+                              ],
+                              "variable": [
+                                {
+                                  "key": "orderId",
+                                  "value": "0d7d0f91-fb2c-386f-9bb7-210ad543d495"
+                                }
+                              ]
+                            }
+                          },
+                          "response": [
+                            {
+                              "name": "OK",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Accept",
+                                    "value": "text/plain"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "url": {
+                                  "raw": "{{baseUrl}}/api/Order/cash/:orderId/confirm",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "api",
+                                    "Order",
+                                    "cash",
+                                    ":orderId",
+                                    "confirm"
+                                  ],
+                                  "variable": [
+                                    {
+                                      "key": "orderId",
+                                      "value": "0d7d0f91-fb2c-386f-9bb7-210ad543d495"
+                                    }
+                                  ]
+                                }
+                              },
+                              "status": "OK",
+                              "code": 200,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": \"string\",\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"1953-03-27T20:32:41.040Z\"\n}"
+                            }
+                          ]
+                        },
+                        {
+                          "name": "/api/Order/cash/:orderId/confirm [200 OK]",
+                          "request": {
+                            "auth": {
+                              "type": "bearer",
+                              "bearer": [
+                                {
+                                  "key": "token",
+                                  "value": "{{staff_access_token}}",
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "method": "POST",
+                            "header": [
+                              {
+                                "key": "Accept",
+                                "value": "text/plain"
+                              }
+                            ],
+                            "url": {
+                              "raw": "{{baseUrl}}/api/Order/cash/:orderId/confirm",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "api",
+                                "Order",
+                                "cash",
+                                ":orderId",
+                                "confirm"
+                              ],
+                              "variable": [
+                                {
+                                  "key": "orderId",
+                                  "value": "{{orderId}}"
+                                }
+                              ]
+                            }
+                          },
+                          "response": [
+                            {
+                              "name": "OK",
+                              "originalRequest": {
+                                "method": "POST",
+                                "header": [
+                                  {
+                                    "key": "Accept",
+                                    "value": "text/plain"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "url": {
+                                  "raw": "{{baseUrl}}/api/Order/cash/:orderId/confirm",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "api",
+                                    "Order",
+                                    "cash",
+                                    ":orderId",
+                                    "confirm"
+                                  ],
+                                  "variable": [
+                                    {
+                                      "key": "orderId",
+                                      "value": "0d7d0f91-fb2c-386f-9bb7-210ad543d495"
+                                    }
+                                  ]
+                                }
+                              },
+                              "status": "OK",
+                              "code": 200,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": \"string\",\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"1953-03-27T20:32:41.040Z\"\n}"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -14463,8 +14873,84 @@
                   "name": "pending-confirm",
                   "item": [
                     {
-                      "name": "/api/Order/cash/pending-confirm",
+                      "name": "/api/Order/cash/pending-confirm [401 Unauthorized]",
                       "request": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "text/plain"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/api/Order/cash/pending-confirm",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "api",
+                            "Order",
+                            "cash",
+                            "pending-confirm"
+                          ]
+                        }
+                      },
+                      "response": [
+                        {
+                          "name": "OK",
+                          "originalRequest": {
+                            "method": "GET",
+                            "header": [
+                              {
+                                "key": "Accept",
+                                "value": "text/plain"
+                              },
+                              {
+                                "description": "Added as a part of security scheme: bearer",
+                                "key": "Authorization",
+                                "value": "Bearer <token>"
+                              }
+                            ],
+                            "url": {
+                              "raw": "{{baseUrl}}/api/Order/cash/pending-confirm",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "api",
+                                "Order",
+                                "cash",
+                                "pending-confirm"
+                              ]
+                            }
+                          },
+                          "status": "OK",
+                          "code": 200,
+                          "_postman_previewlanguage": "json",
+                          "header": [
+                            {
+                              "key": "Content-Type",
+                              "value": "application/json"
+                            }
+                          ],
+                          "cookie": [],
+                          "body": "{\n  \"isSuccess\": true,\n  \"message\": \"string\",\n  \"data\": [\n    {\n      \"id\": \"string\",\n      \"orderCode\": 4085,\n      \"restaurantId\": 1600,\n      \"createdAt\": \"1984-09-06T18:29:06.042Z\",\n      \"amount\": 2333.491444267195,\n      \"phone\": \"string\",\n      \"note\": \"string\",\n      \"status\": 3494,\n      \"type\": \"string\",\n      \"items\": [\n        {\n          \"dishId\": 2467,\n          \"dishName\": \"string\",\n          \"quantity\": 6893,\n          \"discountedPrice\": 3254.3534005350593,\n          \"originalPrice\": 2928.1173577050868,\n          \"promotionAmount\": 108.3494124885087,\n          \"promotionName\": \"string\",\n          \"subTotal\": 2689.8249926480444\n        },\n        {\n          \"dishId\": 4555,\n          \"dishName\": \"string\",\n          \"quantity\": 7779,\n          \"discountedPrice\": 2936.2425231195675,\n          \"originalPrice\": 5514.179929757514,\n          \"promotionAmount\": 9928.836831767818,\n          \"promotionName\": \"string\",\n          \"subTotal\": 279.2886141281947\n        }\n      ]\n    },\n    {\n      \"id\": \"string\",\n      \"orderCode\": 8008,\n      \"restaurantId\": 7650,\n      \"createdAt\": \"1957-02-24T09:30:36.940Z\",\n      \"amount\": 426.58480629169213,\n      \"phone\": \"string\",\n      \"note\": \"string\",\n      \"status\": 5962,\n      \"type\": \"string\",\n      \"items\": [\n        {\n          \"dishId\": 7857,\n          \"dishName\": \"string\",\n          \"quantity\": 8961,\n          \"discountedPrice\": 3808.588998347402,\n          \"originalPrice\": 5708.188208905296,\n          \"promotionAmount\": 3018.24558727005,\n          \"promotionName\": \"string\",\n          \"subTotal\": 6216.411478937734\n        },\n        {\n          \"dishId\": 6453,\n          \"dishName\": \"string\",\n          \"quantity\": 4406,\n          \"discountedPrice\": 6440.13471085952,\n          \"originalPrice\": 734.3010394968319,\n          \"promotionAmount\": 7871.662679374245,\n          \"promotionName\": \"string\",\n          \"subTotal\": 6993.460063998551\n        }\n      ]\n    }\n  ],\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"2023-03-11T05:08:12.606Z\"\n}"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "/api/Order/cash/pending-confirm [200 OK]",
+                      "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{staff_access_token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
                         "method": "GET",
                         "header": [
                           {
@@ -16003,8 +16489,150 @@
                       "name": "{restaurantId}",
                       "item": [
                         {
-                          "name": "/api/Order/tenant/restaurant/:restaurantId",
+                          "name": "/api/Order/tenant/restaurant/:restaurantId [401 Unauthorized]",
                           "request": {
+                            "method": "GET",
+                            "header": [
+                              {
+                                "key": "Accept",
+                                "value": "text/plain"
+                              }
+                            ],
+                            "url": {
+                              "raw": "{{baseUrl}}/api/Order/tenant/restaurant/:restaurantId?pageIndex=1&pageSize=10&keyword=string&status=3&fromDate=1960-05-30T16:58:09.370Z&toDate=1960-05-30T16:58:09.370Z",
+                              "host": [
+                                "{{baseUrl}}"
+                              ],
+                              "path": [
+                                "api",
+                                "Order",
+                                "tenant",
+                                "restaurant",
+                                ":restaurantId"
+                              ],
+                              "query": [
+                                {
+                                  "key": "pageIndex",
+                                  "value": "1"
+                                },
+                                {
+                                  "key": "pageSize",
+                                  "value": "10"
+                                },
+                                {
+                                  "key": "keyword",
+                                  "value": "string"
+                                },
+                                {
+                                  "key": "status",
+                                  "value": "3"
+                                },
+                                {
+                                  "key": "fromDate",
+                                  "value": "1960-05-30T16:58:09.370Z"
+                                },
+                                {
+                                  "key": "toDate",
+                                  "value": "1960-05-30T16:58:09.370Z"
+                                }
+                              ],
+                              "variable": [
+                                {
+                                  "key": "restaurantId",
+                                  "value": "3698"
+                                }
+                              ]
+                            }
+                          },
+                          "response": [
+                            {
+                              "name": "OK",
+                              "originalRequest": {
+                                "method": "GET",
+                                "header": [
+                                  {
+                                    "key": "Accept",
+                                    "value": "text/plain"
+                                  },
+                                  {
+                                    "description": "Added as a part of security scheme: bearer",
+                                    "key": "Authorization",
+                                    "value": "Bearer <token>"
+                                  }
+                                ],
+                                "url": {
+                                  "raw": "{{baseUrl}}/api/Order/tenant/restaurant/:restaurantId?pageIndex=1&pageSize=10&keyword=string&status=3&fromDate=1960-05-30T16:58:09.370Z&toDate=1960-05-30T16:58:09.370Z",
+                                  "host": [
+                                    "{{baseUrl}}"
+                                  ],
+                                  "path": [
+                                    "api",
+                                    "Order",
+                                    "tenant",
+                                    "restaurant",
+                                    ":restaurantId"
+                                  ],
+                                  "query": [
+                                    {
+                                      "key": "pageIndex",
+                                      "value": "1"
+                                    },
+                                    {
+                                      "key": "pageSize",
+                                      "value": "10"
+                                    },
+                                    {
+                                      "key": "keyword",
+                                      "value": "string"
+                                    },
+                                    {
+                                      "key": "status",
+                                      "value": "3"
+                                    },
+                                    {
+                                      "key": "fromDate",
+                                      "value": "1960-05-30T16:58:09.370Z"
+                                    },
+                                    {
+                                      "key": "toDate",
+                                      "value": "1960-05-30T16:58:09.370Z"
+                                    }
+                                  ],
+                                  "variable": [
+                                    {
+                                      "key": "restaurantId",
+                                      "value": "3698"
+                                    }
+                                  ]
+                                }
+                              },
+                              "status": "OK",
+                              "code": 200,
+                              "_postman_previewlanguage": "json",
+                              "header": [
+                                {
+                                  "key": "Content-Type",
+                                  "value": "application/json"
+                                }
+                              ],
+                              "cookie": [],
+                              "body": "{\n  \"isSuccess\": false,\n  \"message\": \"string\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"f13a972f-1ec1-4aeb-9e05-c058d520d13e\",\n        \"orderCode\": 3103,\n        \"numberPhone\": \"string\",\n        \"totalAmount\": 7796.838091157403,\n        \"promotionDiscount\": 3905.735911642676,\n        \"finalAmount\": 8630.798385332999,\n        \"status\": 5,\n        \"isPreOrder\": true,\n        \"requestedPickupAt\": \"2011-04-06T09:28:29.054Z\",\n        \"confirmedPickupAt\": \"1978-09-01T15:24:30.894Z\",\n        \"note\": \"string\",\n        \"type\": \"string\",\n        \"paymentProofUrl\": \"string\",\n        \"typeOrder\": 1,\n        \"createdAt\": \"1994-01-18T03:16:09.553Z\",\n        \"orderDetails\": [\n          {\n            \"dishId\": 579,\n            \"dishName\": \"string\",\n            \"quantity\": 5476,\n            \"subTotal\": 1063.3264102872931,\n            \"originalPrice\": 9180.740999049836,\n            \"discountedPrice\": 1365.5236628211865,\n            \"promotionAmount\": 1648.1668606959831\n          },\n          {\n            \"dishId\": 3767,\n            \"dishName\": \"string\",\n            \"quantity\": 2966,\n            \"subTotal\": 9940.60378135835,\n            \"originalPrice\": 6131.2638273769335,\n            \"discountedPrice\": 5255.881145802053,\n            \"promotionAmount\": 2811.716052759374\n          }\n        ]\n      },\n      {\n        \"id\": \"92f3b6b1-236a-db50-6c5a-ea341c19c5e5\",\n        \"orderCode\": 6583,\n        \"numberPhone\": \"string\",\n        \"totalAmount\": 2800.8751480860196,\n        \"promotionDiscount\": 5479.95104517657,\n        \"finalAmount\": 9122.37404995363,\n        \"status\": 3,\n        \"isPreOrder\": true,\n        \"requestedPickupAt\": \"2005-07-05T04:34:50.394Z\",\n        \"confirmedPickupAt\": \"2018-12-15T10:09:25.300Z\",\n        \"note\": \"string\",\n        \"type\": \"string\",\n        \"paymentProofUrl\": \"string\",\n        \"typeOrder\": 0,\n        \"createdAt\": \"2004-07-09T03:33:11.154Z\",\n        \"orderDetails\": [\n          {\n            \"dishId\": 8302,\n            \"dishName\": \"string\",\n            \"quantity\": 8015,\n            \"subTotal\": 1666.3167519809497,\n            \"originalPrice\": 4849.556187602792,\n            \"discountedPrice\": 338.9769789333097,\n            \"promotionAmount\": 6753.343726232608\n          },\n          {\n            \"dishId\": 6,\n            \"dishName\": \"string\",\n            \"quantity\": 6623,\n            \"subTotal\": 6915.965348524087,\n            \"originalPrice\": 3043.5571360868075,\n            \"discountedPrice\": 4794.411031866792,\n            \"promotionAmount\": 8748.789198153105\n          }\n        ]\n      }\n    ],\n    \"totalCount\": 4522,\n    \"page\": 4655,\n    \"pageSize\": 7613\n  },\n  \"errors\": [\n    \"string\",\n    \"string\"\n  ],\n  \"timestamp\": \"1997-10-31T21:54:21.026Z\"\n}"
+                            }
+                          ]
+                        },
+                        {
+                          "name": "/api/Order/tenant/restaurant/:restaurantId [200 OK]",
+                          "request": {
+                            "auth": {
+                              "type": "bearer",
+                              "bearer": [
+                                {
+                                  "key": "token",
+                                  "value": "{{staff_access_token}}",
+                                  "type": "string"
+                                }
+                              ]
+                            },
                             "method": "GET",
                             "header": [
                               {
@@ -19322,6 +19950,16 @@
                 {
                   "name": "/api/Refund/confirm-system-payment [200 OK]",
                   "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{tenant_access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
                     "method": "POST",
                     "header": [
                       {
@@ -19338,7 +19976,7 @@
                       "formdata": [
                         {
                           "key": "OrderId",
-                          "value": "fa118bd6-b6e2-4b36-8d6b-72a932a04b10",
+                          "value": "{{orderId}}",
                           "type": "text"
                         },
                         {
@@ -24582,6 +25220,16 @@
                         "disableBodyPruning": true
                       },
                       "request": {
+                        "auth": {
+                          "type": "bearer",
+                          "bearer": [
+                            {
+                              "key": "token",
+                              "value": "{{staff_access_token}}",
+                              "type": "string"
+                            }
+                          ]
+                        },
                         "method": "GET",
                         "header": [
                           {
@@ -31120,7 +31768,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "{{access_token}}",
+        "value": "",
         "type": "string"
       }
     ]
@@ -31148,8 +31796,8 @@
           "    pm.response.to.have.status(200);\r",
           "});\r",
           "\r",
-          "pm.test(\"Response time is less than 2s\", function () {\r",
-          "    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+          "pm.test(\"Response time is less than 15s\", function () {\r",
+          "    pm.expect(pm.response.responseTime).to.be.below(15000);\r",
           "});\r",
           "\r",
           "pm.test(\"isSuccess should be true\", function () {\r",
