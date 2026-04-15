@@ -677,5 +677,11 @@ namespace ScanToOrder.Application.Services
 
             return result;
         }
+
+        public async Task<IEnumerable<RestaurantDto>> GetSuggestionRestaurantAsync()
+        {
+            var suggestRestaurants = await _unitOfWork.Restaurants.GetSuggesstRestaurantAsync();
+            return _mapper.Map<IEnumerable<RestaurantDto>>(suggestRestaurants);
+        }
     }
 }

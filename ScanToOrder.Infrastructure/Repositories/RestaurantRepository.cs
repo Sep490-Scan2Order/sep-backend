@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using ScanToOrder.Domain.Entities.Restaurants;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System.Linq.Expressions;
@@ -193,6 +194,21 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(r => r.Subscription)
                     .ThenInclude(s => s!.Plan)
                 .Where(r => r.TenantId == tenantId && !r.IsDeleted)
+                .ToListAsync();
+        }
+
+        public async Task<List<Restaurant>> GetSuggesstRestaurantAsync()
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Include(r => r.Subscription)
+                    .ThenInclude(s => s!.Plan)
+                .Where(r => !r.IsDeleted
+                    && r.IsActive == true
+                    && r.Subscription != null
+                    && r.Subscription.Status == SubscriptionStatus.Active
+                    && r.Subscription.Plan.Features.CanRecommendationOnTop)
+                .OrderByDescending(r => r.TotalOrder ?? 0)
                 .ToListAsync();
         }
     }

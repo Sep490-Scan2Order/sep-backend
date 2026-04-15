@@ -72,7 +72,7 @@ namespace ScanToOrder.Api.Controllers
             var menu = await _restaurantMenuService.GetMenuForRestaurantAsync(restaurantId);
             return Success(menu);
         }
-        
+
         [HttpGet("{restaurantId:int}/menu-all")]
         public async Task<ActionResult<ApiResponse<List<MenuCategoryDto>>>> GetRestaurantAllMenu([FromRoute] int restaurantId)
         {
@@ -199,14 +199,21 @@ namespace ScanToOrder.Api.Controllers
         [HttpGet("{id:int}/revenue-summary")]
         [Authorize(Roles = "Tenant, Admin")]
         public async Task<ActionResult<ApiResponse<ScanToOrder.Application.DTOs.Restaurant.Report.RevenueSummaryDto>>> GetRevenueSummary(
-            int id, 
-            [FromQuery] DateTime? startDate, 
+            int id,
+            [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate)
         {
             var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
             var end = endDate ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 
             var result = await _restaurantService.GetRevenueSummaryAsync(id, start, end);
+            return Success(result);
+        }
+
+        [HttpGet("suggestions")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<RestaurantDto>>>> GetSuggestionRestaurant()
+        {
+            var result = await _restaurantService.GetSuggestionRestaurantAsync();
             return Success(result);
         }
     }

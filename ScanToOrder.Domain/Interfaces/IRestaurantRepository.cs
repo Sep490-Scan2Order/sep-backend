@@ -24,5 +24,6 @@ namespace ScanToOrder.Domain.Interfaces
         Task<Dictionary<int, Restaurant>> GetByIdsWithTenantId (List<int> ids, Guid tenantId);
         Task<Restaurant?> GetByIdWithTenantBankAsync(int restaurantId);
         Task<List<Restaurant>> GetRestaurantsWithSubscriptionsByTenantIdAsync(Guid tenantId);
+        Task<List<Restaurant>> GetSuggesstRestaurantAsync();
     }
 }
