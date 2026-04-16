@@ -52,6 +52,8 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(id);
             if (restaurant == null)
                 return null;
+            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             var dto = _mapper.Map<RestaurantDto>(restaurant);
             return dto;
         }
@@ -301,6 +303,8 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
             if (restaurant == null)
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             return _mapper.Map<RestaurantDto>(restaurant);
         }
 
@@ -310,6 +314,8 @@ namespace ScanToOrder.Application.Services
 
             if (restaurant == null)
                 throw new DomainException(QrMessage.QrError.NO_RESTAURANT_FOUND_TO_GENERATE_QR);
+            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
 
             string fullUrl = $"https://scan2order.id.vn/{slug}";
 
