@@ -1,9 +1,6 @@
 using Microsoft.Extensions.Options;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Infrastructure.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
