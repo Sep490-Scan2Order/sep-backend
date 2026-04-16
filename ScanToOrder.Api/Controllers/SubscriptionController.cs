@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Plan;
@@ -59,6 +59,16 @@ namespace ScanToOrder.Api.Controllers
             if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
             var tenantId = _authenticatedUserService.ProfileId.Value;
             var paymentResult = await _subscriptionService.GetSubscriptionsByTenantAsync(tenantId);
+            return Success(paymentResult);
+        }
+
+        [HttpGet("payment-transactions")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<List<PaymentTransactionHistoryDto>>>> GetPaymentTransactionsByTenantAsync()
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            var paymentResult = await _subscriptionService.GetPaymentTransactionsByTenantAsync(tenantId);
             return Success(paymentResult);
         }
 
