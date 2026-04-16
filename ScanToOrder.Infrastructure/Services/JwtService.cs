@@ -87,7 +87,7 @@ namespace ScanToOrder.Infrastructure.Services
                     ClockSkew = TimeSpan.Zero 
                 }, out _);
 
-                return principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                return principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? principal.FindFirst("sub")?.Value;
             }
             catch
             {
