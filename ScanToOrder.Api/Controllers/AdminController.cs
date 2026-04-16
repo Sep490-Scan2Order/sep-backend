@@ -25,10 +25,24 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpGet("revenue-trends")]
+        [HttpGet("subscription-revenue-trends")]
         public async Task<ActionResult<ApiResponse<List<SubscriptionRevenueTrendDto>>>> GetSubscriptionRevenueTrends([FromQuery] int months = 6)
         {
             var result = await _dashboardService.GetSubscriptionRevenueTrendsAsync(months);
+            return Success(result);
+        }
+
+        [HttpGet("commission-revenue-trends")]
+        public async Task<ActionResult<ApiResponse<List<CommissionFeeRevenueTrendDto>>>> GetCommissionFeeRevenueTrends([FromQuery] int months = 6)
+        {
+            var result = await _dashboardService.GetCommissionFeeRevenueTrendsAsync(months);
+            return Success(result);
+        }
+
+        [HttpGet("subscription-revenue-by-plan")]
+        public async Task<ActionResult<ApiResponse<List<SubscriptionRevenueByPlanDto>>>> GetSubscriptionRevenueByPlan([FromQuery] int months = 6)
+        {
+            var result = await _dashboardService.GetSubscriptionRevenueByPlanAsync(months);
             return Success(result);
         }
 
