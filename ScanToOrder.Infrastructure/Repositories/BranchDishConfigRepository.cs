@@ -42,6 +42,9 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(bdc => bdc.Dish)
                     .ThenInclude(d => d.PromotionDishes)
                         .ThenInclude(pd => pd.Promotion)
+                .Include(bdc => bdc.Dish)
+                    .ThenInclude(d => d.ComboDetails)
+                        .ThenInclude(cd => cd.ItemDish)
                 .Where(bdc => bdc.RestaurantId == restaurantId
                               && bdc.IsSelling
                               && !bdc.IsDeleted
@@ -61,9 +64,23 @@ namespace ScanToOrder.Infrastructure.Repositories
                         DishName = bdc.Dish.DishName,
                         Description = bdc.Dish.Description,
                         ImageUrl = bdc.Dish.ImageUrl,
+                        Type = bdc.Dish.Type,
                         Category = bdc.Dish.Category,
                         PromotionDishes = bdc.Dish.PromotionDishes
                             .Where(pd => pd.Promotion.IsActive && !pd.Promotion.IsDeleted)
+                            .ToList(),
+                        ComboDetails = bdc.Dish.ComboDetails
+                            .Select(cd => new ComboDetail
+                            {
+                                ItemDishId = cd.ItemDishId,
+                                Quantity = cd.Quantity,
+                                ItemDish = new Dish
+                                {
+                                    Id = cd.ItemDish.Id,
+                                    DishName = cd.ItemDish.DishName,
+                                    ImageUrl = cd.ItemDish.ImageUrl
+                                }
+                            })
                             .ToList()
                     }
                 })
@@ -79,6 +96,9 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(bdc => bdc.Dish)
                 .ThenInclude(d => d.PromotionDishes)
                 .ThenInclude(pd => pd.Promotion)
+                .Include(bdc => bdc.Dish)
+                .ThenInclude(d => d.ComboDetails)
+                .ThenInclude(cd => cd.ItemDish)
                 .Where(bdc => bdc.RestaurantId == restaurantId
                               && !bdc.IsDeleted
                               && !bdc.Dish.IsDeleted)
@@ -97,9 +117,23 @@ namespace ScanToOrder.Infrastructure.Repositories
                         DishName = bdc.Dish.DishName,
                         Description = bdc.Dish.Description,
                         ImageUrl = bdc.Dish.ImageUrl,
+                        Type = bdc.Dish.Type,
                         Category = bdc.Dish.Category,
                         PromotionDishes = bdc.Dish.PromotionDishes
                             .Where(pd => pd.Promotion.IsActive && !pd.Promotion.IsDeleted)
+                            .ToList(),
+                        ComboDetails = bdc.Dish.ComboDetails
+                            .Select(cd => new ComboDetail
+                            {
+                                ItemDishId = cd.ItemDishId,
+                                Quantity = cd.Quantity,
+                                ItemDish = new Dish
+                                {
+                                    Id = cd.ItemDish.Id,
+                                    DishName = cd.ItemDish.DishName,
+                                    ImageUrl = cd.ItemDish.ImageUrl
+                                }
+                            })
                             .ToList()
                     }
                 })
@@ -116,6 +150,9 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(bdc => bdc.Dish)
                     .ThenInclude(d => d.PromotionDishes)
                         .ThenInclude(pd => pd.Promotion)
+                .Include(bdc => bdc.Dish)
+                    .ThenInclude(d => d.ComboDetails)
+                        .ThenInclude(cd => cd.ItemDish)
                 .Where(bdc => bdc.RestaurantId == restaurantId
                               && bdc.IsSelling
                               && !bdc.IsDeleted
@@ -136,9 +173,23 @@ namespace ScanToOrder.Infrastructure.Repositories
                         DishName = bdc.Dish.DishName,
                         Description = bdc.Dish.Description,
                         ImageUrl = bdc.Dish.ImageUrl,
+                        Type = bdc.Dish.Type,
                         Category = bdc.Dish.Category,
                         PromotionDishes = bdc.Dish.PromotionDishes
                             .Where(pd => pd.Promotion.IsActive && !pd.Promotion.IsDeleted)
+                            .ToList(),
+                        ComboDetails = bdc.Dish.ComboDetails
+                            .Select(cd => new ComboDetail
+                            {
+                                ItemDishId = cd.ItemDishId,
+                                Quantity = cd.Quantity,
+                                ItemDish = new Dish
+                                {
+                                    Id = cd.ItemDish.Id,
+                                    DishName = cd.ItemDish.DishName,
+                                    ImageUrl = cd.ItemDish.ImageUrl
+                                }
+                            })
                             .ToList()
                     }
                 })

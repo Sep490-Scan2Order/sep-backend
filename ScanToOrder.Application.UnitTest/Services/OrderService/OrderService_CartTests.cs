@@ -31,6 +31,8 @@ public class OrderService_CartTests
     private readonly Mock<IStorageService> _mockStorageService;
     private readonly Mock<ILogger<ScanToOrder.Application.Services.OrderService>> _mockLogger;
     private readonly Mock<IQrCodeService> _mockQrCodeService;
+    private readonly Mock<IPlanLimitationService> _mockPlanLimitationService;
+    private readonly Mock<IAIUpsellService> _mockAiUpsellService;
 
     private readonly ScanToOrder.Application.Services.OrderService _orderService;
 
@@ -51,6 +53,8 @@ public class OrderService_CartTests
         _mockStorageService = new Mock<IStorageService>();
         _mockLogger = new Mock<ILogger<ScanToOrder.Application.Services.OrderService>>();
         _mockQrCodeService = new Mock<IQrCodeService>();
+        _mockPlanLimitationService = new Mock<IPlanLimitationService>();
+        _mockAiUpsellService = new Mock<IAIUpsellService>();
 
         _orderService = new ScanToOrder.Application.Services.OrderService(
             _mockUnitOfWork.Object,
@@ -62,7 +66,9 @@ public class OrderService_CartTests
             _mockAuthUserService.Object,
             _mockStorageService.Object,
             _mockLogger.Object,
-            _mockQrCodeService.Object
+            _mockQrCodeService.Object,
+            _mockPlanLimitationService.Object,
+            _mockAiUpsellService.Object
         );
 
         // Setup common valid objects
