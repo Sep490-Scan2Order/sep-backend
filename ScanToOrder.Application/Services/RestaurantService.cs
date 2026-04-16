@@ -344,13 +344,16 @@ namespace ScanToOrder.Application.Services
 
             // 2. Fetch "Base" promotions (Those that apply to ALL dishes in the restaurant)
             // Logic: IsGlobal (Tenant-wide) OR (Restaurant-mapped AND NO specific dishes assigned)
-            var basePromotions = features.CanUsePromotions ? await _unitOfWork.Promotions.GetAllAsync(p =>
-                p.TenantId == tenantId &&
-                p.IsActive &&
-                !p.IsDeleted &&
-                p.Scope == PromotionScope.Dish &&
-                (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
-                                && !p.PromotionDishes.Any()))
+            var basePromotions = features.CanUsePromotions ? await _unitOfWork.Promotions.GetAllAsync(
+                predicate: p =>
+                    p.TenantId == tenantId &&
+                    p.IsActive &&
+                    !p.IsDeleted &&
+                    p.Scope == PromotionScope.Dish &&
+                    (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
+                                    && !p.PromotionDishes.Any())),
+                p => p.RestaurantPromotions,
+                p => p.PromotionDishes
             ) : new List<Promotion>();
 
             // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
@@ -437,7 +440,16 @@ namespace ScanToOrder.Application.Services
                             DishAvailabilityStock = bdc.DishAvailability,
                             ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
                             IsSoldOut = bdc.IsSoldOut,
-                            IsSelling = bdc.IsSelling
+                            IsSelling = bdc.IsSelling,
+                            ComboItems = bdc.Dish.Type == DishType.Combo
+                                ? bdc.Dish.ComboDetails.Select(cd => new ComboItemDto
+                                {
+                                    DishId = cd.ItemDishId,
+                                    DishName = cd.ItemDish.DishName,
+                                    ImageUrl = cd.ItemDish.ImageUrl,
+                                    Quantity = cd.Quantity
+                                }).ToList()
+                                : new List<ComboItemDto>()
                         };
                     }).ToList()
                 })
