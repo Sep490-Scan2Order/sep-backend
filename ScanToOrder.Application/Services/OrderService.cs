@@ -753,6 +753,15 @@ public class OrderService : IOrderService
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
             string audioUrl = string.Empty;
+            try
+            {
+                audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, transaction.TotalAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Tạo audio thông báo đã nhận tiền mặt thất bại. OrderCode={OrderCode}, Amount={Amount}", order.OrderCode, transaction.TotalAmount);
+            }
+
             if (_realtimeService != null)
             {
                 await _realtimeService.NotifyOrderStatusChanged(
@@ -760,9 +769,8 @@ public class OrderService : IOrderService
                     order.Id.ToString(),
                     (int)order.Status
                 );
+                await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transaction.TotalAmount, audioUrl);
             }
-         
-            await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transaction.TotalAmount, audioUrl);
         }
         catch
         {

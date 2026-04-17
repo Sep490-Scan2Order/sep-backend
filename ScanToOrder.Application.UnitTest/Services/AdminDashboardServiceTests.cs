@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.Services;
 using ScanToOrder.Domain.Entities.Authentication;
@@ -62,7 +62,7 @@ public class AdminDashboardServiceTests
             (2026, 4, 1000m),
             (2026, 5, 1500m)
         };
-        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetRevenueTrendRawAsync(It.IsAny<DateTime>()))
+        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetRevenueTrendRawAsync(It.IsAny<DateTime>(), PaymentTransactionType.Subscription))
             .ReturnsAsync(rawData);
 
         // Act
