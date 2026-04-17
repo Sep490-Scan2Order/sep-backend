@@ -267,7 +267,7 @@ public class CronJobService : ICronJobService
                     .ToList();
 
                 var tenantIds = ordersByTenant.Select(g => g.Key).Distinct().ToList();
-                var tenantMap = (await _unitOfWork.Tenants.GetAllAsync(t => tenantIds.Contains(t.Id)))
+                var tenantMap = (await _unitOfWork.Tenants.FindAsync(t => tenantIds.Contains(t.Id)))
                     .ToDictionary(t => t.Id);
 
                 var updatedTenants = new List<Domain.Entities.User.Tenant>();
@@ -296,6 +296,7 @@ public class CronJobService : ICronJobService
                 foreach (var order in servedUnscannedOrders)
                 {
                     order.IsScanned = true;
+                    order.Restaurant = null;
                 }
 
                 if (updatedTenants.Any())
@@ -352,7 +353,7 @@ public class CronJobService : ICronJobService
                 }
 
                 var tenantIds = tenants.Select(t => t.Id).ToList();
-                var allRestaurants = await _unitOfWork.Restaurants.GetAllAsync(r => tenantIds.Contains(r.TenantId));
+                var allRestaurants = await _unitOfWork.Restaurants.FindAsync(r => tenantIds.Contains(r.TenantId));
                 var restaurantsByTenant = allRestaurants
                     .GroupBy(r => r.TenantId)
                     .ToDictionary(g => g.Key, g => g.ToList());
@@ -360,7 +361,7 @@ public class CronJobService : ICronJobService
                 foreach (var tenant in tenants)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-
+                    
                     var daysOverdue = (DateTime.UtcNow - tenant.DebtStartedAt!.Value).TotalDays;
 
                     if (daysOverdue >= 7)
@@ -411,13 +412,14 @@ public class CronJobService : ICronJobService
                             await _emailService.SendEmailAsync(tenant.Account.Email, subject, htmlContent);
                         }
                     }
+                    tenant.Account = null;
                 }
 
-                _unitOfWork.Tenants.UpdateRange(tenants);
-                if (allRestaurants.Any())
-                {
-                    _unitOfWork.Restaurants.UpdateRange(allRestaurants);
-                }
+                // _unitOfWork.Tenants.UpdateRange(tenants);
+                // if (allRestaurants.Any())
+                // {
+                //     _unitOfWork.Restaurants.UpdateRange(allRestaurants);
+                // }
 
                 await _unitOfWork.SaveAsync();
                 await dbTxn.CommitAsync();

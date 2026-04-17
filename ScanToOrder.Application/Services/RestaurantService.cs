@@ -52,6 +52,8 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(id);
             if (restaurant == null)
                 return null;
+            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             var dto = _mapper.Map<RestaurantDto>(restaurant);
             return dto;
         }
@@ -301,6 +303,8 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
             if (restaurant == null)
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             return _mapper.Map<RestaurantDto>(restaurant);
         }
 
@@ -310,6 +314,8 @@ namespace ScanToOrder.Application.Services
 
             if (restaurant == null)
                 throw new DomainException(QrMessage.QrError.NO_RESTAURANT_FOUND_TO_GENERATE_QR);
+            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
+                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
 
             string fullUrl = $"https://scan2order.id.vn/{slug}";
 
@@ -344,13 +350,16 @@ namespace ScanToOrder.Application.Services
 
             // 2. Fetch "Base" promotions (Those that apply to ALL dishes in the restaurant)
             // Logic: IsGlobal (Tenant-wide) OR (Restaurant-mapped AND NO specific dishes assigned)
-            var basePromotions = features.CanUsePromotions ? await _unitOfWork.Promotions.GetAllAsync(p =>
-                p.TenantId == tenantId &&
-                p.IsActive &&
-                !p.IsDeleted &&
-                p.Scope == PromotionScope.Dish &&
-                (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
-                                && !p.PromotionDishes.Any()))
+            var basePromotions = features.CanUsePromotions ? await _unitOfWork.Promotions.GetAllAsync(
+                predicate: p =>
+                    p.TenantId == tenantId &&
+                    p.IsActive &&
+                    !p.IsDeleted &&
+                    p.Scope == PromotionScope.Dish &&
+                    (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
+                                    && !p.PromotionDishes.Any())),
+                p => p.RestaurantPromotions,
+                p => p.PromotionDishes
             ) : new List<Promotion>();
 
             // 3. Get selling dishes (Ensure Repo includes PromotionDishes.Promotion)
@@ -437,7 +446,16 @@ namespace ScanToOrder.Application.Services
                             DishAvailabilityStock = bdc.DishAvailability,
                             ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
                             IsSoldOut = bdc.IsSoldOut,
-                            IsSelling = bdc.IsSelling
+                            IsSelling = bdc.IsSelling,
+                            ComboItems = bdc.Dish.Type == DishType.Combo
+                                ? bdc.Dish.ComboDetails.Select(cd => new ComboItemDto
+                                {
+                                    DishId = cd.ItemDishId,
+                                    DishName = cd.ItemDish.DishName,
+                                    ImageUrl = cd.ItemDish.ImageUrl,
+                                    Quantity = cd.Quantity
+                                }).ToList()
+                                : new List<ComboItemDto>()
                         };
                     }).ToList()
                 })

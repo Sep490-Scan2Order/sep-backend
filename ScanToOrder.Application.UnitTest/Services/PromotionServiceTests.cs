@@ -10,13 +10,8 @@ using ScanToOrder.Domain.Entities.SubscriptionPlan;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
+
 
 namespace ScanToOrder.Application.UnitTest.Services
 {
@@ -282,6 +277,18 @@ namespace ScanToOrder.Application.UnitTest.Services
                 It.IsAny<Expression<Func<Promotion, bool>>>(),
                 It.IsAny<Func<IQueryable<Promotion>, IOrderedQueryable<Promotion>>>(),
                 It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .Callback<int, int, Expression<Func<Promotion, bool>>, Func<IQueryable<Promotion>, IOrderedQueryable<Promotion>>, Expression<Func<Promotion, object>>[]>((page, size, pred, orderBy, incl) =>
+                {
+                    if (orderBy != null)
+                    {
+                        var dummyData = new List<Promotion> 
+                        { 
+                            new() { Priority = 1, CreatedAt = DateTime.UtcNow },
+                            new() { Priority = 2, CreatedAt = DateTime.UtcNow }
+                        }.AsQueryable();
+                        orderBy(dummyData).ToList();
+                    }
+                })
                 .ReturnsAsync(paged);
 
             _mockMapper.Setup(m => m.Map<List<PromotionResponseDto>>(It.IsAny<List<Promotion>>())).Returns(new List<PromotionResponseDto> { new() });
@@ -291,6 +298,187 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             // Assert
             result.Items.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public async Task GetPromotionByIdAsync_NotFound_ThrowsNotFoundException()
+        {
+            // Arrange
+            _mockUnitOfWork.Setup(u => u.Promotions.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Promotion, bool>>>(), It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .ReturnsAsync((Promotion)null);
+
+            // Act
+            Func<Task> act = () => _service.GetPromotionByIdAsync(1);
+
+            // Assert
+            await act.Should().ThrowAsync<NotFoundException>();
+        }
+
+        [Fact]
+        public async Task UpdatePromotionAsync_NotFound_ThrowsNotFoundException()
+        {
+            // Arrange
+            _mockUnitOfWork.Setup(u => u.Promotions.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Promotion, bool>>>(), It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .ReturnsAsync((Promotion)null);
+
+            // Act
+            Func<Task> act = () => _service.UpdatePromotionAsync(new UpdatePromotionDto { Id = 1 });
+
+            // Assert
+            await act.Should().ThrowAsync<NotFoundException>();
+        }
+
+        [Fact]
+        public async Task UpdatePromotionAsync_NonDishScope_ClearsDishMappings()
+        {
+            // Arrange
+            var existing = new Promotion
+            {
+                Id = 1,
+                IsGlobal = false,
+                Type = PromotionType.Standard,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(7),
+                Scope = PromotionScope.Order,
+                PromotionDishes = new List<PromotionDish> { new() { DishId = 99 } },
+                RestaurantPromotions = new List<RestaurantPromotion>()
+            };
+            _mockUnitOfWork.Setup(u => u.Promotions.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Promotion, bool>>>(), It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .ReturnsAsync(existing);
+
+            // Act
+            await _service.UpdatePromotionAsync(new UpdatePromotionDto { Id = 1, IsGlobal = false });
+
+            // Assert
+            existing.PromotionDishes.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task UpdatePromotionAsync_RemoveExistingRestaurants_CallsRemove()
+        {
+            // Arrange
+            var existing = new Promotion
+            {
+                Id = 1,
+                IsGlobal = false,
+                Type = PromotionType.Standard,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(7),
+                PromotionDishes = new List<PromotionDish>(),
+                RestaurantPromotions = new List<RestaurantPromotion> { new() { RestaurantId = 55 } }
+            };
+            _mockUnitOfWork.Setup(u => u.Promotions.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Promotion, bool>>>(), It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .ReturnsAsync(existing);
+
+            // Act
+            await _service.UpdatePromotionAsync(new UpdatePromotionDto { Id = 1, IsGlobal = false, RestaurantIds = new List<int> { 10 } });
+
+            // Assert
+            existing.RestaurantPromotions.Should().NotContain(rp => rp.RestaurantId == 55);
+        }
+
+        [Fact]
+        public async Task UpdatePromotionAsync_WhenException_RollsBack()
+        {
+            // Arrange
+            var existing = new Promotion
+            {
+                Id = 1,
+                Type = PromotionType.Standard,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(7),
+                PromotionDishes = new List<PromotionDish>(),
+                RestaurantPromotions = new List<RestaurantPromotion>()
+            };
+            _mockUnitOfWork.Setup(u => u.Promotions.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Promotion, bool>>>(), It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .ReturnsAsync(existing);
+            _mockUnitOfWork.Setup(u => u.SaveAsync()).ThrowsAsync(new Exception("Database Error"));
+
+            // Act
+            Func<Task> act = () => _service.UpdatePromotionAsync(new UpdatePromotionDto { Id = 1 });
+
+            // Assert
+            await act.Should().ThrowAsync<Exception>();
+            _mockTransaction.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeletePromotionAsync_NotFound_ThrowsNotFoundException()
+        {
+            // Arrange
+            _mockUnitOfWork.Setup(u => u.Promotions.GetByIdAsync(1)).ReturnsAsync((Promotion)null);
+
+            // Act
+            Func<Task> act = () => _service.DeletePromotionAsync(1);
+
+            // Assert
+            await act.Should().ThrowAsync<NotFoundException>();
+        }
+
+        [Fact]
+        public async Task GetAvailablePromotionsByOrderAsync_PlanCannotUse_ReturnsEmptyList()
+        {
+            // Arrange
+            _mockPlanLimitation.Setup(p => p.GetRestaurantFeaturesAsync(It.IsAny<int>()))
+                .ReturnsAsync(new PlanFeaturesConfig { CanUsePromotions = false });
+
+            // Act
+            var result = await _service.GetAvailablePromotionsByOrderAsync(Guid.NewGuid(), 1, 1000);
+
+            // Assert
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task GetAvailablePromotionsByOrderAsync_CoversDiscountCalculationBranches()
+        {
+            // Arrange
+            var tenantId = Guid.NewGuid();
+            var promos = new List<Promotion>
+            {
+                new()
+                {
+                    Id = 1,
+                    DiscountType = DiscountType.Percentage,
+                    DiscountValue = 10,
+                    MaxDiscountValue = null,
+                    MinOrderValue = 0,
+                    IsActive = true,
+                    IsGlobal = true,
+                    RestaurantPromotions = new List<RestaurantPromotion>(),
+                    PromotionDishes = new List<PromotionDish>()
+                },
+
+                new()
+                {
+                    Id = 2,
+                    DiscountType = DiscountType.Percentage,
+                    DiscountValue = 10,
+                    MaxDiscountValue = 5000,
+                    MinOrderValue = 0,
+                    IsActive = true,
+                    IsGlobal = true,
+                    RestaurantPromotions = new List<RestaurantPromotion>(),
+                    PromotionDishes = new List<PromotionDish>()
+                }
+            };
+
+            _mockPlanLimitation.Setup(p => p.GetRestaurantFeaturesAsync(1)).ReturnsAsync(new PlanFeaturesConfig { CanUsePromotions = true });
+
+            _mockUnitOfWork.Setup(u => u.Promotions.GetAllAsync(
+                It.IsAny<Expression<Func<Promotion, bool>>>(),
+                It.IsAny<Expression<Func<Promotion, object>>[]>()))
+                .ReturnsAsync(promos);
+
+            _mockMapper.Setup(m => m.Map<List<PromotionResponseDto>>(It.IsAny<List<Promotion>>()))
+                .Returns(new List<PromotionResponseDto> { new() { Id = 1 }, new() { Id = 2 } });
+
+            // Act
+            var result = await _service.GetAvailablePromotionsByOrderAsync(tenantId, 1, 100000);
+
+            // Assert
+            result.First(r => r.Id == 1).DiscountAmount.Should().Be(10000);
+            result.First(r => r.Id == 2).DiscountAmount.Should().Be(5000);
         }
 
         private static void ApplyValidPromotionFieldsForType(Promotion promotion)

@@ -146,28 +146,29 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             var transactions = new List<Transaction>
             {
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Payment, TotalAmount = 200000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served } },
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Refund, TotalAmount = 50000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served } },
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment, TotalAmount = 300000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served } }
+                // ShiftService hiện tính tiền payment theo Order.FinalAmount (không dùng Transaction.TotalAmount)
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Payment, TotalAmount = 200000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 200000 } },
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Refund, TotalAmount = 50000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 0 } },
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment, TotalAmount = 300000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 300000 } }
             };
             _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
                 .ReturnsAsync(transactions);
 
-            // expectedCash = 100k + (200k - 50k) = 250k
+            // expectedCash = opening(100k) + cashPayment(200k) = 300k (refund không bị trừ vào cash/transfer)
             // actualCash = 260k
-            // difference = 10k
+            // difference = -40k
             var result = await _shiftService.CheckOutShiftAsync(shiftId, 260000, "Closing shift");
 
             result.Should().NotBeNull();
             shift.Status.Should().Be(ShiftStatus.Closed);
             _mockShiftReportRepo.Verify(r => r.AddAsync(It.Is<ShiftReport>(x => 
                 x.ShiftId == shiftId &&
-                x.TotalCashOrder == 150000 && 
+                x.TotalCashOrder == 200000 && 
                 x.TotalTransferOrder == 300000 && 
                 x.TotalRefundAmount == 50000 &&
-                x.ExpectedCashAmount == 250000 &&
+                x.ExpectedCashAmount == 300000 &&
                 x.ActualCashAmount == 260000 &&
-                x.Difference == 10000 &&
+                x.Difference == -40000 &&
                 x.Note == "Closing shift")), Times.Once);
         }
 
@@ -388,10 +389,11 @@ namespace ScanToOrder.Application.UnitTest.Services
             var staff = new Staff { Id = staffId, Name = "Đạt D" };
             var transactions = new List<Transaction>
             {
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 50000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served } },
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 150000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served } },
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 100000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Preparing } }, // Filtered out
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 20000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Refund, Order = new Order { Status = OrderStatus.Cancelled } } // Included
+                // ShiftService tính tổng payment theo Order.FinalAmount
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 50000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served, FinalAmount = 50000 } },
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 150000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served, FinalAmount = 150000 } },
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 100000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Preparing, FinalAmount = 100000 } }, // Filtered out
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 20000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Refund, Order = new Order { Status = OrderStatus.Cancelled, FinalAmount = 0 } } // Included (refund tính theo Transaction.TotalAmount)
             };
             
             _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
@@ -405,12 +407,12 @@ namespace ScanToOrder.Application.UnitTest.Services
             // Assert
             result.Should().NotBeNull();
             result.CashierName.Should().Be("Đạt D");
-            // Cash: 50k - 0refund = 50k. ExpectedCash = 100k open + 50k = 150k
+            // Cash: 50k. ExpectedCash = 100k open + 50k = 150k
             result.ExpectedCashAmount.Should().Be(150000); 
-            // Transfer: 150k - 20k refund = 130k.
-            result.TotalTransferOrder.Should().Be(130000);
-            // ExpectedTotal = 100k open + 50k cash + 130k transfer = 280k
-            result.ExpectedTotalAmount.Should().Be(280000);
+            // Transfer: chỉ tính payment served, refund không bị trừ vào transfer
+            result.TotalTransferOrder.Should().Be(150000);
+            // ExpectedTotal = 100k open + 50k cash + 150k transfer = 300k
+            result.ExpectedTotalAmount.Should().Be(300000);
             result.Note.Should().Be("Ca sáng");
         }
 

@@ -12,12 +12,13 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
 
         }
-        public async Task<List<(int Year, int Month, decimal Revenue)>> GetRevenueTrendRawAsync(DateTime startDate)
+        public async Task<List<(int Year, int Month, decimal Revenue)>> GetRevenueTrendRawAsync(DateTime startDate, PaymentTransactionType type)
         {
             var data = await _dbSet
                 .Where(pt => pt.Status == PaymentTransactionStatus.Success
-                          && pt.CreatedAt >= startDate)
-                .GroupBy(pt => new { pt.CreatedAt.Year, pt.CreatedAt.Month })
+                          && pt.PaymentTransactionType == type
+                          && pt.PaymentDate >= startDate)
+                .GroupBy(pt => new { pt.PaymentDate.Year, pt.PaymentDate.Month })
                 .Select(g => new
                 {
                     g.Key.Year,

@@ -485,6 +485,26 @@ public class AuthServiceTests
         await action.Should().ThrowAsync<DomainException>()
             .WithMessage(OtpMessage.OtpError.OTP_INVALID);
     }
+
+    [Fact]
+    public async Task CompleteResetPasswordAsync_WhenPasswordInvalid_ThrowsDomainException()
+    {
+        // Arrange
+        var email = "test@gmail.com";
+        var token = "valid_token";
+        _mockRedisDb.Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(token);
+
+        var tenant = new Tenant { Account = new AuthenticationUser { Email = email } };
+        _mockUnitOfWork.Setup(u => u.Tenants.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>()))
+            .ReturnsAsync(tenant);
+
+        // Act
+        var action = async () => await _authService.CompleteResetPasswordAsync(email, token, "123");
+
+        // Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage(StaffMessage.StaffError.INVALID_PASSWORD);
+    }
     #endregion
 
     #region 5. Staff Reset/Forgot Password
@@ -658,8 +678,54 @@ public class AuthServiceTests
         await action.Should().ThrowAsync<DomainException>()
             .WithMessage(OtpMessage.OtpError.OTP_INVALID);
     }
+
+    [Fact]
+    public async Task ResetPasswordStaff_WhenNewPasswordInvalid_ThrowsDomainException()
+    {
+        // Arrange
+        var staff = new Staff
+        {
+            Account = new AuthenticationUser { Password = BCrypt.Net.BCrypt.HashPassword("correct_old") }
+        };
+        _mockUnitOfWork.Setup(u => u.Staffs.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Staff, bool>>>(), It.IsAny<Expression<Func<Staff, object>>[]>()))
+            .ReturnsAsync(staff);
+
+        // Act
+        var action = async () => await _authService.ResetPasswordStaff(new ResetPasswordStaffRequest
+        {
+            Email = "staff@test.com",
+            OldPassword = "correct_old",
+            NewPassword = "123" 
+        });
+
+        // Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage(StaffMessage.StaffError.INVALID_PASSWORD);
+    }
+
+    [Fact]
+    public async Task CompleteForgotPasswordStaffAsync_WhenNewPasswordInvalid_ThrowsDomainException()
+    {
+        // Arrange
+        _mockRedisDb.Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync("valid_token");
+        var staff = new Staff { Account = new AuthenticationUser() };
+        _mockUnitOfWork.Setup(u => u.Staffs.GetByFieldsIncludeAsync(It.IsAny<Expression<Func<Staff, bool>>>(), It.IsAny<Expression<Func<Staff, object>>[]>()))
+            .ReturnsAsync(staff);
+
+        // Act
+        var action = async () => await _authService.CompleteForgotPasswordStaffAsync(new CompleteResetPasswordRequest
+        {
+            Email = "staff@test.com",
+            ResetToken = "valid_token",
+            NewPassword = "123" 
+        });
+
+        // Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage(StaffMessage.StaffError.INVALID_PASSWORD);
+    }
     #endregion
-    
+
     #region 6. DTO Coverage (Lách luật Coverage cho các property get/set)
 
     [Fact]

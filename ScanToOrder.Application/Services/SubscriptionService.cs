@@ -700,6 +700,96 @@ public class SubscriptionService : ISubscriptionService
         return result;
     }
 
+    public async Task<List<PaymentTransactionHistoryDto>> GetPaymentTransactionsByTenantAsync(Guid tenantId)
+    {
+        var transactions = await _unitOfWork.PaymentTransactions.GetAllAsync(
+            pt => pt.TenantId == tenantId
+        );
+
+        // Fetch dependent data for mapping names
+        var restaurantIds = new HashSet<int>();
+        var planIds = new HashSet<int>();
+
+        foreach (var txn in transactions)
+        {
+            if (txn.SubscriptionPayload != null)
+            {
+                foreach (var item in txn.SubscriptionPayload)
+                {
+                    restaurantIds.Add(item.RestaurantId);
+                    planIds.Add(item.NewPlanId);
+                    if (item.OldPlanId.HasValue)
+                        planIds.Add(item.OldPlanId.Value);
+                }
+            }
+        }
+
+        var restaurantsMap = (await _unitOfWork.Restaurants.FindAsync(r => restaurantIds.Contains(r.Id)))
+            .ToDictionary(r => r.Id, r => r.RestaurantName);
+            
+        var plansMap = (await _unitOfWork.Plans.FindAsync(p => planIds.Contains(p.Id)))
+            .ToDictionary(p => p.Id, p => p.Name);
+
+        var result = new List<PaymentTransactionHistoryDto>();
+
+        foreach (var pt in transactions.OrderByDescending(x => x.PaymentDate))
+        {
+            var dto = new PaymentTransactionHistoryDto
+            {
+                Id = pt.Id,
+                TransactionCode = pt.TransactionCode,
+                TotalAmount = pt.TotalAmount,
+                PaymentDate = pt.PaymentDate,
+                Status = pt.Status.ToString(),
+                PaymentTransactionType = pt.PaymentTransactionType.ToString(),
+                CommissionDetails = pt.CommissionPayload
+            };
+
+            if (pt.SubscriptionPayload != null)
+            {
+                dto.SubscriptionDetails = new List<SubscriptionTransactionItemDto>();
+                foreach (var sPayload in pt.SubscriptionPayload)
+                {
+                    restaurantsMap.TryGetValue(sPayload.RestaurantId, out var rName);
+                    plansMap.TryGetValue(sPayload.NewPlanId, out var newPlanName);
+                    string? oldPlanName = null;
+                    if (sPayload.OldPlanId.HasValue)
+                        plansMap.TryGetValue(sPayload.OldPlanId.Value, out oldPlanName);
+
+                    string cycleStr = sPayload.Cycle == Domain.Enums.BillingCycle.Monthly ? "tháng" : "năm";
+                    string desc = sPayload.ActionType switch
+                    {
+                        Domain.Enums.SubscriptionLogStatus.BuyNew => $"Đăng ký mới gói {newPlanName} ({sPayload.Quantity} {cycleStr})",
+                        Domain.Enums.SubscriptionLogStatus.Upgrade => $"Nâng cấp lên gói {newPlanName} ({sPayload.Quantity} {cycleStr}). Tiền dư {sPayload.BalanceConverted:N0}đ được chuyển thành ngày tặng thêm.",
+                        Domain.Enums.SubscriptionLogStatus.Downgrade => $"Hạ cấp xuống gói {newPlanName} ({sPayload.Quantity} {cycleStr}). Tiền dư {sPayload.BalanceConverted:N0}đ được chuyển thành ngày sử dụng.",
+                        Domain.Enums.SubscriptionLogStatus.Renew => $"Gia hạn gói {newPlanName} thêm {sPayload.Quantity} {cycleStr}.",
+                        _ => "Cập nhật dịch vụ"
+                    };
+
+                    dto.SubscriptionDetails.Add(new SubscriptionTransactionItemDto
+                    {
+                        RestaurantId = sPayload.RestaurantId,
+                        RestaurantName = rName ?? "Không xác định",
+                        ActionType = sPayload.ActionType.ToString(),
+                        OldPlanId = sPayload.OldPlanId,
+                        OldPlanName = oldPlanName,
+                        NewPlanId = sPayload.NewPlanId,
+                        NewPlanName = newPlanName ?? "Không xác định",
+                        Cycle = sPayload.Cycle.ToString(),
+                        Quantity = sPayload.Quantity,
+                        AmountAllocated = sPayload.AmountAllocated,
+                        BalanceConverted = sPayload.BalanceConverted,
+                        DescriptionMessage = desc
+                    });
+                }
+            }
+
+            result.Add(dto);
+        }
+
+        return result;
+    }
+
     public async Task ProcessSubscriptionExpirationsAsync()
     {
         var utcNow = DateTime.UtcNow;

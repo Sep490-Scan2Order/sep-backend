@@ -34,7 +34,7 @@ public class WebhooksController : BaseController
     {
         if (webhookBody.Data.OrderCode == 123)
         {
-            return Ok(new { success = true });
+            return Ok(new { isSuccess = true });
         }
         try
         {
@@ -47,11 +47,11 @@ public class WebhooksController : BaseController
             {
                 await _subscriptionService.MarkPaymentFailedAsync(data.OrderCode);
             }
-            return Ok(new { success = true });
+            return Ok(new { isSuccess = true });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return BadRequest(new { isSuccess = false, message = ex.Message });
         }
     }
 

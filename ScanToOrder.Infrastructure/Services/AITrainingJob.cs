@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.ML;
@@ -24,7 +19,7 @@ namespace ScanToOrder.Infrastructure.Services
         [AutomaticRetry(Attempts = 0)]
         public async Task ExecuteAsync()
         {
-            // 1. ETL: Lấy dữ liệu đơn hàng thành công và gom nhóm cặp món ăn
+            // 1. ETL: Fetch successful orders and build dish co-occurrence pairs
             var rawData = await ExtractAndTransformDataAsync();
 
             if (!rawData.Any())
@@ -35,21 +30,21 @@ namespace ScanToOrder.Infrastructure.Services
             // 2. Setup ML.NET Context
             var mlContext = new MLContext();
             
-            // 3. Load Data vào DataView
+            // 3. Load data into a DataView
             var trainingDataView = mlContext.Data.LoadFromEnumerable(rawData);
 
-            // 4. Transform Keys (Matrix Factorization yêu cầu mapped keys)
+            // 4. Map keys (Matrix Factorization requires encoded key columns)
             var dataProcessingPipeline = mlContext.Transforms.Conversion.MapValueToKey(outputColumnName: "TargetDishIdEncoded", inputColumnName: nameof(DishCoOccurrence.TargetDishId))
                 .Append(mlContext.Transforms.Conversion.MapValueToKey(outputColumnName: "RecommendedDishIdEncoded", inputColumnName: nameof(DishCoOccurrence.RecommendedDishId)));
 
-            // 5. Cấu hình Model Matrix Factorization
+            // 5. Configure Matrix Factorization trainer
             MatrixFactorizationTrainer.Options options = new MatrixFactorizationTrainer.Options
             {
                 MatrixColumnIndexColumnName = "TargetDishIdEncoded",
                 MatrixRowIndexColumnName = "RecommendedDishIdEncoded",
                 LabelColumnName = nameof(DishCoOccurrence.CoOccurrence),
                 NumberOfIterations = 20,
-                ApproximationRank = 100 // Độ sâu học thuật
+                ApproximationRank = 100 // Embedding dimension depth
             };
 
             var trainerEstimator = dataProcessingPipeline.Append(mlContext.Recommendation().Trainers.MatrixFactorization(options));
@@ -64,7 +59,7 @@ namespace ScanToOrder.Infrastructure.Services
 
         private async Task<List<DishCoOccurrence>> ExtractAndTransformDataAsync()
         {
-            // Fetch relevant order details from successful orders
+            // ── STEP 1: Fetch OrderDetails from successfully served orders ──────
             var orderDetails = await _unitOfWork.OrderDetails.GetQueryable()
                 .Include(od => od.Order)
                 .Where(od => !od.Order.IsDeleted && od.Order.Status == ScanToOrder.Domain.Enums.OrderStatus.Served)
@@ -78,37 +73,83 @@ namespace ScanToOrder.Infrastructure.Services
 
             var coOccurrences = new Dictionary<string, DishCoOccurrence>();
 
+            // ── STEP 2: Generate co-occurrence pairs from real order history ────
             foreach (var orderDishes in groupedByOrder)
             {
-                // Create pairs of dishes within the same order
                 for (int i = 0; i < orderDishes.Count; i++)
                 {
                     for (int j = 0; j < orderDishes.Count; j++)
                     {
-                        if (i == j) continue; // Don't pair with itself
+                        if (i == j) continue;
 
-                        int dishA = orderDishes[i];
-                        int dishB = orderDishes[j];
+                        AddOrIncrement(coOccurrences, orderDishes[i], orderDishes[j], weight: 1);
+                    }
+                }
+            }
 
-                        // TargetDishId = dishA, Recommended = dishB
-                        string key = $"{dishA}_{dishB}";
+            // ── STEP 3: Inject synthetic pairs from combo structure ──────────────
+            // Load all ComboDetails (DishId = parent combo, ItemDishId = component dish)
+            var allCombos = await _unitOfWork.ComboDetails.GetQueryable()
+                .Include(cd => cd.Dish)           // Dish parent = Combo
+                .Where(cd => !cd.Dish.IsDeleted && cd.Dish.Type == ScanToOrder.Domain.Enums.DishType.Combo)
+                .Select(cd => new { ComboId = cd.DishId, ItemDishId = cd.ItemDishId })
+                .ToListAsync();
 
-                        if (!coOccurrences.ContainsKey(key))
-                        {
-                            coOccurrences[key] = new DishCoOccurrence
-                            {
-                                TargetDishId = (uint)dishA,
-                                RecommendedDishId = (uint)dishB,
-                                CoOccurrence = 0
-                            };
-                        }
-                        
-                        coOccurrences[key].CoOccurrence++;
+            // Group by ComboId → list of component dish IDs
+            var comboMap = allCombos
+                .GroupBy(cd => cd.ComboId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.ItemDishId).ToList());
+
+            // Only process combos that actually appeared in real orders (avoids generating noise pairs)
+            var orderedComboIds = orderDetails
+                .Select(od => od.DishId)
+                .Distinct()
+                .Where(id => comboMap.ContainsKey(id))
+                .ToHashSet();
+
+            foreach (var comboId in orderedComboIds)
+            {
+                var items = comboMap[comboId];
+
+                foreach (var itemDishId in items)
+                {
+                    // Component dish → Parent combo (high boost: selecting one item suggests the full combo)
+                    // Weight = 5: Prioritises combo recommendations over random single dishes
+                    AddOrIncrement(coOccurrences, targetId: itemDishId, recommendedId: comboId, weight: 5);
+
+                    // Parent combo → Component dish (lower boost: semantic auxiliary signal)
+                    AddOrIncrement(coOccurrences, targetId: comboId, recommendedId: itemDishId, weight: 3);
+
+                    // Cross-pair between sibling dishes inside the same combo
+                    // (e.g. Fried Chicken & French Fries in the same combo → they are related)
+                    foreach (var siblingId in items.Where(x => x != itemDishId))
+                    {
+                        AddOrIncrement(coOccurrences, targetId: itemDishId, recommendedId: comboId, weight: 2);
                     }
                 }
             }
 
             return coOccurrences.Values.ToList();
+        }
+
+        /// <summary>
+        /// Adds a new co-occurrence pair or increments the weight of an existing one (targetId → recommendedId).
+        /// </summary>
+        private static void AddOrIncrement(
+            Dictionary<string, DishCoOccurrence> dict,
+            int targetId, int recommendedId, float weight)
+        {
+            string key = $"{targetId}_{recommendedId}";
+            if (!dict.ContainsKey(key))
+            {
+                dict[key] = new DishCoOccurrence
+                {
+                    TargetDishId = (uint)targetId,
+                    RecommendedDishId = (uint)recommendedId,
+                    CoOccurrence = 0
+                };
+            }
+            dict[key].CoOccurrence += weight;
         }
     }
 }

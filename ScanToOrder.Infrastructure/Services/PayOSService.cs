@@ -33,24 +33,17 @@ public class PayOSService : IPaymentService
         var result = await _payOSClient.PaymentRequests.CreateAsync(paymentRequest);
         return result.CheckoutUrl;
     }
-    
+
     public async Task<PaymentResult> VerifyWebhookAsync(object webhookRequest)
     {
         Webhook request = (Webhook)webhookRequest;
-        var result= await _payOSClient.Webhooks.VerifyAsync(request);
-        _payOSClient.PaymentRequests.GetAsync(result.OrderCode); 
-        var d = request.Data;
-        return new PaymentResult()
-        {
-            OrderCode = result.OrderCode,
-            Description = result.Description,
-            Amount = result.Amount,
-            CounterAccountName = result.CounterAccountName,
-            Reference = result.Reference,
-            IsPaymentSuccess = request.Success && result.Code == "00",
-            BankBin = d.CounterAccountBankId,
-            AccountNumber = d.CounterAccountNumber
-        };
+
+        // Dòng này đã được phủ (màu xanh) bởi các test ném lỗi Integrity hiện tại
+        var result = await _payOSClient.Webhooks.VerifyAsync(request);
+
+        // Dòng này đang màu đỏ vì VerifyAsync phía trên luôn throw
+        var finalResult = MapToPaymentResult(request, result);
+        return finalResult;
     }
 
     public async Task<bool> IsPaymentSuccessfulAsync(long orderCode)
@@ -90,5 +83,20 @@ public class PayOSService : IPaymentService
         }
 
         return null;
+    }
+
+    public PaymentResult MapToPaymentResult(Webhook request, WebhookData verifiedResult)
+    {
+        return new PaymentResult()
+        {
+            OrderCode = verifiedResult.OrderCode,
+            Description = verifiedResult.Description,
+            Amount = verifiedResult.Amount,
+            CounterAccountName = verifiedResult.CounterAccountName,
+            Reference = verifiedResult.Reference,
+            IsPaymentSuccess = request.Success && verifiedResult.Code == "00",
+            BankBin = request.Data.CounterAccountBankId,
+            AccountNumber = request.Data.CounterAccountNumber
+        };
     }
 }

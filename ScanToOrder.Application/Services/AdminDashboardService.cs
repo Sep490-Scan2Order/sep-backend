@@ -54,13 +54,94 @@ namespace ScanToOrder.Application.Services
             var startDate = DateTime.UtcNow.AddMonths(-months);
 
             var rawData = await _unitOfWork.PaymentTransactions
-                .GetRevenueTrendRawAsync(startDate);
+                .GetRevenueTrendRawAsync(startDate, PaymentTransactionType.Subscription);
 
-            return rawData.Select(x => new SubscriptionRevenueTrendDto
+            var result = new List<SubscriptionRevenueTrendDto>();
+            for (int i = months - 1; i >= 0; i--)
             {
-                Month = $"{x.Month}/{x.Year}",
-                Revenue = x.Revenue
-            }).ToList();
+                var targetDate = DateTime.UtcNow.AddMonths(-i);
+                var match = rawData.FirstOrDefault(x => x.Year == targetDate.Year && x.Month == targetDate.Month);
+
+                result.Add(new SubscriptionRevenueTrendDto
+                {
+                    Month = $"{targetDate.Month:D2}/{targetDate.Year}",
+                    Revenue = match.Revenue > 0 ? match.Revenue : 0
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<List<CommissionFeeRevenueTrendDto>> GetCommissionFeeRevenueTrendsAsync(int months = 6)
+        {
+            var startDate = DateTime.UtcNow.AddMonths(-months);
+
+            var rawData = await _unitOfWork.PaymentTransactions
+                .GetRevenueTrendRawAsync(startDate, PaymentTransactionType.CommissionFee);
+
+            var result = new List<CommissionFeeRevenueTrendDto>();
+            for (int i = months - 1; i >= 0; i--)
+            {
+                var targetDate = DateTime.UtcNow.AddMonths(-i);
+                var match = rawData.FirstOrDefault(x => x.Year == targetDate.Year && x.Month == targetDate.Month);
+
+                result.Add(new CommissionFeeRevenueTrendDto
+                {
+                    Month = $"{targetDate.Month:D2}/{targetDate.Year}",
+                    Revenue = match.Revenue > 0 ? match.Revenue : 0
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<List<SubscriptionRevenueByPlanDto>> GetSubscriptionRevenueByPlanAsync(int months = 6)
+        {
+            var startDate = DateTime.UtcNow.AddMonths(-months);
+
+            var transactions = await _unitOfWork.PaymentTransactions.GetAllAsync(pt =>
+                pt.Status == PaymentTransactionStatus.Success
+                && pt.PaymentTransactionType == PaymentTransactionType.Subscription
+                && pt.PaymentDate >= startDate);
+
+            var revenueByPlan = new Dictionary<int, decimal>();
+
+            foreach (var txn in transactions)
+            {
+                if (txn.SubscriptionPayload != null)
+                {
+                    foreach (var item in txn.SubscriptionPayload)
+                    {
+                        if (!revenueByPlan.ContainsKey(item.NewPlanId))
+                        {
+                            revenueByPlan[item.NewPlanId] = 0;
+                        }
+                        revenueByPlan[item.NewPlanId] += item.AmountAllocated;
+                    }
+                }
+            }
+
+            var totalRevenue = revenueByPlan.Values.Sum();
+            if (totalRevenue == 0) return new List<SubscriptionRevenueByPlanDto>();
+
+            var planIds = revenueByPlan.Keys.ToList();
+            var plansMap = (await _unitOfWork.Plans.FindAsync(p => planIds.Contains(p.Id)))
+                .ToDictionary(p => p.Id, p => p.Name);
+
+            var result = new List<SubscriptionRevenueByPlanDto>();
+            foreach (var kvp in revenueByPlan)
+            {
+                plansMap.TryGetValue(kvp.Key, out var planName);
+                result.Add(new SubscriptionRevenueByPlanDto
+                {
+                    PlanId = kvp.Key,
+                    PlanName = planName ?? "Không xác định",
+                    Revenue = kvp.Value,
+                    Percentage = Math.Round((double)(kvp.Value / totalRevenue) * 100, 2)
+                });
+            }
+
+            return result.OrderByDescending(x => x.Revenue).ToList();
         }
 
         public async Task<List<SubscriptionPlanDistributionDto>> GetSubscriptionPlanDistributionAsync()

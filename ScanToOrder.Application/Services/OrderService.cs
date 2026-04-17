@@ -35,6 +35,8 @@ public class OrderService : IOrderService
     private readonly IStorageService _storageService;
     private readonly ILogger<OrderService> _logger;
     private readonly IQrCodeService _qrCodeService;
+    private readonly IPlanLimitationService _planLimitationService;
+    private readonly IAIUpsellService _aiUpsellService;
 
     public OrderService(
         IUnitOfWork unitOfWork,
@@ -46,7 +48,9 @@ public class OrderService : IOrderService
         IAuthenticatedUserService authenticatedUserService,
         IStorageService storageService,
         ILogger<OrderService> logger,
-        IQrCodeService qrCodeService)
+        IQrCodeService qrCodeService,
+        IPlanLimitationService planLimitationService,
+        IAIUpsellService aiUpsellService)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
@@ -58,6 +62,8 @@ public class OrderService : IOrderService
         _storageService = storageService;
         _logger = logger;
         _qrCodeService = qrCodeService;
+        _planLimitationService = planLimitationService;
+        _aiUpsellService = aiUpsellService;
     }
 
     public async Task<CartDto> AddToCartAsync(AddToCartRequest request)
@@ -168,7 +174,21 @@ public class OrderService : IOrderService
         cart = await SyncCartPricingAndAvailabilityAsync(cart);
 
         // 9. Trả về full CartDto 
-        return _mapper.Map<CartDto>(cart);
+        var cartDto = _mapper.Map<CartDto>(cart);
+
+        // 10. Lấy danh sách ID đã có trong giỏ hàng để AI gửi Recommendation
+        var cartDishIds = cart.Items.Select(x => x.DishId).ToList();
+
+        // 11. Yêu cầu AIUpsellService đưa ra gợi ý, AIUpsellService tự chặn giới hạn Plan.
+        var (recommendedIds, source) = await _aiUpsellService.GetRecommendationsAsync(cart.RestaurantId, cartDishIds, 3);
+        
+        if (recommendedIds != null && recommendedIds.Any())
+        {
+            var recommendedDishes = await GetDishesByIdsWithPromotionAsync(cart.RestaurantId, recommendedIds);
+            cartDto.Recommendations = recommendedDishes;
+        }
+
+        return cartDto;
     }
 
     public async Task<CartDto> GetCartAsync(string cartId)
@@ -1043,25 +1063,31 @@ public class OrderService : IOrderService
 
         var tenantId = restaurant.TenantId;
 
-        var basePromotions = await _unitOfWork.Promotions.GetAllAsync(p =>
-            p.TenantId == tenantId &&
-            p.IsActive &&
-            !p.IsDeleted &&
-            p.Scope == PromotionScope.Dish &&
-            (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
-                            && !p.PromotionDishes.Any()))
-        );
+        var features = await _planLimitationService.GetRestaurantFeaturesAsync(restaurantId);
+
+        var basePromotions = features.CanUsePromotions ? await _unitOfWork.Promotions.GetAllAsync(
+            predicate: p =>
+                p.TenantId == tenantId &&
+                p.IsActive &&
+                !p.IsDeleted &&
+                p.Scope == PromotionScope.Dish &&
+                (p.IsGlobal || (p.RestaurantPromotions.Any(rp => rp.RestaurantId == restaurantId)
+                                && !p.PromotionDishes.Any())),
+            p => p.RestaurantPromotions,
+            p => p.PromotionDishes
+        ) : new List<Promotion>();
 
         var branchDishes = await _unitOfWork.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(restaurantId, dishIds);
 
         var result = branchDishes.Select(bdc =>
         {
-            var specificDishPromos = bdc.Dish.PromotionDishes?
+            var specificDishPromos = features.CanUsePromotions ? (bdc.Dish.PromotionDishes?
                                          .Select(pd => pd.Promotion)
                                          .Where(p => p.Scope == PromotionScope.Dish &&
                                                      p.IsActive &&
                                                      !p.IsDeleted)
-                                     ?? [];
+                                     ?? Enumerable.Empty<Promotion>())
+                                     : Enumerable.Empty<Promotion>();
 
             var allEligiblePromotions = basePromotions.Concat(specificDishPromos);
 
@@ -1098,9 +1124,19 @@ public class OrderService : IOrderService
                 PromotionName = winningPromo?.Name,
                 PromotionLabel = promoLabel,
                 PromoType = winningPromo?.Type,
+                Type = bdc.Dish.Type,
                 DishAvailabilityStock = bdc.DishAvailability,
                 ExpiredAt = winningPromo != null ? CalculateTrueExpiredAt(winningPromo, now) : null,
-                IsSoldOut = bdc.IsSoldOut
+                IsSoldOut = bdc.IsSoldOut,
+                ComboItems = bdc.Dish.Type == DishType.Combo
+                    ? bdc.Dish.ComboDetails.Select(cd => new ComboItemDto
+                    {
+                        DishId = cd.ItemDishId,
+                        DishName = cd.ItemDish.DishName,
+                        ImageUrl = cd.ItemDish.ImageUrl,
+                        Quantity = cd.Quantity
+                    }).ToList()
+                    : new List<ComboItemDto>()
             };
         }).ToList();
 

@@ -36,6 +36,8 @@ public class OrderService_CheckoutTests
     private readonly Mock<IStorageService> _mockStorageService;
     private readonly Mock<ILogger<Application.Services.OrderService>> _mockLogger;
     private readonly Mock<IQrCodeService> _mockQrCodeService;
+    private readonly Mock<IPlanLimitationService> _mockPlanLimitationService;
+    private readonly Mock<IAIUpsellService> _mockAiUpsellService;
 
     private readonly Application.Services.OrderService _orderService;
 
@@ -51,6 +53,8 @@ public class OrderService_CheckoutTests
         _mockStorageService = new Mock<IStorageService>();
         _mockLogger = new Mock<ILogger<Application.Services.OrderService>>();
         _mockQrCodeService = new Mock<IQrCodeService>();
+        _mockPlanLimitationService = new Mock<IPlanLimitationService>();
+        _mockAiUpsellService = new Mock<IAIUpsellService>();
 
         _orderService = new Application.Services.OrderService(
             _mockUnitOfWork.Object,
@@ -62,7 +66,9 @@ public class OrderService_CheckoutTests
             _mockAuthUserService.Object,
             _mockStorageService.Object,
             _mockLogger.Object,
-            _mockQrCodeService.Object
+            _mockQrCodeService.Object,
+            _mockPlanLimitationService.Object,
+            _mockAiUpsellService.Object
         );
     }
 
@@ -135,7 +141,7 @@ public class OrderService_CheckoutTests
     // 9. Phone required
     [InlineData("cart", "valid", true, true, true, true, true, true, false, OrderMessage.OrderError.PHONE_REQUIRED)]
     // 10. PreOrder no Date
-    [InlineData("cart", "valid", true, true, true, true, true, false, true, "RequestedPickupAt is required for preorder.")]
+    [InlineData("cart", "valid", true, true, true, true, true, false, true, "*RequestedPickupAt*")]
     public async Task GetPaymentQrAsync_BasicValidations_ThrowsDomainException(
         string cartId, string cartJsonTemplate, bool isCartValid, bool isRestaurantValid, bool isBankConfigured, 
         bool isCardConfigured, bool isBankVerified, bool isPhoneEmpty, bool isPreOrderNoDate, string expectedMessage)

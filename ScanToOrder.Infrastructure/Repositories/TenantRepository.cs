@@ -36,16 +36,26 @@ namespace ScanToOrder.Infrastructure.Repositories
 
         public async Task<bool> SuspendTenantAsync(Guid tenantId, bool isSuspended)
         {
-            if (tenantId == Guid.Empty)
-                return false;
+            if (tenantId == Guid.Empty) return false;
 
-            var tenant = await _dbSet.FindAsync(tenantId);
+            var tenant = await _context.Tenants
+                .Include(t => t.Restaurants)
+                .FirstOrDefaultAsync(t => t.Id == tenantId);
 
-            if (tenant == null)
-                return false;
+            if (tenant == null) return false;
 
             tenant.IsSuspended = isSuspended;
             tenant.SuspendedAt = isSuspended ? DateTime.UtcNow : null;
+
+            if (tenant.Restaurants != null)
+            {
+                foreach (var restaurant in tenant.Restaurants)
+                {
+                    restaurant.IsActive = !isSuspended;
+                    restaurant.IsOpened = !isSuspended;
+                    restaurant.IsReceivingOrders = !isSuspended;
+                }
+            }
 
             var result = await _context.SaveChangesAsync();
             return result > 0;

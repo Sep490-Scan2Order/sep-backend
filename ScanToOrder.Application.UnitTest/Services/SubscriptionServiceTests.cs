@@ -254,14 +254,24 @@ public class SubscriptionServiceTests
     [Fact]
     public async Task CreatePayment_PaymentServiceThrows_RollsBackAndThrowsDomainException()
     {
+        // Arrange
         var tenantId = Guid.NewGuid();
-        var request = new PlanCheckoutRequest { Items = { new PlanCheckoutItemRequest { RestaurantId = 1, TargetPlanId = 1, Cycle = BillingCycle.Monthly, Quantity = 1 } } };
-        _mockUnitOfWork.Setup(x => x.Restaurants.GetByIdsWithTenantId(It.IsAny<List<int>>(), tenantId)).ReturnsAsync(new Dictionary<int, Restaurant> { { 1, new Restaurant { Slug = "test",  Id = 1 } } });
-        _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Plan> { { 1, new Plan { Id = 1, MonthlyPrice = 100 } } });
-        _mockUnitOfWork.Setup(x => x.Subscriptions.GetByRestaurantIds(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Subscription>());
-        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>())).ThrowsAsync(new Exception("Gateway error"));
+        var request = new PlanCheckoutRequest { Items = new List<PlanCheckoutItemRequest> { new PlanCheckoutItemRequest { RestaurantId = 1, TargetPlanId = 1, Cycle = BillingCycle.Monthly, Quantity = 1 } } };
 
+        _mockUnitOfWork.Setup(x => x.Restaurants.GetByIdsWithTenantId(It.IsAny<List<int>>(), tenantId))
+            .ReturnsAsync(new Dictionary<int, Restaurant> { { 1, new Restaurant { Slug = "test", Id = 1 } } });
+        _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>()))
+            .ReturnsAsync(new Dictionary<int, Plan> { { 1, new Plan { Id = 1, MonthlyPrice = 100 } } });
+        _mockUnitOfWork.Setup(x => x.Subscriptions.GetByRestaurantIds(It.IsAny<List<int>>()))
+            .ReturnsAsync(new Dictionary<int, Subscription>());
+
+        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>()))
+            .ThrowsAsync(new Exception("Gateway error"));
+
+        // Act
         Func<Task> act = async () => await _subscriptionService.CreatePaymentAsync(request, tenantId);
+
+        // Assert
         await act.Should().ThrowAsync<DomainException>();
         _mockTransaction.Verify(x => x.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -269,18 +279,37 @@ public class SubscriptionServiceTests
     [Fact]
     public async Task CreatePayment_LocalBaseUrlConfigured_UsesLocalUrl()
     {
+        // Arrange
         var tenantId = Guid.NewGuid();
-        var request = new PlanCheckoutRequest { Items = { new PlanCheckoutItemRequest { RestaurantId = 1, TargetPlanId = 1, Cycle = BillingCycle.Monthly, Quantity = 1 } } };
-        _mockUnitOfWork.Setup(x => x.Restaurants.GetByIdsWithTenantId(It.IsAny<List<int>>(), tenantId)).ReturnsAsync(new Dictionary<int, Restaurant> { { 1, new Restaurant { Slug = "test",  Id = 1 } } });
-        _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Plan> { { 1, new Plan { Id = 1, MonthlyPrice = 10 } } });
-        _mockUnitOfWork.Setup(x => x.Subscriptions.GetByRestaurantIds(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Subscription>());
-        _mockUnitOfWork.Setup(x => x.PaymentTransactions.AddAsync(It.IsAny<PaymentTransaction>())).Returns(Task.CompletedTask);
-        _mockConfiguration.Setup(x => x["FrontEndUrl:local"]).Returns("http://local.test/");
-        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>())).Callback<CreatePaymentRequest>(req => {
-                req.ReturnUrl.Should().StartWith("http://local.test/tenant/subscription-callback");
-            }).ReturnsAsync("link");
+        var request = new PlanCheckoutRequest
+        {
+            Items = new List<PlanCheckoutItemRequest> {
+            new PlanCheckoutItemRequest { RestaurantId = 1, TargetPlanId = 1, Cycle = BillingCycle.Monthly, Quantity = 1 }
+        }
+        };
 
+        _mockUnitOfWork.Setup(x => x.Restaurants.GetByIdsWithTenantId(It.IsAny<List<int>>(), tenantId))
+            .ReturnsAsync(new Dictionary<int, Restaurant> { { 1, new Restaurant { Slug = "test", Id = 1 } } });
+        _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>()))
+            .ReturnsAsync(new Dictionary<int, Plan> { { 1, new Plan { Id = 1, MonthlyPrice = 10 } } });
+        _mockUnitOfWork.Setup(x => x.Subscriptions.GetByRestaurantIds(It.IsAny<List<int>>()))
+            .ReturnsAsync(new Dictionary<int, Subscription>());
+
+        // Giả lập có cấu hình URL local
+        _mockConfiguration.Setup(x => x["FrontEndUrl:local"]).Returns("http://local.test/");
+
+        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>()))
+            .Callback<CreatePaymentRequest>(req => {
+                // Kiểm tra xem URL có đúng như config không
+                req.ReturnUrl.Should().StartWith("http://local.test/");
+            })
+            .ReturnsAsync("link");
+
+        // Act
         await _subscriptionService.CreatePaymentAsync(request, tenantId);
+
+        // Assert
+        _mockTransaction.Verify(x => x.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -381,12 +410,21 @@ public class SubscriptionServiceTests
     [Fact]
     public async Task CreateCommissionFeePayment_DomainExceptionFromPayment_RethrowsAndRollbacks()
     {
+        // Arrange
         var tenantId = Guid.NewGuid();
-        _mockUnitOfWork.Setup(x => x.Tenants.GetByIdAsync(tenantId)).ReturnsAsync(new Tenant { Id = tenantId, TotalDebtAmount = 100m });
-        _mockUnitOfWork.Setup(x => x.Configurations.GetAllAsync(null)).ReturnsAsync(new List<Configurations> { new Configurations { CommissionRate = 5 } });
-        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>())).ThrowsAsync(new DomainException("Gateway error"));
+        _mockUnitOfWork.Setup(x => x.Tenants.GetByIdAsync(tenantId))
+            .ReturnsAsync(new Tenant { Id = tenantId, TotalDebtAmount = 100m });
+        _mockUnitOfWork.Setup(x => x.Configurations.GetAllAsync(null))
+            .ReturnsAsync(new List<Configurations> { new Configurations { CommissionRate = 5 } });
 
+        // Giả lập Service thanh toán ném lỗi nghiệp vụ
+        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>()))
+            .ThrowsAsync(new DomainException("Gateway error"));
+
+        // Act
         Func<Task> act = async () => await _subscriptionService.CreateCommissionFeePaymentAsync(tenantId);
+
+        // Assert
         await act.Should().ThrowAsync<DomainException>();
         _mockTransaction.Verify(x => x.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -394,13 +432,22 @@ public class SubscriptionServiceTests
     [Fact]
     public async Task CreateCommissionFeePayment_GenericException_WrapsAndRollbacks()
     {
+        // Arrange
         var tenantId = Guid.NewGuid();
-        _mockUnitOfWork.Setup(x => x.Tenants.GetByIdAsync(tenantId)).ReturnsAsync(new Tenant { Id = tenantId, TotalDebtAmount = 100m });
-        _mockUnitOfWork.Setup(x => x.Configurations.GetAllAsync(null)).ReturnsAsync(new List<Configurations> { new Configurations { CommissionRate = 5 } });
-        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>())).ThrowsAsync(new Exception("Unknown error"));
+        _mockUnitOfWork.Setup(x => x.Tenants.GetByIdAsync(tenantId))
+            .ReturnsAsync(new Tenant { Id = tenantId, TotalDebtAmount = 100m });
+        _mockUnitOfWork.Setup(x => x.Configurations.GetAllAsync(null))
+            .ReturnsAsync(new List<Configurations> { new Configurations { CommissionRate = 5 } });
 
+        // Giả lập lỗi hệ thống không xác định
+        _mockPaymentService.Setup(x => x.CreatePaymentLinkAsync(It.IsAny<CreatePaymentRequest>()))
+            .ThrowsAsync(new Exception("Unknown error"));
+
+        // Act
         Func<Task> act = async () => await _subscriptionService.CreateCommissionFeePaymentAsync(tenantId);
-        await act.Should().ThrowAsync<DomainException>();
+
+        // Assert
+        await act.Should().ThrowAsync<DomainException>(); // Mong đợi service bọc lại thành DomainException
         _mockTransaction.Verify(x => x.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
     #endregion

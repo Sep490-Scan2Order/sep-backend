@@ -12,6 +12,8 @@ namespace ScanToOrder.Application.Interfaces
         Task<SummaryMetricsResponse> GetSummaryMetricsAsync();
 
         Task<List<SubscriptionRevenueTrendDto>> GetSubscriptionRevenueTrendsAsync(int months = 6);
+        Task<List<CommissionFeeRevenueTrendDto>> GetCommissionFeeRevenueTrendsAsync(int months = 6);
+        Task<List<SubscriptionRevenueByPlanDto>> GetSubscriptionRevenueByPlanAsync(int months = 6);
 
         Task<List<SubscriptionPlanDistributionDto>> GetSubscriptionPlanDistributionAsync();
         Task<List<TopPerformingRestaurantDto>> GetTopPerformingRestaurantsAsync(int top = 5);
