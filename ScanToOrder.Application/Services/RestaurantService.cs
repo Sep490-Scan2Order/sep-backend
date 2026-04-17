@@ -150,8 +150,8 @@ namespace ScanToOrder.Application.Services
 
             var restaurant = _mapper.Map<Restaurant>(request);
             restaurant.TenantId = tenantId;
-            restaurant.IsActive = true;
-            restaurant.IsOpened = true;
+            restaurant.IsActive = false;
+            restaurant.IsOpened = false;
 
             // Handle OpenTime and CloseTime conversion from string to TimeOnly
             if (!string.IsNullOrEmpty(request.OpenTime))
