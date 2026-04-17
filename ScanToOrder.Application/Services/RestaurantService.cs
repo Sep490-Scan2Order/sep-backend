@@ -563,14 +563,20 @@ namespace ScanToOrder.Application.Services
         public async Task<string> UpdateActiveStatusAsync(int restaurantId, bool isActive)
         {
             var restaurant = await _unitOfWork.Restaurants.GetByIdIncludeSubscriptionAsync(restaurantId);
+    
             if (restaurant == null)
-                return null;
-
-            restaurant.IsActive = isActive;
-            if (restaurant.Subscription.Status == SubscriptionStatus.Expired && isActive)
+                return null; 
+            
+            if (isActive)
             {
-                return "Không thể kích hoạt nhà hàng khi subscription đã hết hạn";                    
+                if (restaurant.Subscription == null || restaurant.Subscription.Status == SubscriptionStatus.Expired)
+                {
+                    throw new DomainException("Cannot activate restaurant without an active subscription.");
+                }
             }
+            
+            restaurant.IsActive = isActive;
+
             if (!isActive)
             {
                 restaurant.IsOpened = false;
