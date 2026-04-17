@@ -37,7 +37,7 @@ public class OrderService : IOrderService
     private readonly IQrCodeService _qrCodeService;
     private readonly IPlanLimitationService _planLimitationService;
     private readonly IAIUpsellService _aiUpsellService;
-
+    
     public OrderService(
         IUnitOfWork unitOfWork,
         ICartRedisService cartRedisService,

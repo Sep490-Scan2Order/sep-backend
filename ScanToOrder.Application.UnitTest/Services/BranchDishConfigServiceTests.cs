@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.DTOs.Dishes;
@@ -18,6 +18,8 @@ public class BranchDishConfigServiceTests
     private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IMapper> _mockMapper;
     private readonly Mock<IDishRedisService> _mockDishRedisService;
+    private readonly Mock<IMenuCacheService> _mockMenuCacheService;
+    private readonly Mock<IRestaurantMenuService> _mockRestaurantMenuService;
     private readonly BranchDishConfigService _service;
 
     public BranchDishConfigServiceTests()
@@ -25,11 +27,15 @@ public class BranchDishConfigServiceTests
         _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockMapper = new Mock<IMapper>();
         _mockDishRedisService = new Mock<IDishRedisService>();
+        _mockMenuCacheService = new Mock<IMenuCacheService>();
+        _mockRestaurantMenuService = new Mock<IRestaurantMenuService>();
 
         _service = new BranchDishConfigService(
             _mockUnitOfWork.Object,
             _mockMapper.Object,
-            _mockDishRedisService.Object
+            _mockDishRedisService.Object,
+            _mockMenuCacheService.Object,
+            _mockRestaurantMenuService.Object
         );
     }
 
