@@ -13,6 +13,7 @@ using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Application.DTOs.Other;
+using ScanToOrder.Application.Message;
 
 namespace ScanToOrder.Application.UnitTest.Services
 {
@@ -64,7 +65,8 @@ namespace ScanToOrder.Application.UnitTest.Services
             var staffId = Guid.NewGuid();
             var restaurantId = 1;
             _mockRestaurantRepo.Setup(r => r.GetByIdAsync(restaurantId)).ReturnsAsync(new Restaurant { Id = restaurantId, MinCashAmount = 100000, Slug = "test" });
-            _mockShiftRepo.Setup(s => s.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>())).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetCurrentShiftByStaffIdAsync(staffId)).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetActiveCashierShiftAsync(restaurantId)).ReturnsAsync((Shift)null);
             _mockMapper.Setup(m => m.Map<ShiftDto>(It.IsAny<Shift>())).Returns(new ShiftDto());
 
             var result = await _shiftService.CheckInShiftAsync(restaurantId, staffId, 200000, "Morning shift");
@@ -74,12 +76,69 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockRealtimeService.Verify(r => r.NotifyShiftChanged(staffId.ToString(), It.IsAny<ShiftDto>()), Times.Once);
         }
 
-        // Verifies that CheckInShiftAsync handles a null note by using an empty string, ensuring branch coverage.
+        [Fact]
+        public async Task CheckInShiftAsync_StaffSuccess_ShouldCreateShiftWithParentId()
+        {
+            // Arrange
+            var staffId = Guid.NewGuid();
+            var restaurantId = 1;
+            var cashierShift = new Shift { Id = 10, Type = ShiftType.Cashier };
+            
+            _mockAuthenticatedUserService.Setup(a => a.Role).Returns("Staff");
+            _mockRestaurantRepo.Setup(r => r.GetByIdAsync(restaurantId)).ReturnsAsync(new Restaurant { Slug = "test" });
+            _mockShiftRepo.Setup(s => s.GetCurrentShiftByStaffIdAsync(staffId)).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetActiveCashierShiftAsync(restaurantId)).ReturnsAsync(cashierShift);
+            _mockMapper.Setup(m => m.Map<ShiftDto>(It.IsAny<Shift>())).Returns(new ShiftDto());
+
+            // Act
+            var result = await _shiftService.CheckInShiftAsync(restaurantId, staffId, 0, "Staff shift");
+
+            // Assert
+            result.Should().NotBeNull();
+            _mockShiftRepo.Verify(s => s.AddAsync(It.Is<Shift>(x => 
+                x.Type == ShiftType.Staff && 
+                x.ParentShiftId == 10)), Times.Once);
+        }
+
+        [Fact]
+        public async Task CheckInShiftAsync_StaffFailure_NoCashierShift_ShouldThrowDomainException()
+        {
+            // Arrange
+            _mockAuthenticatedUserService.Setup(a => a.Role).Returns("Staff");
+            _mockRestaurantRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Restaurant { Slug = "test" });
+            _mockShiftRepo.Setup(s => s.GetCurrentShiftByStaffIdAsync(It.IsAny<Guid>())).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetActiveCashierShiftAsync(1)).ReturnsAsync((Shift)null);
+
+            // Act
+            Func<Task> act = async () => await _shiftService.CheckInShiftAsync(1, Guid.NewGuid(), 0, null);
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>()
+                .WithMessage(ShiftMessage.ShiftError.CASHIER_SHIFT_NOT_OPEN);
+        }
+
+        [Fact]
+        public async Task CheckInShiftAsync_AlreadyHasOpenShift_ShouldThrowDomainException()
+        {
+            // Arrange
+            var staffId = Guid.NewGuid();
+            _mockRestaurantRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Restaurant { Slug = "test" });
+            _mockShiftRepo.Setup(s => s.GetCurrentShiftByStaffIdAsync(staffId)).ReturnsAsync(new Shift());
+
+            // Act
+            Func<Task> act = async () => await _shiftService.CheckInShiftAsync(1, staffId, 100, null);
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>()
+                .WithMessage(ShiftMessage.ShiftError.SHIFT_ALREADY_OPEN);
+        }
+
         [Fact]
         public async Task CheckInShiftAsync_NullNote_ShouldCreateShiftWithEmptyNote()
         {
             _mockRestaurantRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync(new Restaurant { Slug = "test" });
-            _mockShiftRepo.Setup(s => s.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>())).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetCurrentShiftByStaffIdAsync(It.IsAny<Guid>())).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetActiveCashierShiftAsync(It.IsAny<int>())).ReturnsAsync((Shift)null);
 
             await _shiftService.CheckInShiftAsync(1, Guid.NewGuid(), 0, null);
 
@@ -109,12 +168,12 @@ namespace ScanToOrder.Application.UnitTest.Services
             await act.Should().ThrowAsync<DomainException>();
         }
 
-        // Ensures that personal check-in is blocked if another shift is already open at the restaurant.
         [Fact]
         public async Task CheckInShiftAsync_ShiftAlreadyOpen_ShouldThrowDomainException()
         {
             _mockRestaurantRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Restaurant { Id = 1, MinCashAmount = 0, Slug = "test" });
-            _mockShiftRepo.Setup(s => s.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>())).ReturnsAsync(new Shift());
+            _mockShiftRepo.Setup(s => s.GetCurrentShiftByStaffIdAsync(It.IsAny<Guid>())).ReturnsAsync((Shift)null);
+            _mockShiftRepo.Setup(s => s.GetActiveCashierShiftAsync(1)).ReturnsAsync(new Shift());
 
             Func<Task> act = async () => await _shiftService.CheckInShiftAsync(1, Guid.NewGuid(), 100, null);
 
@@ -146,17 +205,14 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             var transactions = new List<Transaction>
             {
-                // ShiftService hiện tính tiền payment theo Order.FinalAmount (không dùng Transaction.TotalAmount)
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Payment, TotalAmount = 200000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 200000 } },
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Payment, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 200000 } },
                 new Transaction { PaymentMethod = PaymentMethod.Cash, TransactionType = TransactionType.Refund, TotalAmount = 50000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 0 } },
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment, TotalAmount = 300000, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 300000 } }
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TransactionType = TransactionType.Payment, Status = OrderTransactionStatus.Success, Order = new Order { Status = OrderStatus.Served, FinalAmount = 300000 } }
             };
-            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+            _mockTransactionRepo.Setup(t => t.GetSuccessfulTransactionsByShiftIdAsync(shiftId))
                 .ReturnsAsync(transactions);
 
-            // expectedCash = opening(100k) + cashPayment(200k) = 300k (refund không bị trừ vào cash/transfer)
-            // actualCash = 260k
-            // difference = -40k
+            // expectedCash = opening(100k) + cashPayment(200k) = 300k
             var result = await _shiftService.CheckOutShiftAsync(shiftId, 260000, "Closing shift");
 
             result.Should().NotBeNull();
@@ -172,13 +228,12 @@ namespace ScanToOrder.Application.UnitTest.Services
                 x.Note == "Closing shift")), Times.Once);
         }
 
-        // Verifies that CheckOutShiftAsync handles a null note by using an empty string, ensuring branch coverage for both shift and report updates.
         [Fact]
         public async Task CheckOutShiftAsync_NullNote_ShouldCloseShiftWithEmptyNote()
         {
             var shift = new Shift { Id = 1, Status = ShiftStatus.Open };
             _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(shift);
-            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+            _mockTransactionRepo.Setup(t => t.GetSuccessfulTransactionsByShiftIdAsync(1))
                 .ReturnsAsync(new List<Transaction>());
 
             await _shiftService.CheckOutShiftAsync(1, 0, null);
@@ -187,13 +242,12 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockShiftReportRepo.Verify(r => r.AddAsync(It.Is<ShiftReport>(x => x.Note == string.Empty)), Times.Once);
         }
 
-        // Ensures that a database transaction rollback occurs if report persistence fails during check-out.
         [Fact]
         public async Task CheckOutShiftAsync_Failure_ShouldRollback()
         {
-            var shift = new Shift { Id = 1, Status = ShiftStatus.Open };
+            var shift = new Shift { Id = 1, Status = ShiftStatus.Open, Type = ShiftType.Cashier };
             _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(shift);
-            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+            _mockTransactionRepo.Setup(t => t.GetSuccessfulTransactionsByShiftIdAsync(1))
                 .ReturnsAsync(new List<Transaction>());
             _mockUnitOfWork.Setup(u => u.SaveAsync()).ThrowsAsync(new Exception("Fail"));
 
@@ -233,6 +287,44 @@ namespace ScanToOrder.Application.UnitTest.Services
                 .WithMessage("*mức tối thiểu*");
         }
 
+        [Fact]
+        public async Task CheckOutShiftAsync_StaffSuccess_ShouldNotCreateReport()
+        {
+            // Arrange
+            var shiftId = 1;
+            var staffId = Guid.NewGuid();
+            var shift = new Shift { Id = shiftId, StaffId = staffId, Type = ShiftType.Staff, Status = ShiftStatus.Open };
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+            _mockMapper.Setup(m => m.Map<ShiftDto>(shift)).Returns(new ShiftDto());
+
+            // Act
+            await _shiftService.CheckOutShiftAsync(shiftId, 0, "Done");
+
+            // Assert
+            shift.Status.Should().Be(ShiftStatus.Closed);
+            _mockShiftReportRepo.Verify(r => r.AddAsync(It.IsAny<ShiftReport>()), Times.Never);
+            _mockRealtimeService.Verify(r => r.NotifyShiftChanged(staffId.ToString(), It.IsAny<ShiftDto>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task CheckOutShiftAsync_CashierFailure_HasOpenSubShifts_ShouldThrowDomainException()
+        {
+            // Arrange
+            var shiftId = 1;
+            var restaurantId = 10;
+            var shift = new Shift { Id = shiftId, RestaurantId = restaurantId, Type = ShiftType.Cashier, Status = ShiftStatus.Open };
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+            _mockRestaurantRepo.Setup(r => r.GetByIdAsync(restaurantId)).ReturnsAsync(new Restaurant { Slug = "test" });
+            _mockShiftRepo.Setup(s => s.HasOpenSubShiftsAsync(shiftId)).ReturnsAsync(true);
+
+            // Act
+            Func<Task> act = async () => await _shiftService.CheckOutShiftAsync(shiftId, 500000, null);
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>()
+                .WithMessage(ShiftMessage.ShiftError.STAFF_MUST_CHECKOUT_FIRST);
+        }
+
         #endregion
 
         #region 3. Query Tests
@@ -245,7 +337,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             var staffId = Guid.NewGuid();
             _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(new Shift { Id = shiftId, StaffId = staffId, OpeningCashAmount = 50000 });
             _mockStaffRepo.Setup(s => s.GetByIdAsync(staffId)).ReturnsAsync(new Staff { Name = "John" });
-            _mockShiftReportRepo.Setup(r => r.FirstOrDefaultAsync(It.IsAny<Expression<Func<ShiftReport, bool>>>(), It.IsAny<string>()))
+            _mockShiftReportRepo.Setup(r => r.GetReportByShiftIdAsync(shiftId))
                 .ReturnsAsync(new ShiftReport { ShiftId = shiftId, TotalCashOrder = 100000, TotalTransferOrder = 50000 });
 
             // Mock mapper for tuple to DTO
@@ -263,15 +355,15 @@ namespace ScanToOrder.Application.UnitTest.Services
             result.ExpectedTotalAmount.Should().Be(200000); // 50k open + 100k cash + 50k bank
         }
 
-        // Verifies that GetShiftReportAsync handles missing staff information by returning an empty string for the cashier's name.
         [Fact]
         public async Task GetShiftReportAsync_StaffNotFound_ShouldReturnEmptyCashierName()
         {
-            _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(new Shift { Id = 1 });
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(new Shift { Id = 1, StaffId = Guid.NewGuid() });
             _mockStaffRepo.Setup(s => s.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Staff)null);
-            _mockShiftReportRepo.Setup(r => r.FirstOrDefaultAsync(It.IsAny<Expression<Func<ShiftReport, bool>>>(), It.IsAny<string>()))
+            _mockShiftReportRepo.Setup(r => r.GetReportByShiftIdAsync(1))
                 .ReturnsAsync(new ShiftReport { ShiftId = 1 });
 
+            // Mock mapper for tuple to DTO
             _mockMapper.Setup(m => m.Map<ShiftReportDto>(It.IsAny<(ShiftReport, decimal, string)>()))
                 .Returns((ValueTuple<ShiftReport, decimal, string> src) => new ShiftReportDto { CashierName = src.Item3 });
 
@@ -289,12 +381,11 @@ namespace ScanToOrder.Application.UnitTest.Services
             await act.Should().ThrowAsync<DomainException>();
         }
 
-        // Verifies that GetShiftReportAsync throws a DomainException if a shift report has not yet been generated for an existing shift.
         [Fact]
         public async Task GetShiftReportAsync_ReportNotFound_ShouldThrowDomainException()
         {
             _mockShiftRepo.Setup(s => s.GetByIdAsync(1)).ReturnsAsync(new Shift { Id = 1 });
-            _mockShiftReportRepo.Setup(r => r.FirstOrDefaultAsync(It.IsAny<Expression<Func<ShiftReport, bool>>>(), It.IsAny<string>()))
+            _mockShiftReportRepo.Setup(r => r.GetReportByShiftIdAsync(1))
                 .ReturnsAsync((ShiftReport)null);
 
             Func<Task> act = async () => await _shiftService.GetShiftReportAsync(1);
@@ -368,6 +459,23 @@ namespace ScanToOrder.Application.UnitTest.Services
             result.Items.First().CashierName.Should().Be("Staff");
         }
 
+        [Fact]
+        public async Task GetStaffShiftsByCashierShiftIdAsync_Success_ReturnsMappedData()
+        {
+            // Arrange
+            var cashierShiftId = 1;
+            var subShifts = new List<Shift> { new Shift { Id = 2, ParentShiftId = cashierShiftId } };
+            _mockShiftRepo.Setup(s => s.GetOpenSubShiftsByParentIdAsync(cashierShiftId)).ReturnsAsync(subShifts);
+            _mockMapper.Setup(m => m.Map<IEnumerable<ShiftDto>>(subShifts)).Returns(new List<ShiftDto> { new ShiftDto { Id = 2 } });
+
+            // Act
+            var result = await _shiftService.GetStaffShiftsByCashierShiftIdAsync(cashierShiftId);
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.First().Id.Should().Be(2);
+        }
+
         #endregion
 
         #region 4. GetShiftPreview Tests 
@@ -389,16 +497,15 @@ namespace ScanToOrder.Application.UnitTest.Services
             var staff = new Staff { Id = staffId, Name = "Đạt D" };
             var transactions = new List<Transaction>
             {
-                // ShiftService tính tổng payment theo Order.FinalAmount
                 new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 50000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served, FinalAmount = 50000 } },
                 new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 150000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Served, FinalAmount = 150000 } },
-                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 100000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Preparing, FinalAmount = 100000 } }, // Filtered out
-                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 20000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Refund, Order = new Order { Status = OrderStatus.Cancelled, FinalAmount = 0 } } // Included (refund tính theo Transaction.TotalAmount)
+                new Transaction { PaymentMethod = PaymentMethod.Cash, TotalAmount = 100000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Payment, Order = new Order { Status = OrderStatus.Preparing, FinalAmount = 100000 } }, 
+                new Transaction { PaymentMethod = PaymentMethod.BankTransfer, TotalAmount = 20000, Status = OrderTransactionStatus.Success, TransactionType = TransactionType.Refund, Order = new Order { Status = OrderStatus.Cancelled, FinalAmount = 0 } } 
             };
             
             _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
             _mockStaffRepo.Setup(s => s.GetByIdAsync(staffId)).ReturnsAsync(staff);
-            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+            _mockTransactionRepo.Setup(t => t.GetSuccessfulTransactionsByShiftIdAsync(shiftId))
                 .ReturnsAsync(transactions);
 
             // Act
@@ -425,7 +532,7 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
             _mockStaffRepo.Setup(s => s.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Staff)null);
-            _mockTransactionRepo.Setup(t => t.GetAllAsync(It.IsAny<Expression<Func<Transaction, bool>>>(), It.IsAny<Expression<Func<Transaction, object>>[]>()))
+            _mockTransactionRepo.Setup(t => t.GetSuccessfulTransactionsByShiftIdAsync(shiftId))
                 .ReturnsAsync(new List<Transaction>());
 
             // Act
@@ -434,6 +541,60 @@ namespace ScanToOrder.Application.UnitTest.Services
             // Assert
             result.CashierName.Should().Be(string.Empty);
             result.Note.Should().Be(string.Empty);
+        }
+
+        #endregion
+
+        #region 5. BlockStaffShift Tests
+
+        [Fact]
+        public async Task BlockStaffShiftAsync_Success_ShouldBlockShift()
+        {
+            // Arrange
+            var shiftId = 1;
+            var staffId = Guid.NewGuid();
+            var shift = new Shift { Id = shiftId, StaffId = staffId, Type = ShiftType.Staff, Status = ShiftStatus.Open };
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+            _mockMapper.Setup(m => m.Map<ShiftDto>(shift)).Returns(new ShiftDto { Id = shiftId, Status = ShiftStatus.Blocked });
+
+            // Act
+            await _shiftService.BlockStaffShiftAsync(shiftId, "Blocked by admin");
+
+            // Assert
+            shift.Status.Should().Be(ShiftStatus.Blocked);
+            shift.Note.Should().Be("Blocked by admin");
+            _mockShiftRepo.Verify(s => s.Update(shift), Times.Once);
+            _mockRealtimeService.Verify(r => r.NotifyShiftChanged(staffId.ToString(), It.IsAny<ShiftDto>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task BlockStaffShiftAsync_ShiftNotFound_ShouldThrowDomainException()
+        {
+            // Arrange
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Shift)null);
+
+            // Act
+            Func<Task> act = async () => await _shiftService.BlockStaffShiftAsync(1, "Reason");
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>()
+                .WithMessage("*không tìm thấy*");
+        }
+
+        [Fact]
+        public async Task BlockStaffShiftAsync_Unauthorized_ShouldThrowDomainException()
+        {
+            // Arrange
+            var shiftId = 1;
+            var shift = new Shift { Id = shiftId, Type = ShiftType.Cashier };
+            _mockShiftRepo.Setup(s => s.GetByIdAsync(shiftId)).ReturnsAsync(shift);
+
+            // Act
+            Func<Task> act = async () => await _shiftService.BlockStaffShiftAsync(shiftId, "Reason");
+
+            // Assert
+            await act.Should().ThrowAsync<DomainException>()
+                .WithMessage("*không có quyền*");
         }
 
         #endregion
