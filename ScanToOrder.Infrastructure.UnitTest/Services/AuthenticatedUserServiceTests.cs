@@ -106,6 +106,43 @@ namespace ScanToOrder.Infrastructure.UnitTest.Services
         }
 
         [Fact]
+        public void Constructor_WhenUserIsNull_ShouldKeepPropertiesNull()
+        {
+            // Arrange: User null to hit user?.Identity?.IsAuthenticated short-circuit
+            var httpContext = new DefaultHttpContext();
+            httpContext.User = null!;
+            _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(httpContext);
+
+            // Act
+            var service = new AuthenticatedUserService(_mockHttpContextAccessor.Object);
+
+            // Assert
+            service.UserId.Should().BeNull();
+            service.ProfileId.Should().BeNull();
+            service.Email.Should().BeNull();
+            service.Phone.Should().BeNull();
+            service.Role.Should().BeNull();
+        }
+
+        [Fact]
+        public void Constructor_WhenIdentityIsNull_ShouldKeepPropertiesNull()
+        {
+            // Arrange: Identity null to hit user?.Identity?.IsAuthenticated short-circuit
+            var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal() };
+            _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(httpContext);
+
+            // Act
+            var service = new AuthenticatedUserService(_mockHttpContextAccessor.Object);
+
+            // Assert
+            service.UserId.Should().BeNull();
+            service.ProfileId.Should().BeNull();
+            service.Email.Should().BeNull();
+            service.Phone.Should().BeNull();
+            service.Role.Should().BeNull();
+        }
+
+        [Fact]
         public void Constructor_WhenClaimsAreInvalidGuids_ShouldKeepGuidPropertiesNull()
         {
             // Arrange

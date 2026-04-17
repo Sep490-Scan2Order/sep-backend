@@ -50,6 +50,19 @@ namespace ScanToOrder.Infrastructure.UnitTest.Services
         }
 
         [Fact]
+        public async Task SendEmailViaIdDomainAsync_Success_ReturnsTrue()
+        {
+            // Arrange
+            _fakeHandler.Handler = req => new HttpResponseMessage(HttpStatusCode.OK);
+
+            // Act
+            var result = await _service.SendEmailViaIdDomainAsync("test@gmail.com", "Sub", "Content");
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task SendEmailViaIdDomainAsync_Failure_ThrowsDomainException()
         {
             // Arrange

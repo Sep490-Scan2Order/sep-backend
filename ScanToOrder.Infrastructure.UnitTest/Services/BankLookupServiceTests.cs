@@ -106,6 +106,43 @@ public class BankLookupServiceTests
     }
 
     [Fact]
+    public async Task LookupAccountAsync_WhenApiReturnsSuccessWithNullData_ShouldLogInformation()
+    {
+        // Arrange
+        var request = new BankLookRequest
+        {
+            Bank = "970415",
+            Account = "555555"
+        };
+
+        var mockResponseData = new BankLookResponse
+        {
+            Success = true,
+            Msg = "Truy vấn thành công",
+            Data = null
+        };
+
+        SetupMockHttpResponse(HttpStatusCode.OK, mockResponseData);
+
+        // Act
+        var result = await _service.LookupAccountAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+        result.Data.Should().BeNull();
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Truy vấn thành công")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task LookupAccountAsync_WhenApiReturnsErrorStatusCode_ShouldLogErrorAndReturnFailure()
     {
         // Arrange
