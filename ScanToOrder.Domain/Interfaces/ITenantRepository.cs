@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.User;
+using ScanToOrder.Domain.Entities.User;
 
 namespace ScanToOrder.Domain.Interfaces
 {
@@ -10,5 +10,6 @@ namespace ScanToOrder.Domain.Interfaces
         Task<Tenant?> GetByIdWithAccountAsync(Guid tenantId);
 
         Task<bool> SuspendTenantAsync(Guid tenantId, bool isSuspended);
+        Task<int> CountAllTenantsAsync();
     }
 }

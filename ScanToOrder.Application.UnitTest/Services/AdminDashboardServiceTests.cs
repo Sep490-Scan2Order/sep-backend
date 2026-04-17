@@ -28,16 +28,11 @@ public class AdminDashboardServiceTests
     public async Task GetSummaryMetricsAsync_ReturnsCorrectMetrics()
     {
         // Arrange
-        _mockUnitOfWork.Setup(u => u.Tenants.CountAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(10);
-        _mockUnitOfWork.Setup(u => u.Restaurants.CountAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(25);
-        _mockUnitOfWork.Setup(u => u.AuthenticationUsers.CountAsync(It.IsAny<Expression<Func<AuthenticationUser, bool>>>())).ReturnsAsync(8);
+        _mockUnitOfWork.Setup(u => u.Tenants.CountAllTenantsAsync()).ReturnsAsync(10);
+        _mockUnitOfWork.Setup(u => u.Restaurants.CountAllRestaurantsAsync()).ReturnsAsync(25);
+        _mockUnitOfWork.Setup(u => u.AuthenticationUsers.CountActiveTenantAccountsAsync()).ReturnsAsync(8);
 
-        _mockUnitOfWork.Setup(u => u.PaymentTransactions.FindAsync(It.IsAny<Expression<Func<PaymentTransaction, bool>>>()))
-            .ReturnsAsync(new List<PaymentTransaction>());
-
-        _mockUnitOfWork.Setup(u => u.PaymentTransactions.SumAsync(
-                It.IsAny<Expression<Func<PaymentTransaction, bool>>>(),
-                It.IsAny<Expression<Func<PaymentTransaction, decimal>>>()))
+        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetTotalPlatformRevenueAsync())
             .ReturnsAsync(5000000m);
 
         // Act
@@ -54,24 +49,118 @@ public class AdminDashboardServiceTests
 
     #region 2. GetSubscriptionRevenueTrendsAsync
     [Fact]
-    public async Task GetSubscriptionRevenueTrendsAsync_ReturnsMappedData()
+    public async Task GetSubscriptionRevenueTrendsAsync_FullBranchCoverage()
     {
         // Arrange
+        var now = DateTime.UtcNow;
+        
+        // Tạo dữ liệu đa dạng để bao phủ mọi nhánh của lambda expression:
+        // 1. (now.Year - 1, ...) -> Trả về false ở điều kiện Year (Year mismatch)
+        // 2. (now.Year, now.Month + 1) -> Trả về true ở Year nhưng false ở Month (Month mismatch)
+        // 3. (now.Year, now.Month) -> Trả về true toàn bộ (Match)
+        var nextMonth = now.Month == 12 ? 1 : now.Month + 1;
+        var nextMonthYear = now.Month == 12 ? now.Year + 1 : now.Year;
+
         var rawData = new List<(int Year, int Month, decimal Revenue)>
         {
-            (2026, 4, 1000m),
-            (2026, 5, 1500m)
+            (now.Year - 1, now.Month, 100m),
+            (now.Year, nextMonth, 200m),
+            (now.Year, now.Month, 1500m)
         };
         _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetRevenueTrendRawAsync(It.IsAny<DateTime>(), PaymentTransactionType.Subscription))
             .ReturnsAsync(rawData);
 
         // Act
-        var result = await _adminDashboardService.GetSubscriptionRevenueTrendsAsync(2);
+        var result = await _adminDashboardService.GetSubscriptionRevenueTrendsAsync(1);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].Revenue.Should().Be(1500m);
+    }
+
+    [Fact]
+    public async Task GetCommissionFeeRevenueTrendsAsync_FullBranchCoverage()
+    {
+        // Arrange
+        var now = DateTime.UtcNow;
+        var nextMonth = now.Month == 12 ? 1 : now.Month + 1;
+
+        var rawData = new List<(int Year, int Month, decimal Revenue)>
+        {
+            (now.Year - 1, now.Month, 50m),
+            (now.Year, nextMonth, 60m),
+            (now.Year, now.Month, 800m)
+        };
+        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetRevenueTrendRawAsync(It.IsAny<DateTime>(), PaymentTransactionType.CommissionFee))
+            .ReturnsAsync(rawData);
+
+        // Act
+        var result = await _adminDashboardService.GetCommissionFeeRevenueTrendsAsync(1);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].Revenue.Should().Be(800m);
+    }
+    #endregion
+
+    #region 2b. GetSubscriptionRevenueByPlanAsync
+    [Fact]
+    public async Task GetSubscriptionRevenueByPlanAsync_ReturnsCorrectAggregation()
+    {
+        // Arrange
+        var txn1 = new PaymentTransaction();
+        txn1.SetSubscriptionPayload(new List<OrderPayloadItemPlan>
+        {
+            new OrderPayloadItemPlan { NewPlanId = 1, AmountAllocated = 1000000m }
+        });
+
+        var txn2 = new PaymentTransaction();
+        txn2.SetSubscriptionPayload(new List<OrderPayloadItemPlan>
+        {
+            new OrderPayloadItemPlan { NewPlanId = 1, AmountAllocated = 500000m },
+            new OrderPayloadItemPlan { NewPlanId = 2, AmountAllocated = 1500000m }
+        });
+
+        var transactions = new List<PaymentTransaction> { txn1, txn2 };
+
+        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetSuccessfulSubscriptionTransactionsAsync(It.IsAny<DateTime>()))
+            .ReturnsAsync(transactions);
+
+        var plans = new List<Plan>
+        {
+            new Plan { Id = 1, Name = "Basic" },
+            new Plan { Id = 2, Name = "Pro" }
+        };
+        _mockUnitOfWork.Setup(u => u.Plans.FindAsync(It.IsAny<Expression<Func<Plan, bool>>>()))
+            .ReturnsAsync(plans);
+
+        // Act
+        var result = await _adminDashboardService.GetSubscriptionRevenueByPlanAsync(6);
 
         // Assert
         result.Should().HaveCount(2);
-        result[0].Month.Should().Be("04/2026");
-        result[0].Revenue.Should().Be(1000m);
+        
+        var proPlan = result.First(x => x.PlanId == 2);
+        proPlan.Revenue.Should().Be(1500000m);
+        proPlan.Percentage.Should().Be(50);
+
+        var basicPlan = result.First(x => x.PlanId == 1);
+        basicPlan.Revenue.Should().Be(1500000m);
+        basicPlan.Percentage.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task GetSubscriptionRevenueByPlanAsync_WhenNoRevenue_ReturnsEmptyList()
+    {
+        // Arrange
+        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetSuccessfulSubscriptionTransactionsAsync(It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<PaymentTransaction>());
+
+        // Act
+        var result = await _adminDashboardService.GetSubscriptionRevenueByPlanAsync(6);
+
+        // Assert
+        result.Should().BeEmpty();
     }
     #endregion
 

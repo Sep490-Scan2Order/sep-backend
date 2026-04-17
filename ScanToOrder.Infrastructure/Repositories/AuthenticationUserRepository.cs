@@ -26,6 +26,11 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Include(u => u.Staff)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
+
+        public async Task<int> CountActiveTenantAccountsAsync()
+        {
+            return await _dbSet.CountAsync(u => u.Role == ScanToOrder.Domain.Enums.Role.Tenant);
+        }
     }
 }
 

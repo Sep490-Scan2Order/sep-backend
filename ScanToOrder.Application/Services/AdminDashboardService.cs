@@ -23,21 +23,13 @@ namespace ScanToOrder.Application.Services
 
         public async Task<SummaryMetricsResponse> GetSummaryMetricsAsync()
         {
-            var totalTenants = await _unitOfWork.Tenants.CountAsync(t => true);
+            var totalTenants = await _unitOfWork.Tenants.CountAllTenantsAsync();
 
-            var totalRestaurants = await _unitOfWork.Restaurants.CountAsync(r => true);
+            var totalRestaurants = await _unitOfWork.Restaurants.CountAllRestaurantsAsync();
 
-            var successfulPayments = await _unitOfWork.PaymentTransactions
-                .FindAsync(pt => pt.Status == PaymentTransactionStatus.Success);
+            var platformRevenue = await _unitOfWork.PaymentTransactions.GetTotalPlatformRevenueAsync();
 
-            var platformRevenue = await _unitOfWork.PaymentTransactions
-    .SumAsync(
-        pt => pt.Status == PaymentTransactionStatus.Success,
-        pt => pt.TotalAmount
-    );
-
-            var activeAccounts = await _unitOfWork.AuthenticationUsers
-                .CountAsync(u => u.Role == Role.Tenant);
+            var activeAccounts = await _unitOfWork.AuthenticationUsers.CountActiveTenantAccountsAsync();
 
 
             return new SummaryMetricsResponse
@@ -62,11 +54,12 @@ namespace ScanToOrder.Application.Services
                 var targetDate = DateTime.UtcNow.AddMonths(-i);
                 var match = rawData.FirstOrDefault(x => x.Year == targetDate.Year && x.Month == targetDate.Month);
 
-                result.Add(new SubscriptionRevenueTrendDto
+                var dto = new SubscriptionRevenueTrendDto
                 {
                     Month = $"{targetDate.Month:D2}/{targetDate.Year}",
                     Revenue = match.Revenue > 0 ? match.Revenue : 0
-                });
+                };
+                result.Add(dto);
             }
 
             return result;
@@ -85,11 +78,12 @@ namespace ScanToOrder.Application.Services
                 var targetDate = DateTime.UtcNow.AddMonths(-i);
                 var match = rawData.FirstOrDefault(x => x.Year == targetDate.Year && x.Month == targetDate.Month);
 
-                result.Add(new CommissionFeeRevenueTrendDto
+                var dto = new CommissionFeeRevenueTrendDto
                 {
                     Month = $"{targetDate.Month:D2}/{targetDate.Year}",
                     Revenue = match.Revenue > 0 ? match.Revenue : 0
-                });
+                };
+                result.Add(dto);
             }
 
             return result;
@@ -99,10 +93,8 @@ namespace ScanToOrder.Application.Services
         {
             var startDate = DateTime.UtcNow.AddMonths(-months);
 
-            var transactions = await _unitOfWork.PaymentTransactions.GetAllAsync(pt =>
-                pt.Status == PaymentTransactionStatus.Success
-                && pt.PaymentTransactionType == PaymentTransactionType.Subscription
-                && pt.PaymentDate >= startDate);
+            var transactions = await _unitOfWork.PaymentTransactions
+                .GetSuccessfulSubscriptionTransactionsAsync(startDate);
 
             var revenueByPlan = new Dictionary<int, decimal>();
 

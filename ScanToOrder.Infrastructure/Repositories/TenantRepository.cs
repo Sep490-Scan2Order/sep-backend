@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Entities.User;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
@@ -59,6 +59,11 @@ namespace ScanToOrder.Infrastructure.Repositories
 
             var result = await _context.SaveChangesAsync();
             return result > 0;
+        }
+
+        public async Task<int> CountAllTenantsAsync()
+        {
+            return await _dbSet.CountAsync();
         }
     }
 }

@@ -211,6 +211,11 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .OrderByDescending(r => r.TotalOrder ?? 0)
                 .ToListAsync();
         }
+
+        public async Task<int> CountAllRestaurantsAsync()
+        {
+            return await _dbSet.CountAsync();
+        }
     }
 }
 

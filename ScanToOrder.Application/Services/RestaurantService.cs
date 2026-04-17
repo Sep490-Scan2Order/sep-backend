@@ -52,8 +52,7 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(id);
             if (restaurant == null)
                 return null;
-            if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
-                throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+              
             var dto = _mapper.Map<RestaurantDto>(restaurant);
             return dto;
         }
@@ -151,8 +150,8 @@ namespace ScanToOrder.Application.Services
 
             var restaurant = _mapper.Map<Restaurant>(request);
             restaurant.TenantId = tenantId;
-            restaurant.IsActive = false;
-            restaurant.IsOpened = false;
+            restaurant.IsActive = true;
+            restaurant.IsOpened = true;
 
             // Handle OpenTime and CloseTime conversion from string to TimeOnly
             if (!string.IsNullOrEmpty(request.OpenTime))

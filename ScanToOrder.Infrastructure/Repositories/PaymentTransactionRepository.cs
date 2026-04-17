@@ -33,5 +33,21 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .Select(x => (x.Year, x.Month, x.Revenue))
                 .ToList();
         }
+
+        public async Task<decimal> GetTotalPlatformRevenueAsync()
+        {
+            return await _dbSet
+                .Where(pt => pt.Status == PaymentTransactionStatus.Success)
+                .SumAsync(pt => pt.TotalAmount);
+        }
+
+        public async Task<List<PaymentTransaction>> GetSuccessfulSubscriptionTransactionsAsync(DateTime startDate)
+        {
+            return await _dbSet
+                .Where(pt => pt.Status == PaymentTransactionStatus.Success
+                             && pt.PaymentTransactionType == PaymentTransactionType.Subscription
+                             && pt.PaymentDate >= startDate)
+                .ToListAsync();
+        }
     }
 }

@@ -6,6 +6,7 @@ namespace ScanToOrder.Domain.Interfaces
     {
         Task<AuthenticationUser?> GetByPhoneAsync(string phone);
         Task<AuthenticationUser?> GetByEmailAsync(string email);
+        Task<int> CountActiveTenantAccountsAsync();
     }
 }
 
