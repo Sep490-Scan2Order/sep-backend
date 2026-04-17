@@ -66,11 +66,11 @@ public class AdminDashboardServiceTests
             .ReturnsAsync(rawData);
 
         // Act
-        var result = await _adminDashboardService.GetSubscriptionRevenueTrendsAsync(6);
+        var result = await _adminDashboardService.GetSubscriptionRevenueTrendsAsync(2);
 
         // Assert
         result.Should().HaveCount(2);
-        result[0].Month.Should().Be("4/2026");
+        result[0].Month.Should().Be("04/2026");
         result[0].Revenue.Should().Be(1000m);
     }
     #endregion

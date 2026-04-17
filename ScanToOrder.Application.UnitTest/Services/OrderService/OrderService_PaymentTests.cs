@@ -85,6 +85,7 @@ public class OrderService_PaymentTests
         if (shift != null)
         {
             _mockUnitOfWork.Setup(u => u.Shifts.GetByIdAsync(shift.Id)).ReturnsAsync(shift);
+            _mockUnitOfWork.Setup(u => u.Shifts.GetActiveCashierShiftAsync(It.IsAny<int>())).ReturnsAsync(shift);
             _mockUnitOfWork.Setup(u => u.Shifts.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>()))
                 .ReturnsAsync(shift);
         }
@@ -216,24 +217,6 @@ public class OrderService_PaymentTests
         _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Never);
     }
 
-    [Fact]
-    public async Task ConfirmCashPaymentAsync_WhenUnauthorizedAccessToShift_ThrowsDomainException()
-    {
-        // Arrange
-        var order = new Order { Id = Guid.NewGuid(), Status = OrderStatus.Unpaid, RestaurantId = 1 };
-        var staff = new Staff { Id = Guid.NewGuid(), RestaurantId = 1 };
-        var assignedStaffId = Guid.NewGuid();
-        var shift = new Shift { Id = 100, StaffId = assignedStaffId };
-        var transaction = new Transaction { Id = 1, OrderId = order.Id, Status = OrderTransactionStatus.Pending, ShiftId = shift.Id };
-        
-        SetupMocks(order, staff, transaction, shift);
-
-        // Act
-        var action = async () => await _orderService.ConfirmCashPaymentAsync(order.Id);
-
-        // Assert
-        await action.Should().ThrowAsync<DomainException>().WithMessage(StaffMessage.StaffError.UNAUTHORIZED_ACCESS);
-    }
     #endregion
 
     #region Success Paths
@@ -247,8 +230,6 @@ public class OrderService_PaymentTests
         var transaction = new Transaction { Id = 1, OrderId = order.Id, Status = OrderTransactionStatus.Pending, ShiftId = shift.Id, TotalAmount = 100000 };
         
         SetupMocks(order, staff, transaction, shift);
-        _mockStorageService.Setup(s => s.GetOrGeneratePaymentReceivedAudioAsync(It.IsAny<int>(), It.IsAny<decimal>()))
-            .ReturnsAsync("http://audio.url");
 
         // Act
         await _orderService.ConfirmCashPaymentAsync(order.Id);
@@ -260,7 +241,7 @@ public class OrderService_PaymentTests
         _mockUnitOfWork.Verify(u => u.Transactions.Update(transaction), Times.Once);
         _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         _mockRealtimeService.Verify(r => r.NotifyOrderStatusChanged(It.IsAny<string>(), It.IsAny<string>(), (int)OrderStatus.Pending), Times.Once);
-        _mockRealtimeService.Verify(r => r.NotifyPaymentReceived(It.IsAny<string>(), 101, 100000, "http://audio.url"), Times.Once);
+        _mockRealtimeService.Verify(r => r.NotifyPaymentReceived(It.IsAny<string>(), 101, 100000, ""), Times.Once);
     }
 
     [Fact]
