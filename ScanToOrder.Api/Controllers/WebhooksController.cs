@@ -77,7 +77,7 @@ public class WebhooksController : BaseController
                 }
             }
 
-            return Ok(new { success = true });
+            return Ok(new { isSuccess = true });
         }
         catch (Exception ex)
         {

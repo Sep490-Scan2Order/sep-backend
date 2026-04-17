@@ -156,16 +156,16 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(AuthMessage.AuthError.ACCOUNT_LOCKED);
             }
 
-            // if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-            // {
-            //     throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
-            // }
-
-            if (request.Password != user.Password)
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             {
-                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+                throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
             }
-          
+
+            //if (request.Password != user.Password)
+            //{
+            //    throw new DomainException(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+            //}
+
             return new AuthResponse<AdminDto>
             {
                 AccessToken = _jwtService.GenerateAccessToken(user, ExtractProfileId(user)),

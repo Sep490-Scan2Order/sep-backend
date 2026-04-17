@@ -11,6 +11,8 @@ namespace ScanToOrder.Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly PredictionEnginePool<DishCoOccurrence, DishPrediction>? _predictionPool;
+        private readonly IAIUpsellPredictor? _predictor;
+        private readonly Func<int, int, float>? _poolScoreProvider;
 
         // Minimum number of orders required to trust AI predictions
         private const int MinOrdersRequiredForAI = 50;
@@ -20,11 +22,15 @@ namespace ScanToOrder.Infrastructure.Services
         public AIUpsellService(
             IUnitOfWork unitOfWork,
             IPlanLimitationService planLimitationService,
-            PredictionEnginePool<DishCoOccurrence, DishPrediction>? predictionPool = null)
+            PredictionEnginePool<DishCoOccurrence, DishPrediction>? predictionPool = null,
+            IAIUpsellPredictor? predictor = null,
+            Func<int, int, float>? poolScoreProvider = null)
         {
             _unitOfWork = unitOfWork;
             _planLimitationService = planLimitationService;
             _predictionPool = predictionPool;
+            _predictor = predictor;
+            _poolScoreProvider = poolScoreProvider;
         }
 
         public async Task<(List<int> DishIds, string Source)> GetRecommendationsAsync(
@@ -75,7 +81,7 @@ namespace ScanToOrder.Infrastructure.Services
                 return (new List<int>(), "empty");
 
             // TIER 1: AI Matrix Factorization
-            if (_predictionPool != null)
+            if (_predictionPool != null || _predictor != null)
             {
                 var orderCount = await _unitOfWork.Orders.GetQueryable()
                     .CountAsync(o => o.RestaurantId == restaurantId && !o.IsDeleted);
@@ -88,14 +94,18 @@ namespace ScanToOrder.Infrastructure.Services
                     {
                         foreach (var candidateId in candidates)
                         {
-                            var prediction = _predictionPool.Predict("UpsellModel", new DishCoOccurrence
-                            {
-                                TargetDishId = (uint)cartDishId,
-                                RecommendedDishId = (uint)candidateId
-                            });
+                            var score = _predictor != null
+                                ? _predictor.PredictScore(cartDishId, candidateId)
+                                : _poolScoreProvider != null
+                                    ? _poolScoreProvider(cartDishId, candidateId)
+                                    : _predictionPool!.Predict("UpsellModel", new DishCoOccurrence
+                                    {
+                                        TargetDishId = (uint)cartDishId,
+                                        RecommendedDishId = (uint)candidateId
+                                    }).Score;
 
                             if (!scores.ContainsKey(candidateId)) scores[candidateId] = 0;
-                            scores[candidateId] += prediction.Score;
+                            scores[candidateId] += score;
                         }
                     }
 
@@ -131,5 +141,10 @@ namespace ScanToOrder.Infrastructure.Services
 
             return (randomPicks, "Random_ColdStart");
         }
+    }
+
+    public interface IAIUpsellPredictor
+    {
+        float PredictScore(int targetDishId, int recommendedDishId);
     }
 }

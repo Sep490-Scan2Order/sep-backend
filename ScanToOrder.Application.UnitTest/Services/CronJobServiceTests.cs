@@ -559,6 +559,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         }
 
         #endregion
+
         #region 6. CalculateWeeklyCommissionFeeAsync
 
         [Fact]
@@ -566,8 +567,11 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             var mockTxn = new Mock<IDbTransaction>();
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
-            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>>()))
-                           .ReturnsAsync(new List<Order>());
+
+            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>[]>()))
+                .ReturnsAsync(new List<Order>());
+            _mockUnitOfWork.Setup(u => u.Orders.FindAsync(It.IsAny<Expression<Func<Order, bool>>>()))
+                .ReturnsAsync(new List<Order>());
 
             await _service.CalculateWeeklyCommissionFeeAsync();
 
@@ -589,17 +593,21 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant { Id = Guid.Empty, TotalDebtAmount = 0, DebtStartedAt = null }
             };
+            var configs = new List<Configurations>();
 
-            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>>()))
-                           .ReturnsAsync(orders);
-            _mockUnitOfWork.Setup(u => u.Configurations.GetAllAsync(null))
-                           .ReturnsAsync(new List<Configurations>());
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>()))
-                           .ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>[]>())).ReturnsAsync(orders);
+            _mockUnitOfWork.Setup(u => u.Orders.FindAsync(It.IsAny<Expression<Func<Order, bool>>>())).ReturnsAsync(orders);
+
+            _mockUnitOfWork.Setup(u => u.Configurations.GetAllAsync(It.IsAny<Expression<Func<Configurations, bool>>>(), It.IsAny<Expression<Func<Configurations, object>>[]>())).ReturnsAsync(configs);
+            _mockUnitOfWork.Setup(u => u.Configurations.FindAsync(It.IsAny<Expression<Func<Configurations, bool>>>())).ReturnsAsync(configs);
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
 
             await _service.CalculateWeeklyCommissionFeeAsync();
 
-            tenants[0].TotalDebtAmount.Should().Be(3000); // 3% of 100000
+            tenants[0].TotalDebtAmount.Should().Be(3000);
             tenants[0].DebtStartedAt.Should().NotBeNull();
             orders[0].IsScanned.Should().BeTrue();
 
@@ -626,17 +634,20 @@ namespace ScanToOrder.Application.UnitTest.Services
             };
             var configs = new List<Configurations> { new Configurations { CommissionRate = 5 } };
 
-            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>>()))
-                           .ReturnsAsync(orders);
-            _mockUnitOfWork.Setup(u => u.Configurations.GetAllAsync(null))
-                           .ReturnsAsync(configs);
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>()))
-                           .ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>[]>())).ReturnsAsync(orders);
+            _mockUnitOfWork.Setup(u => u.Orders.FindAsync(It.IsAny<Expression<Func<Order, bool>>>())).ReturnsAsync(orders);
+
+            _mockUnitOfWork.Setup(u => u.Configurations.GetAllAsync(It.IsAny<Expression<Func<Configurations, bool>>>(), It.IsAny<Expression<Func<Configurations, object>>[]>())).ReturnsAsync(configs);
+            _mockUnitOfWork.Setup(u => u.Configurations.FindAsync(It.IsAny<Expression<Func<Configurations, bool>>>())).ReturnsAsync(configs);
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
 
             await _service.CalculateWeeklyCommissionFeeAsync();
 
-            tenants[0].TotalDebtAmount.Should().Be(10000); // 5000 + 5% of 100000 = 10000
-            tenants[0].DebtStartedAt.Should().Be(existingDate); // Unchanged
+            tenants[0].TotalDebtAmount.Should().Be(10000);
+            tenants[0].DebtStartedAt.Should().Be(existingDate);
 
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
@@ -651,16 +662,18 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Order { Id = Guid.NewGuid(), FinalAmount = 100000, Restaurant = new Restaurant { TenantId = Guid.NewGuid(), Slug = "test-slug" } }
             };
-            // Return empty tenants to simulate not found
-            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>>()))
-                           .ReturnsAsync(orders);
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>()))
-                           .ReturnsAsync(new List<Tenant>());
+
+            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>[]>())).ReturnsAsync(orders);
+            _mockUnitOfWork.Setup(u => u.Orders.FindAsync(It.IsAny<Expression<Func<Order, bool>>>())).ReturnsAsync(orders);
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(new List<Tenant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(new List<Tenant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(new List<Tenant>());
 
             await _service.CalculateWeeklyCommissionFeeAsync();
 
             _mockUnitOfWork.Verify(u => u.Tenants.UpdateRange(It.IsAny<IEnumerable<Tenant>>()), Times.Never);
-            _mockUnitOfWork.Verify(u => u.Orders.UpdateRange(It.IsAny<IEnumerable<Order>>()), Times.Once); // Orders still marked scanned
+            _mockUnitOfWork.Verify(u => u.Orders.UpdateRange(It.IsAny<IEnumerable<Order>>()), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
 
@@ -676,10 +689,12 @@ namespace ScanToOrder.Application.UnitTest.Services
             };
             var tenants = new List<Tenant> { new Tenant { Id = Guid.Empty, TotalDebtAmount = 0 } };
 
-            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>>()))
-                           .ReturnsAsync(orders);
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>()))
-                           .ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>[]>())).ReturnsAsync(orders);
+            _mockUnitOfWork.Setup(u => u.Orders.FindAsync(It.IsAny<Expression<Func<Order, bool>>>())).ReturnsAsync(orders);
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
 
             await _service.CalculateWeeklyCommissionFeeAsync();
 
@@ -707,7 +722,9 @@ namespace ScanToOrder.Application.UnitTest.Services
             var mockTxn = new Mock<IDbTransaction>();
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
 
-            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>>()))
+            _mockUnitOfWork.Setup(u => u.Orders.FindAsync(It.IsAny<Expression<Func<Order, bool>>>()))
+                           .ThrowsAsync(new Exception("DB Error"));
+            _mockUnitOfWork.Setup(u => u.Orders.GetAllAsync(It.IsAny<Expression<Func<Order, bool>>>(), It.IsAny<Expression<Func<Order, object>>[]>()))
                            .ThrowsAsync(new Exception("DB Error"));
 
             Func<Task> action = async () => await _service.CalculateWeeklyCommissionFeeAsync();
@@ -725,8 +742,9 @@ namespace ScanToOrder.Application.UnitTest.Services
         {
             var mockTxn = new Mock<IDbTransaction>();
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(new List<Tenant>());
+
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(new List<Tenant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>())).ReturnsAsync(new List<Tenant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -756,10 +774,11 @@ namespace ScanToOrder.Application.UnitTest.Services
                 new Restaurant { Id = 1, TenantId = tenantId, IsActive = true, IsReceivingOrders = true, Slug = "test-slug" }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(restaurants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(restaurants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(restaurants);
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -783,17 +802,13 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant
                 {
-                    Id = Guid.Empty,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-8),
-                    IsSuspended = true,
+                    Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow.AddDays(-8), IsSuspended = true,
                     Account = new AuthenticationUser { Email = "test@example.com" }
                 }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -810,17 +825,13 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant
                 {
-                    Id = Guid.Empty,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-4),
-                    LastWarningSentAt = null,
+                    Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow.AddDays(-4), LastWarningSentAt = null,
                     Account = new AuthenticationUser { Email = "warn@example.com" }
                 }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -838,17 +849,13 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant
                 {
-                    Id = Guid.Empty,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-4),
-                    LastWarningSentAt = DateTime.UtcNow.AddDays(-1),
+                    Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow.AddDays(-4), LastWarningSentAt = DateTime.UtcNow.AddDays(-1),
                     Account = new AuthenticationUser { Email = "warn@example.com" }
                 }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -863,18 +870,11 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             var tenants = new List<Tenant>
             {
-                new Tenant
-                {
-                    Id = Guid.Empty,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-1),
-                    IsSuspended = false
-                }
+                new Tenant { Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow.AddDays(-1), IsSuspended = false }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -894,10 +894,8 @@ namespace ScanToOrder.Application.UnitTest.Services
                 new Tenant { Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow.AddDays(-1) }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(new List<Restaurant>()); // Empty restaurants
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -925,7 +923,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             var mockTxn = new Mock<IDbTransaction>();
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>()))
                            .ThrowsAsync(new Exception("DB Error"));
 
             Func<Task> action = async () => await _service.MonitorAndSuspendOverdueDebtsAsync();
@@ -937,7 +935,6 @@ namespace ScanToOrder.Application.UnitTest.Services
         [Fact]
         public async Task MonitorDebts_TenantOverdue7Days_NoEmailAccount_SuspendsButDoesNotSendEmail()
         {
-            // Test cho đoạn màu vàng đầu tiên: Quá hạn 7 ngày nhưng Email trống
             var mockTxn = new Mock<IDbTransaction>();
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
 
@@ -946,10 +943,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant
                 {
-                    Id = tenantId,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-8),
-                    IsSuspended = false,
-                    // Giả lập Account không có email
+                    Id = tenantId, DebtStartedAt = DateTime.UtcNow.AddDays(-8), IsSuspended = false,
                     Account = new AuthenticationUser { Email = string.Empty }
                 }
             };
@@ -958,18 +952,14 @@ namespace ScanToOrder.Application.UnitTest.Services
                 new Restaurant { Id = 1, TenantId = tenantId, IsActive = true, IsReceivingOrders = true, Slug = "test-slug" }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(restaurants);
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(restaurants);
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
-            // Vẫn khóa tài khoản và nhà hàng
             tenants[0].IsSuspended.Should().BeTrue();
             restaurants[0].IsActive.Should().BeFalse();
 
-            // NHƯNG không gọi hàm gửi mail
             _mockEmailService.Verify(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
@@ -984,22 +974,17 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant
                 {
-                    Id = Guid.Empty,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-4),
-                    LastWarningSentAt = null,
+                    Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow.AddDays(-4), LastWarningSentAt = null,
                     Account = null
                 }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
             tenants[0].LastWarningSentAt.Should().NotBeNull();
-
             _mockEmailService.Verify(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
         }
@@ -1015,10 +1000,8 @@ namespace ScanToOrder.Application.UnitTest.Services
             {
                 new Tenant
                 {
-                    Id = tenantId,
-                    DebtStartedAt = DateTime.UtcNow.AddDays(-8),
-                    IsSuspended = false,
-                    Account = null 
+                    Id = tenantId, DebtStartedAt = DateTime.UtcNow.AddDays(-8), IsSuspended = false,
+                    Account = null
                 }
             };
             var restaurants = new List<Restaurant>
@@ -1026,10 +1009,8 @@ namespace ScanToOrder.Application.UnitTest.Services
                 new Restaurant { Id = 1, TenantId = tenantId, IsActive = true, IsReceivingOrders = true, Slug = "test-slug" }
             };
 
-            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>>()))
-                           .ReturnsAsync(tenants);
-            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
-                           .ReturnsAsync(restaurants);
+            _mockUnitOfWork.Setup(u => u.Tenants.FindAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(restaurants);
 
             await _service.MonitorAndSuspendOverdueDebtsAsync();
 
@@ -1038,6 +1019,86 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             _mockEmailService.Verify(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
             _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task MonitorDebts_ThrowsException_HitsGenericCatch()
+        {
+            var mockTxn = new Mock<IDbTransaction>();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
+
+            var tenants = new List<Tenant> { new Tenant { Id = Guid.Empty, DebtStartedAt = DateTime.UtcNow } };
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+
+            _mockUnitOfWork.Setup(u => u.SaveAsync()).ThrowsAsync(new Exception("Generic DB Error"));
+
+            Func<Task> action = async () => await _service.MonitorAndSuspendOverdueDebtsAsync();
+
+            await action.Should().NotThrowAsync();
+            mockTxn.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _mockLogger.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Lỗi khi chạy CronJob: MonitorAndSuspendOverdueDebtsAsync")), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task MonitorDebts_DaysOverdue7_ValidEmail_CoversEmailSending()
+        {
+            var mockTxn = new Mock<IDbTransaction>();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
+
+            var tenantId = Guid.NewGuid();
+            var tenants = new List<Tenant>
+            {
+                new Tenant
+                {
+                    Id = tenantId,
+                    DebtStartedAt = DateTime.UtcNow.AddDays(-7.5), 
+                    IsSuspended = false,
+                    TotalDebtAmount = 50000,
+                    Account = new AuthenticationUser { Email = "valid7@example.com" }
+                }
+            };
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>(), It.IsAny<Expression<Func<Restaurant, object>>[]>())).ReturnsAsync(new List<Restaurant>());
+
+            await _service.MonitorAndSuspendOverdueDebtsAsync();
+
+            _mockEmailService.Verify(e => e.SendEmailAsync("valid7@example.com", "Thong bao dinh chi tai khoan - ScanToOrder", It.Is<string>(s => s.Contains("50,000 VND"))), Times.Once);
+        }
+
+        [Fact]
+        public async Task MonitorDebts_DaysOverdue3_ValidEmail_CoversWarningEmailSending()
+        {
+            var mockTxn = new Mock<IDbTransaction>();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(mockTxn.Object);
+
+            var tenantId = Guid.NewGuid();
+            var tenants = new List<Tenant>
+            {
+                new Tenant
+                {
+                    Id = tenantId,
+                    DebtStartedAt = DateTime.UtcNow.AddDays(-3.5), 
+                    IsSuspended = false,
+                    LastWarningSentAt = null,
+                    TotalDebtAmount = 25000,
+                    Account = new AuthenticationUser { Email = "valid3@example.com" }
+                }
+            };
+
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>(), It.IsAny<Expression<Func<Tenant, object>>[]>())).ReturnsAsync(tenants);
+            _mockUnitOfWork.Setup(u => u.Tenants.GetAllAsync(It.IsAny<Expression<Func<Tenant, bool>>>())).ReturnsAsync(tenants);
+
+            _mockUnitOfWork.Setup(u => u.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>())).ReturnsAsync(new List<Restaurant>());
+            _mockUnitOfWork.Setup(u => u.Restaurants.GetAllAsync(It.IsAny<Expression<Func<Restaurant, bool>>>(), It.IsAny<Expression<Func<Restaurant, object>>[]>())).ReturnsAsync(new List<Restaurant>());
+
+            await _service.MonitorAndSuspendOverdueDebtsAsync();
+
+            _mockEmailService.Verify(e => e.SendEmailAsync("valid3@example.com", "Canh bao cong no phi hoa hong - ScanToOrder", It.Is<string>(s => s.Contains("25,000 VND"))), Times.Once);
         }
         #endregion
     }

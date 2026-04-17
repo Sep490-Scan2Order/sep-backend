@@ -7,231 +7,209 @@ using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Infrastructure.Services;
 using StackExchange.Redis;
 
-namespace ScanToOrder.Infrastructure.UnitTest.Services
+namespace ScanToOrder.Infrastructure.UnitTest.Services;
+
+public class MenuCacheServiceTests
 {
-    public class MenuCacheServiceTests
+    private static (MenuCacheService sut, Mock<IDatabase> database, Mock<ILogger<MenuCacheService>> logger)
+        CreateSut(string? instanceName = null)
     {
-        private readonly Mock<IConnectionMultiplexer> _mockConnection;
-        private readonly Mock<IDatabase> _mockDatabase;
-        private readonly Mock<IConfiguration> _mockConfig;
-        private readonly Mock<ILogger<MenuCacheService>> _mockLogger;
-        private MenuCacheService _service;
+        var connection = new Mock<IConnectionMultiplexer>(MockBehavior.Strict);
+        var database = new Mock<IDatabase>(MockBehavior.Loose);
+        var config = new Mock<IConfiguration>(MockBehavior.Strict);
+        var logger = new Mock<ILogger<MenuCacheService>>();
 
-        public MenuCacheServiceTests()
+        connection
+            .Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+            .Returns(database.Object);
+        config.SetupGet(x => x["RedisSettings:InstanceName"]).Returns(instanceName);
+
+        var sut = new MenuCacheService(connection.Object, config.Object, logger.Object);
+        return (sut, database, logger);
+    }
+
+    private static void VerifyLog(Mock<ILogger<MenuCacheService>> logger, LogLevel level, string messagePart, Times times)
+    {
+        logger.Verify(
+            x => x.Log(
+                level,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains(messagePart)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            times);
+    }
+
+    private static void AssertStringSetInvocation(Mock<IDatabase> database, string expectedKey, string expectedValue, string expectedTtl)
+    {
+        var invocation = database.Invocations.Single(invocation => invocation.Method.Name == nameof(IDatabase.StringSetAsync));
+
+        invocation.Arguments[0].ToString().Should().Be(expectedKey);
+        invocation.Arguments[1].ToString().Should().Be(expectedValue);
+        invocation.Arguments[2].ToString().Should().Be(expectedTtl);
+    }
+
+    private static void AssertStringGetInvocation(Mock<IDatabase> database, string expectedKey)
+    {
+        var invocation = database.Invocations.Single(invocation => invocation.Method.Name == nameof(IDatabase.StringGetAsync));
+
+        invocation.Arguments[0].ToString().Should().Be(expectedKey);
+    }
+
+    private static void AssertKeyDeleteInvocation(Mock<IDatabase> database, string expectedKey)
+    {
+        var invocation = database.Invocations.Single(invocation => invocation.Method.Name == nameof(IDatabase.KeyDeleteAsync));
+
+        invocation.Arguments[0].ToString().Should().Be(expectedKey);
+    }
+
+    [Fact]
+    public async Task GetMenuAsync_WhenInstanceNameIsNull_UsesDefaultKey()
+    {
+        var (sut, database, _) = CreateSut(null);
+        const string expectedKey = "menu:1";
+
+        database
+            .Setup(db => db.StringGetAsync(expectedKey, It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisValue.Null);
+
+        var result = await sut.GetMenuAsync(1);
+
+        result.Should().BeNull();
+        AssertStringGetInvocation(database, expectedKey);
+    }
+
+    [Fact]
+    public async Task GetMenuAsync_ReturnsDeserializedMenu_WhenCacheExists()
+    {
+        var (sut, database, _) = CreateSut("S2O:");
+        const string expectedKey = "S2O:menu:1";
+        var menuData = new List<MenuCategoryDto>
         {
-            _mockConnection = new Mock<IConnectionMultiplexer>();
-            _mockDatabase = new Mock<IDatabase>();
-            _mockConfig = new Mock<IConfiguration>();
-            _mockLogger = new Mock<ILogger<MenuCacheService>>();
+            new() { CategoryId = 1, CategoryName = "Pizza" }
+        };
 
-            _mockConnection
-                .Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-                .Returns(_mockDatabase.Object);
-        }
+        database
+            .Setup(db => db.StringGetAsync(expectedKey, It.IsAny<CommandFlags>()))
+            .ReturnsAsync(JsonSerializer.Serialize(menuData));
 
-        #region 1. Constructor & Key Logic
+        var result = await sut.GetMenuAsync(1);
 
-        [Fact]
-        public async Task GetMenuAsync_WhenInstanceNameIsNull_UsesDefaultKeyFormat()
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+        result![0].CategoryName.Should().Be("Pizza");
+        AssertStringGetInvocation(database, expectedKey);
+    }
+
+    [Fact]
+    public async Task GetMenuAsync_WhenRedisThrows_ReturnsNullAndLogsWarning()
+    {
+        var (sut, database, logger) = CreateSut("S2O:");
+        const string expectedKey = "S2O:menu:1";
+
+        database
+            .Setup(db => db.StringGetAsync(expectedKey, It.IsAny<CommandFlags>()))
+            .ThrowsAsync(new Exception("Fail"));
+
+        var result = await sut.GetMenuAsync(1);
+
+        result.Should().BeNull();
+        VerifyLog(logger, LogLevel.Warning, "Redis GetMenuAsync failed", Times.Once());
+    }
+
+    [Fact]
+    public async Task SetMenuAsync_UsesProvidedExpiry_WhenNotNull()
+    {
+        var (sut, database, _) = CreateSut("S2O:");
+        var expiry = TimeSpan.FromHours(1);
+        var menu = new List<MenuCategoryDto>
         {
-            // Arrange
-            _mockConfig.Setup(x => x["RedisSettings:InstanceName"]).Returns((string)null);
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            var expectedKey = "menu:1";
+            new() { CategoryId = 1, CategoryName = "Pizza" }
+        };
+        var expectedKey = "S2O:menu:1";
+        var expectedJson = JsonSerializer.Serialize(menu);
 
-            // Act
-            await _service.GetMenuAsync(1);
-
-            // Assert
-            _mockDatabase.Verify(db => db.StringGetAsync(
-                It.Is<RedisKey>(k => k.ToString() == expectedKey),
-                It.IsAny<CommandFlags>()), Times.Once);
-        }
-
-        #endregion
-
-        #region 2. Main Methods Coverage
-
-        [Fact]
-        public async Task GetMenuAsync_ReturnsDeserializedMenu_WhenCacheExists()
-        {
-            // Arrange
-            _mockConfig.Setup(x => x["RedisSettings:InstanceName"]).Returns("S2O:");
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            var menuData = new List<MenuCategoryDto> { new() { CategoryId = 1, CategoryName = "Pizza" } };
-
-            _mockDatabase
-                .Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                .ReturnsAsync(JsonSerializer.Serialize(menuData));
-
-            // Act
-            var result = await _service.GetMenuAsync(1);
-
-            // Assert
-            result.Should().NotBeNull();
-            result![0].CategoryName.Should().Be("Pizza");
-        }
-
-        [Fact]
-        public async Task GetMenuAsync_ReturnsNull_WhenCacheIsMissing()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            _mockDatabase
-                .Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                .ReturnsAsync(RedisValue.Null);
-
-            // Act
-            var result = await _service.GetMenuAsync(1);
-
-            // Assert
-            result.Should().BeNull();
-        }
-
-        [Fact]
-        public async Task SetMenuAsync_UsesProvidedExpiry_WhenNotNull()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            var expiry = TimeSpan.FromHours(1);
-
-            // Act
-            await _service.SetMenuAsync(1, new List<MenuCategoryDto>(), expiry);
-
-            // Assert
-            _mockDatabase
-                .Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                .ReturnsAsync(RedisValue.Null);
-        }
-
-        [Fact]
-        public async Task InvalidateMenuAsync_LogsInformation_OnSuccess()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-
-            // Act
-            await _service.InvalidateMenuAsync(1);
-
-            // Assert
-            _mockDatabase.Verify(db => db.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Once);
-            VerifyLogger(LogLevel.Information, "Menu cache invalidated", Times.Once());
-        }
-
-        #endregion
-
-        #region 3. Exception Handling (Try-Catch Coverage)
-
-        [Fact]
-        public async Task GetMenuAsync_WhenRedisThrows_ReturnsNullAndLogsWarning()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            _mockDatabase
-                .Setup(db => db.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                .ThrowsAsync(new Exception("Fail"));
-
-            // Act
-            var result = await _service.GetMenuAsync(1);
-
-            // Assert
-            result.Should().BeNull();
-            VerifyLogger(LogLevel.Warning, "Redis GetMenuAsync failed", Times.Once());
-        }
-
-        [Fact]
-        public async Task SetMenuAsync_WhenRedisThrows_ShouldCoverCatchBlock()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-
-            // SETUP: Ném lỗi cho BẤT KỲ cuộc gọi nào đến StringSetAsync 
-            // để chắc chắn code rơi vào khối catch (dòng 58)
-            _mockDatabase.Setup(db => db.StringSetAsync(
+        database
+            .Setup(db => db.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.IsAny<TimeSpan?>(),
-                It.IsAny<bool>(),
+                It.IsAny<TimeSpan>(),
                 It.IsAny<When>(),
                 It.IsAny<CommandFlags>()))
-            .ThrowsAsync(new Exception("Redis connection failed"));
+            .ReturnsAsync(true);
 
-            // Act
-            await _service.SetMenuAsync(1, new List<MenuCategoryDto>());
+        await sut.SetMenuAsync(1, menu, expiry);
 
-            // Assert
-            // Verify xem Logger có được gọi trong khối catch hay không
-            VerifyLogger(LogLevel.Warning, "Cache write skipped", Times.Once());
-        }
+        AssertStringSetInvocation(database, expectedKey, expectedJson, "EX 3600");
+    }
 
-        private void VerifyLogger(LogLevel level, string messagePart, Times times)
-        {
-            _mockLogger.Verify(
-                x => x.Log(
-                    level,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(messagePart)),
-                    It.IsAny<Exception?>(), // BẮT BUỘC có dấu ? để khớp với LogWarning(ex, ...)
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()), // BẮT BUỘC có dấu ?
-                times);
-        }
+    [Fact]
+    public async Task SetMenuAsync_WhenExpiryIsNull_UsesDefaultTtl()
+    {
+        var (sut, database, _) = CreateSut();
+        var menu = new List<MenuCategoryDto>();
+        const string expectedKey = "menu:1";
 
-        [Fact]
-        public async Task InvalidateMenuAsync_WhenRedisThrows_ShouldCoverCatchBlock()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            _mockDatabase
-                .Setup(db => db.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                .ThrowsAsync(new Exception("Redis Delete Error"));
-
-            // Act
-            await _service.InvalidateMenuAsync(1);
-
-            // Assert
-            VerifyLogger(LogLevel.Warning, "Redis InvalidateMenuAsync failed", Times.Once());
-        }
-
-        [Fact]
-        public async Task SetMenuAsync_WhenExpiryIsNull_ShouldUseDefaultTtl()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            var expectedSeconds = 300; // 5 minutes = 300 seconds
-
-            // Act
-            await _service.SetMenuAsync(1, new List<MenuCategoryDto>(), null);
-
-            // Assert
-            _mockDatabase.Verify(db => db.StringSetAsync(
+        database
+            .Setup(db => db.StringSetAsync(
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
-                It.Is<TimeSpan?>(t => t.HasValue && t.Value.TotalSeconds == expectedSeconds), // So sánh giây
-                It.IsAny<bool>(),
+                It.IsAny<TimeSpan>(),
                 It.IsAny<When>(),
-                It.IsAny<CommandFlags>()), Times.Once);
-        }
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
 
-        [Fact]
-        public async Task InvalidateMenuAsync_WhenRedisThrows_LogsWarning()
-        {
-            // Arrange
-            _service = new MenuCacheService(_mockConnection.Object, _mockConfig.Object, _mockLogger.Object);
-            _mockDatabase
-                .Setup(db => db.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-                .ThrowsAsync(new Exception("Delete Fail"));
+        await sut.SetMenuAsync(1, menu, null);
 
-            // Act
-            await _service.InvalidateMenuAsync(1);
+        AssertStringSetInvocation(database, expectedKey, JsonSerializer.Serialize(menu), "EX 300");
+    }
 
-            // Assert
-            VerifyLogger(LogLevel.Warning, "Redis InvalidateMenuAsync failed", Times.Once());
-        }
+    [Fact]
+    public async Task SetMenuAsync_WhenRedisThrows_LogsWarning()
+    {
+        var (sut, database, logger) = CreateSut();
 
-        #endregion
+        database
+            .Setup(db => db.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<Expiration>(),
+                It.IsAny<ValueCondition>(),
+                It.IsAny<CommandFlags>()))
+            .Callback(() => throw new Exception("Redis connection failed"));
 
-        #region Helper Methods
+        await sut.SetMenuAsync(1, new List<MenuCategoryDto>());
 
-        #endregion
+        VerifyLog(logger, LogLevel.Warning, "Cache write skipped", Times.Once());
+    }
+
+    [Fact]
+    public async Task InvalidateMenuAsync_DeletesKeyAndLogsInformation()
+    {
+        var (sut, database, logger) = CreateSut("S2O:");
+        const string expectedKey = "S2O:menu:1";
+
+        database
+            .Setup(db => db.KeyDeleteAsync(expectedKey, It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        await sut.InvalidateMenuAsync(1);
+
+        AssertKeyDeleteInvocation(database, expectedKey);
+        VerifyLog(logger, LogLevel.Information, "Menu cache invalidated", Times.Once());
+    }
+
+    [Fact]
+    public async Task InvalidateMenuAsync_WhenRedisThrows_LogsWarning()
+    {
+        var (sut, database, logger) = CreateSut();
+
+        database
+            .Setup(db => db.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ThrowsAsync(new Exception("Delete Fail"));
+
+        await sut.InvalidateMenuAsync(1);
+
+        VerifyLog(logger, LogLevel.Warning, "Redis InvalidateMenuAsync failed", Times.Once());
     }
 }
