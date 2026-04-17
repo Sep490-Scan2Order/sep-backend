@@ -94,7 +94,7 @@ public class OrderController : BaseController
     }
 
     [HttpGet("kds/active-orders/{restaurantId}")]
-    [Authorize(Roles = "Tenant, Admin, Cashier")]
+    [Authorize(Roles = "Tenant, Admin, Cashier, Staff")]
     public async Task<ActionResult<ApiResponse<List<KdsOrderResponse>>>> GetKdsActiveOrders([FromRoute] int restaurantId)
     {
         var result = await _orderService.GetKdsActiveOrders(restaurantId);
@@ -103,7 +103,7 @@ public class OrderController : BaseController
 
 
     [HttpPut("update-status/{orderId}")]
-    [Authorize(Roles = "Tenant, Cashier")]
+    [Authorize(Roles = "Tenant, Cashier, Staff")]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateOrderStatus([FromRoute] Guid orderId, [FromQuery] OrderStatus newStatus)
     {
         var result = await _orderService.UpdateOrderStatus(orderId, newStatus);

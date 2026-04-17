@@ -10,5 +10,6 @@ namespace ScanToOrder.Domain.Interfaces
         Task<(List<(ShiftReport Report, decimal OpeningCashAmount, string CashierName)> Items, int TotalCount)> GetReportsByStaffAsync(Guid staffId, int pageIndex = 1, int pageSize = 10);
 
         Task<(decimal TotalCash, decimal TotalTransfer, decimal TotalRefund)> GetPaymentMetricsAsync(int restaurantId, DateTime startDate, DateTime endDate);
+        Task<ShiftReport?> GetReportByShiftIdAsync(int shiftId);
     }
 }

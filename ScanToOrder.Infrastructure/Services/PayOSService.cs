@@ -11,13 +11,11 @@ namespace ScanToOrder.Infrastructure.Services;
 
 public class PayOSService : IPaymentService
 {
-    private readonly PayOSClient _payOSClient;
-    private readonly PayOSSettings _payOsSettings;
+    private readonly IPayOSClientAdapter _payOSClient;
 
-    public PayOSService(PayOSClient payOsClient, IOptions<PayOSSettings> payOsOptions)
+    public PayOSService(IPayOSClientAdapter payOsClient, IOptions<PayOSSettings> payOsOptions)
     {
         _payOSClient = payOsClient;
-        _payOsSettings = payOsOptions.Value;
     }
 
     public async Task<string> CreatePaymentLinkAsync(CreatePaymentRequest request)

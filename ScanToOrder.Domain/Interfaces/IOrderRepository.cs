@@ -10,6 +10,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<List<Order>> GetOrdersForKdsAsync(int restaurantId);
 
         Task<Order?> GetOrderWithDetailsForKdsAsync(Guid orderId);
+        Task<Order?> GetOrderWithDetailsByIdAsync(Guid orderId);
 
         Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId);
         Task<Order?> GetByOrderCodeAndRestaurantAsync(int orderCode, int restaurantId);

@@ -93,5 +93,11 @@ namespace ScanToOrder.Infrastructure.Repositories
             
             return (metrics.TotalCash, metrics.TotalTransfer, metrics.TotalRefund);
         }
+
+        public async Task<ShiftReport?> GetReportByShiftIdAsync(int shiftId)
+        {
+            return await _context.ShiftReports
+                .FirstOrDefaultAsync(r => r.ShiftId == shiftId);
+        }
     }
 }

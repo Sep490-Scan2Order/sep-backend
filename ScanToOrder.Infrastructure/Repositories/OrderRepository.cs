@@ -51,6 +51,14 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<Order?> GetOrderWithDetailsByIdAsync(Guid orderId)
+        {
+            return await _dbSet
+                .Include(o => o.OrderDetails)
+                .Where(o => o.Id == orderId && !o.IsDeleted)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<List<Order>> GetCashOrdersPendingConfirmAsync(int restaurantId)
         {
             return await _context.Orders

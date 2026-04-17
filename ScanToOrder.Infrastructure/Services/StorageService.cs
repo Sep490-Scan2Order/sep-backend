@@ -92,11 +92,12 @@ namespace ScanToOrder.Infrastructure.Services
             if (await CheckFileExistsAsync(expectedUrl))
                 return expectedUrl;
 
-            string textToSpeak = $"Đã nhận được tiền số tiền mặt cho đơn hàng {orderCode} ";
+            string textToSpeak = $"Đã nhận chuyển khoản {amount} cho đơn số {orderCode} ";
             byte[] audioBytes = await GenerateTtsAudioFromOpenAI(textToSpeak);
             await UploadAudioToVpsAsync(audioBytes, fileName);
             return expectedUrl;
         }
+
 
         private async Task<bool> CheckFileExistsAsync(string url)
         {

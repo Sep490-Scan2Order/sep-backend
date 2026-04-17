@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.Services;
 using ScanToOrder.Domain.Entities.Authentication;
@@ -62,15 +62,15 @@ public class AdminDashboardServiceTests
             (2026, 4, 1000m),
             (2026, 5, 1500m)
         };
-        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetRevenueTrendRawAsync(It.IsAny<DateTime>()))
+        _mockUnitOfWork.Setup(u => u.PaymentTransactions.GetRevenueTrendRawAsync(It.IsAny<DateTime>(), PaymentTransactionType.Subscription))
             .ReturnsAsync(rawData);
 
         // Act
-        var result = await _adminDashboardService.GetSubscriptionRevenueTrendsAsync(6);
+        var result = await _adminDashboardService.GetSubscriptionRevenueTrendsAsync(2);
 
         // Assert
         result.Should().HaveCount(2);
-        result[0].Month.Should().Be("4/2026");
+        result[0].Month.Should().Be("04/2026");
         result[0].Revenue.Should().Be(1000m);
     }
     #endregion

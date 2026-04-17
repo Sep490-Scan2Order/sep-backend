@@ -372,24 +372,35 @@ namespace ScanToOrder.Infrastructure.Tests.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.RefreshSecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Tạo token thủ công CHỈ chứa claim "sub"
-            var tokenDescriptor = new SecurityTokenDescriptor
+            // Tắt map mặc định (sub -> NameIdentifier) để ép chạy nhánh phải của toán tử ??
+            var originalMapInboundClaims = JwtSecurityTokenHandler.DefaultMapInboundClaims;
+            JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
+            try
             {
-                Issuer = _settings.Issuer,
-                Audience = _settings.Audience,
-                Subject = new ClaimsIdentity(new[] { new Claim("sub", userId) }), // Tên claim chính xác là "sub"
-                Expires = DateTime.UtcNow.AddMinutes(10),
-                SigningCredentials = creds
-            };
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var jwtToken = tokenHandler.CreateJwtSecurityToken(tokenDescriptor);
-            var token = tokenHandler.WriteToken(jwtToken);
+                var tokenDescriptor = new SecurityTokenDescriptor
+                {
+                    Issuer = _settings.Issuer,
+                    Audience = _settings.Audience,
+                    Subject = new ClaimsIdentity(new[] { new Claim("sub", userId) }),
+                    Expires = DateTime.UtcNow.AddMinutes(10),
+                    SigningCredentials = creds
+                };
 
-            // Act
-            var result = _jwtService.ValidateRefreshToken(token);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.CreateJwtSecurityToken(tokenDescriptor);
+                var token = tokenHandler.WriteToken(jwtToken);
 
-            // Assert
-            result.Should().Be(userId); // Phải lọt vào vế sau của dấu ??
+                // Act
+                var result = _jwtService.ValidateRefreshToken(token);
+
+                // Assert
+                result.Should().Be(userId);
+            }
+            finally
+            {
+                JwtSecurityTokenHandler.DefaultMapInboundClaims = originalMapInboundClaims;
+            }
         }
     }
 }
