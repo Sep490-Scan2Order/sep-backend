@@ -90,7 +90,8 @@ namespace ScanToOrder.Application.Mappings
                 .IncludeBase<CreatePromotionDto, Promotion>()
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive));
 
-            CreateMap<Shift, ShiftDto>();
+            CreateMap<Shift, ShiftDto>()
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.Staffs != null ? src.Staffs.Name : string.Empty));
 
             CreateMap<ShiftReport, ShiftReportDto>()
                 .ForMember(dest => dest.CashierName, opt => opt.MapFrom(src => src.Shift != null && src.Shift.Staffs != null ? src.Shift.Staffs.Name : string.Empty))

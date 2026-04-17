@@ -15,11 +15,13 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IRealtimeService _realtimeService;
-        public ShiftService(IUnitOfWork unitOfWork, IMapper mapper, IRealtimeService realtimeService)
+        private readonly IAuthenticatedUserService _authenticatedUserService;
+        public ShiftService(IUnitOfWork unitOfWork, IMapper mapper, IRealtimeService realtimeService, IAuthenticatedUserService authenticatedUserService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _realtimeService = realtimeService;
+            _authenticatedUserService = authenticatedUserService;
         }
 
         public async Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, decimal openingCashAmount, string? note)
@@ -31,17 +33,37 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(Message.RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             }
 
-            if (openingCashAmount < restaurant.MinCashAmount)
-            {
-                throw new DomainException(Message.ShiftMessage.ShiftError.OPENING_CASH_INVALID);
-            }
+            // Xác định vai trò
+            Enum.TryParse<Role>(_authenticatedUserService.Role, out var userRole);
+            var isCashier = userRole == Role.Cashier;
 
-            var activeShift = await _unitOfWork.Shifts
-                .FirstOrDefaultAsync(x => x.RestaurantId == restaurantId && x.Status == ShiftStatus.Open);
+            var activeCashierShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(restaurantId);
 
-            if (activeShift != null)
+            // Kiểm tra xem nhân viên này đã có ca làm nào đang mở chưa
+            var existingOpenShift = await _unitOfWork.Shifts.GetCurrentShiftByStaffIdAsync(staffId);
+            if (existingOpenShift != null)
             {
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_ALREADY_OPEN);
+            }
+
+            if (isCashier)
+            {
+                if (openingCashAmount < restaurant.MinCashAmount)
+                {
+                    throw new DomainException(Message.ShiftMessage.ShiftError.OPENING_CASH_INVALID);
+                }
+
+                if (activeCashierShift != null)
+                {
+                    throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_ALREADY_OPEN);
+                }
+            }
+            else
+            {
+                if (activeCashierShift == null)
+                {
+                    throw new DomainException(Message.ShiftMessage.ShiftError.CASHIER_SHIFT_NOT_OPEN);
+                }
             }
 
             var shift = new Shift
@@ -49,9 +71,11 @@ namespace ScanToOrder.Application.Services
                 RestaurantId = restaurantId,
                 StaffId = staffId,
                 StartDate = DateTime.UtcNow,
-                OpeningCashAmount = openingCashAmount,
+                OpeningCashAmount = isCashier ? openingCashAmount : 0,
                 Note = note ?? string.Empty,
-                Status = ShiftStatus.Open
+                Status = ShiftStatus.Open,
+                Type = isCashier ? ShiftType.Cashier : ShiftType.Staff,
+                ParentShiftId = isCashier ? null : activeCashierShift?.Id
             };
 
             await _unitOfWork.Shifts.AddAsync(shift);
@@ -65,18 +89,61 @@ namespace ScanToOrder.Application.Services
         {
             var shift = await GetAndValidateOpenShiftAsync(shiftId);
 
-            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
-            if (restaurant != null && actualCashAmount < restaurant.MinCashAmount)
+            if (shift.Type == ShiftType.Cashier)
             {
-                throw new DomainException(Message.ShiftMessage.ShiftError.CASH_AMOUNT_INVALID);
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null && actualCashAmount < restaurant.MinCashAmount)
+                {
+                    throw new DomainException(Message.ShiftMessage.ShiftError.CASH_AMOUNT_INVALID);
+                }
+
+                var hasOpenStaff = await _unitOfWork.Shifts.HasOpenSubShiftsAsync(shiftId);
+                if (hasOpenStaff)
+                {
+                    throw new DomainException(Message.ShiftMessage.ShiftError.STAFF_MUST_CHECKOUT_FIRST);
+                }
+
+                var transactions = await GetSuccessfulTransactionsAsync(shiftId);
+                var metrics = CalculateShiftMetrics(transactions);
+
+                await PerformCheckOutTransitionAsync(shift, actualCashAmount, metrics, note);
+            }
+            else
+            {
+                // Đối với nhân viên (Staff), chỉ cần đóng trạng thái
+                shift.EndDate = DateTime.UtcNow;
+                shift.Status = ShiftStatus.Closed;
+                shift.Note = note ?? string.Empty;
+                _unitOfWork.Shifts.Update(shift);
+                await _unitOfWork.SaveAsync();
+                await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
             }
 
-            var transactions = await GetSuccessfulTransactionsAsync(shiftId);
-            var metrics = CalculateShiftMetrics(transactions);
-
-            await PerformCheckOutTransitionAsync(shift, actualCashAmount, metrics, note);
-
             return _mapper.Map<ShiftDto>(shift);
+        }
+
+        public async Task BlockStaffShiftAsync(int shiftId, string reason)
+        {
+            var shift = await _unitOfWork.Shifts.GetByIdAsync(shiftId);
+            if (shift == null)
+                throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
+
+            if (shift.Type != ShiftType.Staff)
+                throw new DomainException(Message.ShiftMessage.ShiftError.UNAUTHORIZED_ACCESS);
+
+            shift.Status = ShiftStatus.Blocked;
+            shift.EndDate = DateTime.UtcNow;
+            shift.Note = reason;
+            
+            _unitOfWork.Shifts.Update(shift);
+            await _unitOfWork.SaveAsync();
+            await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+        }
+
+        public async Task<IEnumerable<ShiftDto>> GetStaffShiftsByCashierShiftIdAsync(int cashierShiftId)
+        {
+            var shifts = await _unitOfWork.Shifts.GetOpenSubShiftsByParentIdAsync(cashierShiftId);
+            return _mapper.Map<IEnumerable<ShiftDto>>(shifts);
         }
 
         private async Task<Shift> GetAndValidateOpenShiftAsync(int shiftId)
@@ -93,9 +160,7 @@ namespace ScanToOrder.Application.Services
 
         private async Task<List<Transaction>> GetSuccessfulTransactionsAsync(int shiftId)
         {
-            var transactions = await _unitOfWork.Transactions
-                .GetAllAsync(t => t.ShiftId == shiftId && t.Status == OrderTransactionStatus.Success, t => t.Order);
-            return transactions.ToList();
+            return await _unitOfWork.Transactions.GetSuccessfulTransactionsByShiftIdAsync(shiftId);
         }
 
         private static ShiftMetrics CalculateShiftMetrics(List<Transaction> transactions)
@@ -173,8 +238,7 @@ namespace ScanToOrder.Application.Services
                 
             var staff = await _unitOfWork.Staffs.GetByIdAsync(shift.StaffId);
 
-            var report = await _unitOfWork.ShiftReports
-                .FirstOrDefaultAsync(r => r.ShiftId == shiftId);
+            var report = await _unitOfWork.ShiftReports.GetReportByShiftIdAsync(shiftId);
 
             if (report == null)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_REPORT_NOT_FOUND);

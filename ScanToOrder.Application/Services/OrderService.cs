@@ -349,8 +349,7 @@ public class OrderService : IOrderService
         if (isPreOrder && requestedPickupAt == null)
             throw new DomainException("RequestedPickupAt là bắt buộc cho đơn đặt trước.");
 
-        var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-            s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
+        var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(cart.RestaurantId);
         
         if (activeShift == null)
             throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
@@ -533,8 +532,7 @@ public class OrderService : IOrderService
         if (restaurant == null)
             throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
 
-        var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-            s => s.RestaurantId == cart.RestaurantId && s.Status == ShiftStatus.Open);
+        var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(cart.RestaurantId);
 
         if (activeShift == null)
             throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
@@ -716,20 +714,12 @@ public class OrderService : IOrderService
             return;
         }
 
-        if (transaction.ShiftId.HasValue)
-        {
-            var savedShift = await _unitOfWork.Shifts.GetByIdAsync(transaction.ShiftId.Value);
-            if (savedShift != null && savedShift.StaffId != staff.Id)
-                throw new DomainException(StaffMessage.StaffError.UNAUTHORIZED_ACCESS);
-        }
-        else
-        {
-            var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-                s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open);
+        var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(order.RestaurantId);
 
-            if (activeShift != null && activeShift.StaffId == staff.Id)
-                transaction.ShiftId = activeShift.Id;
-        }
+        if (activeShift == null)
+            throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
+
+        transaction.ShiftId = activeShift.Id;
 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         try
@@ -751,14 +741,7 @@ public class OrderService : IOrderService
                     (int)order.Status
                 );
             }
-            try
-            {
-                audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, transaction.TotalAmount);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Tạo audio thông báo đã nhận chuyển khoản thất bại. OrderCode={OrderCode}, Amount={Amount}", order.OrderCode, transaction.TotalAmount);
-            }
+         
             await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transaction.TotalAmount, audioUrl);
         }
         catch

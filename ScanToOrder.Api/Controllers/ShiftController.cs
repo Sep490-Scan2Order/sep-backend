@@ -19,7 +19,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("check-in")]
-        [Authorize(Roles = "Cashier")]
+        [Authorize(Roles = "Cashier, Staff")]
         public async Task<ActionResult<ApiResponse<ShiftDto>>> CheckIn([FromBody] CheckInShiftRequest request)
         {
 
@@ -34,7 +34,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpPost("check-out")]
-        [Authorize(Roles = "Cashier")]
+        [Authorize(Roles = "Cashier, Staff")]
         public async Task<ActionResult<ApiResponse<ShiftDto>>> CheckOut([FromBody] CheckOutShiftRequest request)
         {
             var result = await _shiftService.CheckOutShiftAsync(
@@ -86,11 +86,27 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("current")]
-        [Authorize(Roles = "Cashier")]
+        [Authorize(Roles = "Cashier, Staff ")]
         public async Task<ActionResult<ApiResponse<ShiftDto>>> GetCurrentShift()
         {
             var staffId = _authenticatedUserService.ProfileId.Value;
             var result = await _shiftService.GetShiftByIdAsync(staffId);
+            return Success(result);
+        }
+
+        [HttpPost("{shiftId}/block")]
+        [Authorize(Roles = "Cashier")]
+        public async Task<ActionResult<ApiResponse<string>>> BlockStaffShift([FromRoute] int shiftId, [FromBody] BlockShiftRequest request)
+        {
+            await _shiftService.BlockStaffShiftAsync(shiftId, request.Reason);
+            return Success("Đã chặn ca làm việc thành công.");
+        }
+
+        [HttpGet("{cashierShiftId}/staff-shifts")]
+        [Authorize(Roles = "Cashier")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<ShiftDto>>>> GetStaffShifts([FromRoute] int cashierShiftId)
+        {
+            var result = await _shiftService.GetStaffShiftsByCashierShiftIdAsync(cashierShiftId);
             return Success(result);
         }
     }

@@ -58,12 +58,10 @@ namespace ScanToOrder.Application.Services
                 order.Note = request.Note;
                 _unitOfWork.Orders.Update(order);
 
-                var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-                    s => s.RestaurantId == order.RestaurantId && s.Status == ShiftStatus.Open)
+                var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(order.RestaurantId)
                     ?? throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
 
-                // Tìm giao dịch của đơn hàng này để cập nhật thành công và gán vào ca hiện tại
-                var transaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(t => t.OrderId == order.Id);
+                var transaction = await _unitOfWork.Transactions.GetTransactionByOrderIdAsync(order.Id);
                 
                 if (transaction == null)
                 {
@@ -174,17 +172,14 @@ namespace ScanToOrder.Application.Services
 
         private async Task<Order> ValidateRefundOrderOrThrowAsync(RefundRequest request)
         {
-            var originalOrder = await _unitOfWork.Orders.GetByFieldsIncludeAsync(
-                o => o.Id == request.OrderId,
-                o => o.OrderDetails);
+            var originalOrder = await _unitOfWork.Orders.GetOrderWithDetailsByIdAsync(request.OrderId);
 
             if (originalOrder == null)
             {
                 throw new DomainException(OrderMessage.OrderError.ORDER_NOT_FOUND);
             }
 
-            var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-                s => s.RestaurantId == originalOrder.RestaurantId && s.Status == ShiftStatus.Open);
+            var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(originalOrder.RestaurantId);
 
             if (activeShift == null)
             {
@@ -315,13 +310,11 @@ namespace ScanToOrder.Application.Services
         {
             if (refundType != RefundType.Objective) return;
 
-            var originalTransaction = await _unitOfWork.Transactions.FirstOrDefaultAsync(
-                t => t.OrderId == originalOrder.Id && t.TransactionType == TransactionType.Payment);
+            var originalTransaction = await _unitOfWork.Transactions.GetPaymentTransactionByOrderIdAsync(originalOrder.Id);
 
             if (originalTransaction?.PaymentMethod == PaymentMethod.Cash)
             {
-                var activeShift = await _unitOfWork.Shifts.FirstOrDefaultAsync(
-                    s => s.RestaurantId == originalOrder.RestaurantId && s.Status == ShiftStatus.Open);
+                var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(originalOrder.RestaurantId);
 
                 var transaction = new Transaction
                 {

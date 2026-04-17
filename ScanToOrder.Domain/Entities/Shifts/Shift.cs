@@ -19,6 +19,11 @@ namespace ScanToOrder.Domain.Entities.Shifts
         public decimal OpeningCashAmount { get; set; }
         public string Note { get; set; } = string.Empty;
         public ShiftStatus Status { get; set; }
+        public ShiftType Type { get; set; }
+        public int? ParentShiftId { get; set; }
+
+        public virtual Shift? ParentShift { get; set; }
+        public virtual ICollection<Shift> SubShifts { get; set; } = new List<Shift>();
         public virtual Restaurant Restaurants { get; set; } = null!;
         public virtual Staff Staffs { get; set; } = null!;
     }

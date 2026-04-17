@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Enums;
+using ScanToOrder.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +20,7 @@ namespace ScanToOrder.Application.DTOs.Shift
         public decimal OpeningCashAmount { get; set; }
 
         public string Note { get; set; } = string.Empty;
+        public string StaffName { get; set; } = string.Empty;
 
         public ShiftStatus Status { get; set; }
     }

@@ -27,6 +27,7 @@ namespace ScanToOrder.Application.UnitTest.Services
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IRealtimeService> _mockRealtimeService;
         private readonly Mock<IDbTransaction> _mockTransaction;
+        private readonly Mock<IAuthenticatedUserService> _mockAuthenticatedUserService;
         private readonly ShiftService _shiftService;
 
         public ShiftServiceTests()
@@ -39,6 +40,7 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockMapper = new Mock<IMapper>();
             _mockRealtimeService = new Mock<IRealtimeService>();
             _mockTransaction = new Mock<IDbTransaction>();
+            _mockAuthenticatedUserService = new Mock<IAuthenticatedUserService>();
 
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockUnitOfWork.Setup(u => u.Shifts).Returns(_mockShiftRepo.Object);
@@ -48,7 +50,9 @@ namespace ScanToOrder.Application.UnitTest.Services
             _mockUnitOfWork.Setup(u => u.Staffs).Returns(_mockStaffRepo.Object);
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(_mockTransaction.Object);
 
-            _shiftService = new ShiftService(_mockUnitOfWork.Object, _mockMapper.Object, _mockRealtimeService.Object);
+            _mockAuthenticatedUserService.Setup(a => a.Role).Returns("Cashier");
+
+            _shiftService = new ShiftService(_mockUnitOfWork.Object, _mockMapper.Object, _mockRealtimeService.Object, _mockAuthenticatedUserService.Object);
         }
 
         #region 1. CheckIn Tests

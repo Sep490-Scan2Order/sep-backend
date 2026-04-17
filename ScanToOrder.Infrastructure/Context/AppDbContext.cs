@@ -191,6 +191,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Shift>()
                    .Property(s => s.Status)
                 .HasConversion<string>();
+
+        modelBuilder.Entity<Shift>()
+                   .Property(s => s.Type)
+                .HasConversion<string>();
         
         modelBuilder.Entity<Shift>()
             .HasOne(s => s.Restaurants)
@@ -202,6 +206,12 @@ public class AppDbContext : DbContext
          .HasOne(s => s.Staffs)
          .WithMany(st => st.Shifts)
          .HasForeignKey(s => s.StaffId);
+
+        modelBuilder.Entity<Shift>()
+            .HasOne(s => s.ParentShift)
+            .WithMany(p => p.SubShifts)
+            .HasForeignKey(s => s.ParentShiftId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         /*
          * ShiftReport
