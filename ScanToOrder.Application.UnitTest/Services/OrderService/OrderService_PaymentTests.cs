@@ -217,6 +217,26 @@ public class OrderService_PaymentTests
         _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Never);
     }
 
+    [Fact]
+    public async Task ConfirmCashPaymentAsync_WhenNoActiveShift_ThrowsDomainException()
+    {
+        // Arrange
+        var order = new Order { Id = Guid.NewGuid(), Status = OrderStatus.Unpaid, RestaurantId = 1 };
+        var staff = new Staff { Id = Guid.NewGuid(), RestaurantId = 1 };
+        var transaction = new Transaction { Id = 1, OrderId = order.Id, Status = OrderTransactionStatus.Pending };
+
+        SetupMocks(order, staff, transaction);
+        _mockUnitOfWork.Setup(u => u.Shifts.GetActiveCashierShiftAsync(order.RestaurantId))
+            .ReturnsAsync((Shift)null);
+
+        // Act
+        var action = async () => await _orderService.ConfirmCashPaymentAsync(order.Id);
+
+        // Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
+    }
+
     #endregion
 
     #region Success Paths

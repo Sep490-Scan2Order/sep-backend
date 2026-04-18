@@ -1241,6 +1241,156 @@ public class SubscriptionServiceTests
     }
     #endregion
 
+    #region GetPaymentTransactionsByTenantAsync
+    [Fact]
+    public async Task GetPaymentTransactions_MapsDetails_SortsByPaymentDate_AndCoversAllActionDescriptions()
+    {
+        var tenantId = Guid.NewGuid();
+
+        var subscriptionTxn = new PaymentTransaction
+        {
+            Id = 10,
+            TenantId = tenantId,
+            TransactionCode = "SUB-001",
+            TotalAmount = 500000,
+            PaymentDate = DateTime.UtcNow.AddDays(-1),
+            Status = PaymentTransactionStatus.Success,
+            PaymentTransactionType = PaymentTransactionType.Subscription
+        };
+        subscriptionTxn.SetSubscriptionPayload(new List<OrderPayloadItemPlan>
+        {
+            new()
+            {
+                RestaurantId = 1,
+                ActionType = SubscriptionLogStatus.BuyNew,
+                OldPlanId = null,
+                NewPlanId = 101,
+                Cycle = BillingCycle.Monthly,
+                Quantity = 1,
+                AmountAllocated = 100000,
+                BalanceConverted = 0
+            },
+            new()
+            {
+                RestaurantId = 1,
+                ActionType = SubscriptionLogStatus.Upgrade,
+                OldPlanId = 100,
+                NewPlanId = 102,
+                Cycle = BillingCycle.Yearly,
+                Quantity = 1,
+                AmountAllocated = 200000,
+                BalanceConverted = 5000
+            },
+            new()
+            {
+                RestaurantId = 1,
+                ActionType = SubscriptionLogStatus.Downgrade,
+                OldPlanId = 102,
+                NewPlanId = 101,
+                Cycle = BillingCycle.Monthly,
+                Quantity = 2,
+                AmountAllocated = 150000,
+                BalanceConverted = 3000
+            },
+            new()
+            {
+                RestaurantId = 1,
+                ActionType = SubscriptionLogStatus.Renew,
+                OldPlanId = null,
+                NewPlanId = 101,
+                Cycle = BillingCycle.Yearly,
+                Quantity = 1,
+                AmountAllocated = 50000,
+                BalanceConverted = 0
+            },
+            new()
+            {
+                RestaurantId = 999, // missing in restaurants map => "Không xác định"
+                ActionType = (SubscriptionLogStatus)999, // default switch branch
+                OldPlanId = 555, // missing in plans map => null old plan name
+                NewPlanId = 999, // missing in plans map => "Không xác định"
+                Cycle = BillingCycle.Monthly,
+                Quantity = 1,
+                AmountAllocated = 0,
+                BalanceConverted = 0
+            }
+        });
+
+        var commissionTxn = new PaymentTransaction
+        {
+            Id = 20,
+            TenantId = tenantId,
+            TransactionCode = "COM-001",
+            TotalAmount = 120000,
+            PaymentDate = DateTime.UtcNow,
+            Status = PaymentTransactionStatus.Pending,
+            PaymentTransactionType = PaymentTransactionType.CommissionFee
+        };
+        commissionTxn.SetCommissionPayload(new CommissionFeePayload
+        {
+            CommissionRate = 0.05m,
+            TotalOrderAmount = 2400000,
+            PeriodStart = DateTimeOffset.UtcNow.AddDays(-7),
+            PeriodEnd = DateTimeOffset.UtcNow
+        });
+
+        _mockUnitOfWork.Setup(x => x.PaymentTransactions.GetAllAsync(It.IsAny<Expression<Func<PaymentTransaction, bool>>>()))
+            .ReturnsAsync(new List<PaymentTransaction> { subscriptionTxn, commissionTxn });
+
+        _mockUnitOfWork.Setup(x => x.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>()))
+            .ReturnsAsync(new List<Restaurant>
+            {
+                new() { Slug = "test", Id = 1, RestaurantName = "Restaurant A" }
+            });
+
+        _mockUnitOfWork.Setup(x => x.Plans.FindAsync(It.IsAny<Expression<Func<Plan, bool>>>()))
+            .ReturnsAsync(new List<Plan>
+            {
+                new() { Id = 100, Name = "Starter" },
+                new() { Id = 101, Name = "Standard" },
+                new() { Id = 102, Name = "Premium" }
+            });
+
+        var result = await _subscriptionService.GetPaymentTransactionsByTenantAsync(tenantId);
+
+        result.Should().HaveCount(2);
+        result[0].TransactionCode.Should().Be("COM-001"); // newer PaymentDate first
+        result[0].SubscriptionDetails.Should().BeNull();
+        result[0].CommissionDetails.Should().NotBeNull();
+
+        result[1].TransactionCode.Should().Be("SUB-001");
+        result[1].SubscriptionDetails.Should().HaveCount(5);
+        var subDetails = result[1].SubscriptionDetails!;
+
+        subDetails[0].DescriptionMessage.Should().Contain("Đăng ký mới gói Standard");
+        subDetails[1].DescriptionMessage.Should().Contain("Nâng cấp lên gói Premium");
+        subDetails[2].DescriptionMessage.Should().Contain("Hạ cấp xuống gói Standard");
+        subDetails[3].DescriptionMessage.Should().Contain("Gia hạn gói Standard thêm 1 năm");
+        subDetails[4].DescriptionMessage.Should().Be("Cập nhật dịch vụ");
+
+        subDetails[4].RestaurantName.Should().Be("Không xác định");
+        subDetails[4].NewPlanName.Should().Be("Không xác định");
+        subDetails[4].OldPlanName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPaymentTransactions_EmptyTransactions_ReturnsEmpty()
+    {
+        var tenantId = Guid.NewGuid();
+
+        _mockUnitOfWork.Setup(x => x.PaymentTransactions.GetAllAsync(It.IsAny<Expression<Func<PaymentTransaction, bool>>>()))
+            .ReturnsAsync(new List<PaymentTransaction>());
+        _mockUnitOfWork.Setup(x => x.Restaurants.FindAsync(It.IsAny<Expression<Func<Restaurant, bool>>>() ))
+            .ReturnsAsync(new List<Restaurant>());
+        _mockUnitOfWork.Setup(x => x.Plans.FindAsync(It.IsAny<Expression<Func<Plan, bool>>>() ))
+            .ReturnsAsync(new List<Plan>());
+
+        var result = await _subscriptionService.GetPaymentTransactionsByTenantAsync(tenantId);
+
+        result.Should().BeEmpty();
+    }
+    #endregion
+
     #region ProcessSubscriptionExpirationsAsync
     [Fact]
     public async Task ProcessExpirations_NoExpiredSubs_SkipsUpdateBlock()
