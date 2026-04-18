@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using ScanToOrder.Application.DTOs.Payment;
@@ -68,7 +69,8 @@ public class SubscriptionServiceTests
             _mockRealtimeService.Object,
             _mockConfiguration.Object,
             _mockEmailService.Object,
-            _mockRestaurantService.Object);
+            _mockRestaurantService.Object,
+            new Mock<ILogger<SubscriptionService>>().Object);
             
         _mockConfiguration.Setup(x => x["FrontEndUrl:local"]).Returns("");
         _mockConfiguration.Setup(x => x["FrontEndUrl:scan2order_id_vn"]).Returns("http://scan2order.test");
@@ -761,7 +763,7 @@ public class SubscriptionServiceTests
         _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Plan>());
         
         Func<Task> act = async () => await _subscriptionService.ProcessPaymentSuccessAsync(123);
-        await act.Should().ThrowAsync<Exception>().WithMessage("*Target service plan not found*");
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Gói dịch vụ không tìm thấy*");
     }
 
     [Fact]

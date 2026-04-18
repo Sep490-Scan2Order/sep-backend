@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.Interfaces;
@@ -21,6 +22,7 @@ public class SubscriptionService : ISubscriptionService
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
     private readonly IRestaurantService _restaurantService;
+    private readonly ILogger<SubscriptionService> _logger;
 
     public SubscriptionService(
         IUnitOfWork unitOfWork,
@@ -28,7 +30,8 @@ public class SubscriptionService : ISubscriptionService
         IRealtimeService realtimeService,
         IConfiguration configuration,
         IEmailService emailService,
-        IRestaurantService restaurantService)
+        IRestaurantService restaurantService,
+        ILogger<SubscriptionService> logger)
     {
         _unitOfWork = unitOfWork;
         _paymentService = paymentService;
@@ -36,6 +39,7 @@ public class SubscriptionService : ISubscriptionService
         _configuration = configuration;
         _emailService = emailService;
         _restaurantService = restaurantService;
+        _logger = logger;
     }
 
     public async Task<CheckoutPreviewResponse> CalculatePreviewAsync(PlanCheckoutRequest request, Guid currentTenantId)
@@ -215,9 +219,10 @@ public class SubscriptionService : ISubscriptionService
             await dbTxn.CommitAsync();
             return paymentLink;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             await dbTxn.RollbackAsync();
+            _logger.LogError(ex, "Lỗi khi tạo link thanh toán subscription. TenantId: {TenantId}", currentTenantId);
             throw new DomainException(SubscriptionMessage.SubscriptionError.PAYMENT_SYSTEM_BUSY);
         }
     }
@@ -480,7 +485,7 @@ public class SubscriptionService : ISubscriptionService
                 // Skip or throw error if the target plan doesn't exist
                 if (!plansDict.TryGetValue(item.NewPlanId, out var targetPlan))
                 {
-                    throw new Exception($"Target service plan not found (ID: {item.NewPlanId})");
+                    throw new DomainException($"Gói dịch vụ không tìm thấy (ID: {item.NewPlanId}). Vui lòng liên hệ bộ phận hỗ trợ để được xử lý.");
                 }
 
                 // Calculate base days to add based on the billing cycle and purchased quantity
@@ -610,8 +615,8 @@ public class SubscriptionService : ISubscriptionService
         catch (Exception ex)
         {
             await dbTxn.RollbackAsync();
-            var rootMessage = ex.InnerException?.Message ?? ex.Message;
-            throw new Exception("Error while updating subscriptions: " + rootMessage);
+            _logger.LogError(ex, "Lỗi khi cập nhật gói dịch vụ sau thanh toán. TransactionId: {TransactionId}", paymentTransaction.Id);
+            throw new DomainException("Cập nhật gói dịch vụ thất bại. Giao dịch đã được hoàn tác và tiền của bạn không bị trừ. Vui lòng liên hệ bộ phận hỗ trợ.");
         }
     }
 
@@ -663,7 +668,8 @@ public class SubscriptionService : ISubscriptionService
         catch (Exception ex)
         {
             await dbTxn.RollbackAsync();
-            throw new Exception("Error while settling commission fee: " + ex.Message);
+            _logger.LogError(ex, "Lỗi khi xử lý thanh toán hoa hồng. TransactionId: {TransactionId}", paymentTransaction.Id);
+            throw new DomainException("Thanh toán hoa hồng thất bại. Giao dịch đã được hoàn tác. Vui lòng thử lại hoặc liên hệ bộ phận hỗ trợ.");
         }
     }
 

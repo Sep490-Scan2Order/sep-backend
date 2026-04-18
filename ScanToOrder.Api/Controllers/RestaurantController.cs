@@ -130,7 +130,7 @@ namespace ScanToOrder.Api.Controllers
             }
             catch (DomainException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(ApiResponse<string>.Failure(ex.Message));
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Infrastructure.Configuration;
 using System.Text;
@@ -74,8 +74,8 @@ namespace ScanToOrder.Infrastructure.Services
             }
 
             var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError($"Failed to send email via {settings.FromEmail}. Error: {errorContent}");
-            throw new DomainException($"Email service error: {response.StatusCode}");
+            _logger.LogError("Gửi email thất bại qua {FromEmail}. HTTP {StatusCode}. Chi tiết: {ErrorContent}", settings.FromEmail, response.StatusCode, errorContent);
+            throw new DomainException("Hệ thống gửi email đang gặp sự cố. Vui lòng thử lại sau ít phút hoặc liên hệ hỗ trợ.");
         }
 
         private async Task<bool> GuestRequestInternalAsync(EmailSettings settings, string guestEmail, string subject, string htmlContent)
@@ -104,8 +104,8 @@ namespace ScanToOrder.Infrastructure.Services
             }
 
             var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError($"Failed to receive email via {settings.ToEmail}. Error: {errorContent}");
-            throw new DomainException($"Email service error: {response.StatusCode}");
+            _logger.LogError("Nhận email thất bại qua {ToEmail}. HTTP {StatusCode}. Chi tiết: {ErrorContent}", settings.ToEmail, response.StatusCode, errorContent);
+            throw new DomainException("Hệ thống gửi email đang gặp sự cố. Vui lòng thử lại sau ít phút hoặc liên hệ hỗ trợ.");
         }
 
         public async Task<bool> GuestSendEmailAsync(string from, string subject, string htmlContent)
@@ -155,8 +155,8 @@ namespace ScanToOrder.Infrastructure.Services
                 return true;
             }
 
-            _logger.LogError($"Resend Error: {responseBody}");
-            throw new DomainException(responseBody);
+            _logger.LogError("Gửi email bằng template thất bại (tới {To}). Chi tiết: {ResponseBody}", to, responseBody);
+            throw new DomainException("Không thể gửi email lúc này. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau.");
         }
 
         public async Task<bool> SendEmailsWithTemplateIdDomainAsync(
@@ -193,8 +193,8 @@ namespace ScanToOrder.Infrastructure.Services
                 return true;
             }
 
-            _logger.LogError($"Resend Error: {responseBody}");
-            throw new DomainException(responseBody);
+            _logger.LogError("Gửi email hàng loạt bằng template thất bại. Chi tiết: {ResponseBody}", responseBody);
+            throw new DomainException("Không thể gửi email lúc này. Vui lòng kiểm tra lại danh sách địa chỉ email hoặc thử lại sau.");
         }
 
         public async Task<bool> SendEmailWithTemplateIoDomainAsync(
@@ -231,8 +231,8 @@ namespace ScanToOrder.Infrastructure.Services
                 return true;
             }
 
-            _logger.LogError($"Resend Error: {responseBody}");
-            throw new DomainException(responseBody);
+            _logger.LogError("Gửi email bằng template (IO domain) thất bại (tới {To}). Chi tiết: {ResponseBody}", to, responseBody);
+            throw new DomainException("Không thể gửi email lúc này. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau.");
         }
     }
 }

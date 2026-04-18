@@ -17,6 +17,7 @@ namespace ScanToOrder.Application.Message
             public const string DISH_IMPORT_FILE_INVALID = "File import món ăn không hợp lệ.";
             public const string DISH_COMBO_NOT_FOUND = "Không tìm thấy combo.";
             public const string IMAGE_UPLOAD_ERROR = "Lỗi khi tải ảnh lên: {0}";
+            public const string IMAGE_UPLOAD_ERROR_FRIENDLY = "Tải ảnh lên thất bại. Vui lòng thử lại hoặc chọn ảnh khác.";
             public const string COMBO_MUST_HAVE_AT_LEAST_ONE_DISH = "Combo phải có ít nhất 1 món ăn.";
             public const string ONE_OR_MORE_DISHES_NOT_FOUND = "Một hoặc nhiều món ăn không tồn tại.";
             public const string COMBO_JUST_HAVE_SINGLE_DISH = "Combo chỉ được chứa một món ăn.";
