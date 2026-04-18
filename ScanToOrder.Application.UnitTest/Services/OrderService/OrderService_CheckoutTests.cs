@@ -108,6 +108,7 @@ public class OrderService_CheckoutTests
         _mockCartRedisService.Setup(r => r.GetRawCartAsync(It.IsAny<string>())).ReturnsAsync(JsonSerializer.Serialize(validCart));
         _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdWithTenantBankAsync(It.IsAny<int>())).ReturnsAsync(validRestaurant);
         _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdAsync(It.IsAny<int>())).ReturnsAsync(validRestaurant);
+        _mockUnitOfWork.Setup(u => u.Shifts.GetActiveCashierShiftAsync(It.IsAny<int>())).ReturnsAsync(validShift);
         _mockUnitOfWork.Setup(u => u.Shifts.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>())).ReturnsAsync(validShift);
         _mockUnitOfWork.Setup(u => u.BranchDishConfigs.ReserveDishAvailabilityAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
         _mockUnitOfWork.Setup(u => u.Orders.GetNextDailyOrderCodeAsync(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>())).ReturnsAsync(1);
@@ -191,7 +192,7 @@ public class OrderService_CheckoutTests
         #region Arrange
         SetupValidMocks();
         
-        if (!isShiftOpen) _mockUnitOfWork.Setup(u => u.Shifts.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>())).ReturnsAsync((Shift)null);
+        if (!isShiftOpen) _mockUnitOfWork.Setup(u => u.Shifts.GetActiveCashierShiftAsync(It.IsAny<int>())).ReturnsAsync((Shift)null);
 
         var promotion = isPromotionValid ? new Promotion 
         { 
@@ -301,6 +302,99 @@ public class OrderService_CheckoutTests
         mockTx.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         #endregion
     }
+
+    [Fact]
+    public async Task GetPaymentQrAsync_WhenNoActiveShift_ThrowsShiftNotOpenYet()
+    {
+        #region Arrange
+        SetupValidMocks();
+        _mockUnitOfWork.Setup(u => u.Shifts.GetActiveCashierShiftAsync(It.IsAny<int>()))
+            .ReturnsAsync((Shift)null);
+        #endregion
+
+        #region Act
+        var action = async () => await _orderService.GetPaymentQrAsync("cart", "0123", false, null, null);
+        #endregion
+
+        #region Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
+        #endregion
+    }
+
+    [Fact]
+    public async Task GetPaymentQrAsync_WhenRestaurantInactive_ThrowsDomainException()
+    {
+        #region Arrange
+        SetupValidMocks();
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            BankId = Guid.NewGuid(),
+            Bank = new Banks { ShortName = "Vietcombank" },
+            CardNumber = "123",
+            IsVerifyBank = true
+        };
+        var inactiveRestaurant = new Restaurant
+        {
+            Id = 1,
+            Slug = "test",
+            TenantId = tenant.Id,
+            Tenant = tenant,
+            IsActive = false,
+            IsReceivingOrders = true
+        };
+
+        _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdWithTenantBankAsync(It.IsAny<int>()))
+            .ReturnsAsync(inactiveRestaurant);
+        #endregion
+
+        #region Act
+        var action = async () => await _orderService.GetPaymentQrAsync("cart", "0123", false, null, null);
+        #endregion
+
+        #region Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage("Nhà hàng hiện không hoạt động.");
+        #endregion
+    }
+
+    [Fact]
+    public async Task GetPaymentQrAsync_WhenRestaurantNotReceivingOrders_ThrowsDomainException()
+    {
+        #region Arrange
+        SetupValidMocks();
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            BankId = Guid.NewGuid(),
+            Bank = new Banks { ShortName = "Vietcombank" },
+            CardNumber = "123",
+            IsVerifyBank = true
+        };
+        var notReceivingRestaurant = new Restaurant
+        {
+            Id = 1,
+            Slug = "test",
+            TenantId = tenant.Id,
+            Tenant = tenant,
+            IsActive = true,
+            IsReceivingOrders = false
+        };
+
+        _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdWithTenantBankAsync(It.IsAny<int>()))
+            .ReturnsAsync(notReceivingRestaurant);
+        #endregion
+
+        #region Act
+        var action = async () => await _orderService.GetPaymentQrAsync("cart", "0123", false, null, null);
+        #endregion
+
+        #region Assert
+        await action.Should().ThrowAsync<DomainException>()
+            .WithMessage("Nhà hàng hiện không nhận đơn.");
+        #endregion
+    }
     #endregion
 
     #region CheckoutCashAsync
@@ -333,7 +427,7 @@ public class OrderService_CheckoutTests
 
         if (!isRestaurantValid) _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Restaurant)null);
 
-        if (!isShiftOpen) _mockUnitOfWork.Setup(u => u.Shifts.FirstOrDefaultAsync(It.IsAny<Expression<Func<Shift, bool>>>(), It.IsAny<string>())).ReturnsAsync((Shift)null);
+        if (!isShiftOpen) _mockUnitOfWork.Setup(u => u.Shifts.GetActiveCashierShiftAsync(It.IsAny<int>())).ReturnsAsync((Shift)null);
 
         string phone = isPhoneEmpty ? "" : "0123456789";
         var request = new CashCheckoutRequest { CartId = cartId, Phone = phone };

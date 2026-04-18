@@ -10,6 +10,7 @@ using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Entities.Orders;
 using ScanToOrder.Domain.Entities.Promotions;
 using ScanToOrder.Domain.Entities.Restaurants;
+using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using System.Linq.Expressions;
@@ -105,6 +106,12 @@ public class OrderService_CartTests
             .ReturnsAsync(new List<Promotion>());
         _mockUnitOfWork.Setup(u => u.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(It.IsAny<int>(), It.IsAny<List<int>>()))
             .ReturnsAsync(new List<BranchDishConfig> { _validBranchDish });
+
+        _mockPlanLimitationService.Setup(p => p.GetRestaurantFeaturesAsync(It.IsAny<int>()))
+            .ReturnsAsync(new ScanToOrder.Domain.Entities.SubscriptionPlan.PlanFeaturesConfig
+            {
+                CanUsePromotions = false
+            });
 
         _mockCartRedisService.Setup(r => r.GetRawCartAsync(It.IsAny<string>())).ReturnsAsync((string)null); // new cart
         
@@ -212,6 +219,57 @@ public class OrderService_CartTests
             It.IsAny<TimeSpan?>()), Times.AtLeastOnce());
             
         _mockMapper.Verify(m => m.Map<CartDto>(It.IsAny<CartModel>()), Times.Once);
+        #endregion
+    }
+
+    [Fact]
+    public async Task AddToCartAsync_WhenAiReturnsRecommendations_AssignsRecommendations()
+    {
+        #region Arrange
+        var request = new AddToCartRequest
+        {
+            Quantity = 1,
+            RestaurantId = 1,
+            DishId = 10,
+            CartId = "cart-rec"
+        };
+
+        var recommendedDish = new BranchDishConfig
+        {
+            RestaurantId = 1,
+            DishId = 20,
+            IsSelling = true,
+            IsSoldOut = false,
+            Price = 30000,
+            DishAvailability = 5,
+            Dish = new Dish
+            {
+                Id = 20,
+                DishName = "Recommend Dish",
+                Description = "Desc",
+                ImageUrl = "img",
+                Type = DishType.Single
+            }
+        };
+
+        _mockAiUpsellService.Setup(x => x.GetRecommendationsAsync(1, It.IsAny<List<int>>(), 3))
+            .ReturnsAsync((new List<int> { 20 }, "ai"));
+
+        _mockUnitOfWork.Setup(x => x.BranchDishConfigs.GetSellingDishesByRestaurantIdAndDishIdsAsync(1, It.Is<List<int>>(ids => ids.Contains(20))))
+            .ReturnsAsync(new List<BranchDishConfig> { recommendedDish });
+
+        _mockMapper.Setup(m => m.Map<CartDto>(It.IsAny<CartModel>()))
+            .Returns(new CartDto { Recommendations = null });
+        #endregion
+
+        #region Act
+        var result = await _orderService.AddToCartAsync(request);
+        #endregion
+
+        #region Assert
+        result.Recommendations.Should().NotBeNull();
+        result.Recommendations.Should().HaveCount(1);
+        result.Recommendations![0].DishId.Should().Be(20);
         #endregion
     }
     #endregion

@@ -13,12 +13,16 @@ namespace ScanToOrder.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IDishRedisService _dishRedisService;
+        private readonly IMenuCacheService _menuCacheService;
+        private readonly IRestaurantMenuService _restaurantMenuService;
 
-        public BranchDishConfigService(IUnitOfWork unitOfWork, IMapper mapper, IDishRedisService dishRedisService)
+        public BranchDishConfigService(IUnitOfWork unitOfWork, IMapper mapper, IDishRedisService dishRedisService, IMenuCacheService menuCacheService, IRestaurantMenuService restaurantMenuService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _dishRedisService = dishRedisService;
+            _menuCacheService = menuCacheService;
+            _restaurantMenuService = restaurantMenuService;
         }
 
         public async Task<BranchDishConfigDto> ConfigDishByRestaurant(CreateBranchDishConfig request)
@@ -92,6 +96,7 @@ namespace ScanToOrder.Application.Services
 
             _unitOfWork.BranchDishConfigs.Update(branchDishConfig);
             await _unitOfWork.SaveAsync();
+            await _menuCacheService.InvalidateMenuAsync(restaurantId);
             return Message.BranchDishMessage.BranchDishSuccess.BRANCH_DISH_SOLD_OUT_UPDATED;
         }
 
