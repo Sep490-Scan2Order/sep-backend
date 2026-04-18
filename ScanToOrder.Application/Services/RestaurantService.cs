@@ -569,7 +569,7 @@ namespace ScanToOrder.Application.Services
             restaurant.IsActive = isActive;
             if (restaurant.Subscription.Status == SubscriptionStatus.Expired && isActive)
             {
-                return "Không thể kích hoạt nhà hàng khi subscription đã hết hạn";                    
+               return "Không thể kích hoạt nhà hàng khi subscription đã hết hạn";                    
             }
             if (!isActive)
             {
