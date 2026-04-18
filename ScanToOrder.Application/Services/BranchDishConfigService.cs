@@ -126,15 +126,14 @@ namespace ScanToOrder.Application.Services
             var categoryIds = categories.Select(c => c.Id).ToList();
 
             if (!categoryIds.Any())
-                return "Không có danh mục nào để đồng bộ.";
+                return DishMessage.DishError.NO_CATEGORY;
 
             var dishes = await _unitOfWork.Dishes.FindAsync(d => categoryIds.Contains(d.CategoryId) && !d.IsDeleted);
             if (!dishes.Any())
-                return "Không có món ăn nào để đồng bộ.";
-
+                return DishMessage.DishError.NO_DISH;
             var restaurants = await _unitOfWork.Restaurants.FindAsync(r => r.TenantId == tenantId && !r.IsDeleted);
             if (!restaurants.Any())
-                return "Không có nhà hàng (chi nhánh) nào để đồng bộ.";
+                return DishMessage.DishError.NO_RESTAURANT;
 
             var restaurantIds = restaurants.Select(r => r.Id).ToList();
             var existingConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(c => restaurantIds.Contains(c.RestaurantId));
@@ -166,10 +165,10 @@ namespace ScanToOrder.Application.Services
             {
                 await _unitOfWork.BranchDishConfigs.AddRangeAsync(newConfigs);
                 await _unitOfWork.SaveAsync();
-                return $"Đã đồng bộ thành công {newConfigs.Count} món ăn mới cho các chi nhánh.";
+                return string.Format(DishMessage.DishSuccess.DISH_SYNC_SUCCESS, newConfigs.Count);
             }
 
-            return "Tất cả các món ăn đã được đồng bộ trước đó, không cần thêm mới.";
+            return DishMessage.DishSuccess.DISH_ALREADY_SYNCED;
         }
     }
 }

@@ -14,6 +14,7 @@ public class ConfigurationService : IConfigurationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITenantService _tenantService;
     private readonly IMapper _mapper;
+    public const string NOT_FOUND_WITH_ID = "Không tìm thấy cấu hình với ID: {0}";
 
     public ConfigurationService(IUnitOfWork unitOfWork, IMapper mapper, IEmailService emailService, ITenantService tenantService)
     {
@@ -32,7 +33,7 @@ public class ConfigurationService : IConfigurationService
     public async Task<ConfigurationResponse> UpdateConfigurationsAsync(int id, UpdateConfigurationRequest request)
     {
         var existing = await _unitOfWork.Configurations.GetByIdAsync(id)
-            ?? throw new DomainException($"Không tìm thấy cấu hình với ID: {id}");
+            ?? throw new DomainException(string.Format(NOT_FOUND_WITH_ID, id));
 
         existing.CommissionRate = request.CommissionRate;
         existing.UpdatedAt = DateTime.UtcNow;
