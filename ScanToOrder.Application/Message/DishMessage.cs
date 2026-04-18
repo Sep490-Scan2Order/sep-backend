@@ -21,6 +21,9 @@ namespace ScanToOrder.Application.Message
             public const string COMBO_MUST_HAVE_AT_LEAST_ONE_DISH = "Combo phải có ít nhất 1 món ăn.";
             public const string ONE_OR_MORE_DISHES_NOT_FOUND = "Một hoặc nhiều món ăn không tồn tại.";
             public const string COMBO_JUST_HAVE_SINGLE_DISH = "Combo chỉ được chứa một món ăn.";
+            public const string NO_CATEGORY = "Không có danh mục nào để đồng bộ.";
+            public const string NO_DISH = "Không có món ăn nào để đồng bộ.";
+            public const string NO_RESTAURANT = "Không có nhà hàng (chi nhánh) nào để đồng bộ.";
         }
 
         public class DishSuccess
@@ -32,6 +35,8 @@ namespace ScanToOrder.Application.Message
             public const string DISH_DELETED = "Xóa món ăn thành công.";
             public const string DISH_DEACTIVE = "Hủy món ăn thành công";
             public const string DISH_ACTIVATED = "Kích hoạt món ăn thành công.";
+            public const string DISH_ALREADY_SYNCED = "Tất cả các món ăn đã được đồng bộ trước đó, không cần thêm mới.";
+            public const string DISH_SYNC_SUCCESS = "Đã đồng bộ thành công {0} món ăn mới cho các chi nhánh.";
         }
 
 

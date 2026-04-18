@@ -1,14 +1,8 @@
 using ScanToOrder.Application.DTOs.Dashboard;
 using ScanToOrder.Application.Interfaces;
-using ScanToOrder.Domain.Entities.Restaurants;
 using ScanToOrder.Domain.Enums;
 using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ScanToOrder.Application.Services
 {
