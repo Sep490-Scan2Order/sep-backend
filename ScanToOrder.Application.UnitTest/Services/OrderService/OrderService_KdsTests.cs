@@ -104,6 +104,20 @@ public class OrderService_KdsTests
     }
 
     [Fact]
+    public async Task GetKdsActiveOrders_WhenOrdersNull_ReturnsEmptyList()
+    {
+        int restaurantId = 1;
+        _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdAsync(restaurantId))
+            .ReturnsAsync(new Restaurant { Id = restaurantId, Slug = "test-restaurant" });
+        _mockUnitOfWork.Setup(u => u.Orders.GetOrdersForKdsAsync(restaurantId))
+            .ReturnsAsync((List<Order>)null);
+
+        var result = await _orderService.GetKdsActiveOrders(restaurantId);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GetKdsActiveOrders_WhenOrdersExist_ReturnsMappedOrders()
     {
         // Arrange
@@ -175,6 +189,61 @@ public class OrderService_KdsTests
         // Assert
         result.Should().HaveCount(1);
         result[0].OriginalOrderCode.Should().Be(101);
+    }
+
+    [Fact]
+    public async Task GetKdsActiveOrders_WhenOrderHasManyMappedFields_MapsAllExpectedValues()
+    {
+        int restaurantId = 9;
+        var orderId = Guid.NewGuid();
+        var detailId = 12;
+
+        var orders = new List<Order>
+        {
+            new()
+            {
+                Id = orderId,
+                OrderCode = 909,
+                NumberPhone = "0999",
+                Status = OrderStatus.Preparing,
+                IsPreOrder = true,
+                Type = "Cash",
+                typeOrder = TypeOrder.Regular,
+                OrderDetails = new List<OrderDetail>
+                {
+                    new()
+                    {
+                        Id = detailId,
+                        Quantity = 2,
+                        RefundedQuantity = 1,
+                        OriginalPrice = 20000,
+                        DiscountedPrice = 18000,
+                        PromotionAmount = 2000,
+                        Dish = new ScanToOrder.Domain.Entities.Dishes.Dish
+                        {
+                            DishName = "Noodle",
+                            ImageUrl = "img-noodle"
+                        }
+                    }
+                }
+            }
+        };
+
+        _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdAsync(restaurantId))
+            .ReturnsAsync(new Restaurant { Id = restaurantId, Slug = "r9" });
+        _mockUnitOfWork.Setup(u => u.Orders.GetOrdersForKdsAsync(restaurantId))
+            .ReturnsAsync(orders);
+
+        var result = await _orderService.GetKdsActiveOrders(restaurantId);
+
+        result.Should().HaveCount(1);
+        result[0].OrderCode.Should().Be(909);
+        result[0].Phone.Should().Be("0999");
+        result[0].Items.Should().HaveCount(1);
+        result[0].Items[0].Id.Should().Be(detailId.ToString());
+        result[0].Items[0].Name.Should().Be("Noodle");
+        result[0].Items[0].Image.Should().Be("img-noodle");
+        result[0].Items[0].RefundedQuantity.Should().Be(1);
     }
 
     #endregion

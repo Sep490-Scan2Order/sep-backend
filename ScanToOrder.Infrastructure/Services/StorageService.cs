@@ -86,7 +86,7 @@ namespace ScanToOrder.Infrastructure.Services
 
         public async Task<string> GetOrGeneratePaymentReceivedAudioAsync(int orderCode, decimal amount)
         {
-            string fileName = $"order_{orderCode}_payment.mp3";
+            string fileName = $"order_{orderCode}_{amount}_payment.mp3";
             string expectedUrl = $"{_vpsBaseUrl}audio/{fileName}";
 
             if (await CheckFileExistsAsync(expectedUrl))
