@@ -643,16 +643,17 @@ namespace ScanToOrder.Application.UnitTest.Services
 
         // Ensures that a refund transaction can still be recorded even if an active shift cannot be found at that moment.
         [Fact]
-        public async Task RefundOrderAsync_CashObjective_ActiveShiftNullDuringLog_ShouldCreateTransactionWithoutShift()
+        public async Task RefundOrderAsync_CashObjective_ShouldUseInitialActiveShiftForTransaction()
         {
             var orderId = Guid.NewGuid();
             var order = CreateTestOrder(orderId, 100000, 100000);
             
             _mockOrderRepo.Setup(u => u.GetOrderWithDetailsByIdAsync(orderId)).ReturnsAsync(order);
             
-            _mockShiftRepo.SetupSequence(u => u.GetActiveCashierShiftAsync(1))
-                .ReturnsAsync(new Shift { Id = 1, Status = ShiftStatus.Open })
-                .ReturnsAsync((Shift)null);
+            // Shift is found during validation
+            var activeShift = new Shift { Id = 1, Status = ShiftStatus.Open };
+            _mockShiftRepo.Setup(u => u.GetActiveCashierShiftAsync(1))
+                .ReturnsAsync(activeShift);
 
             _mockTransactionRepo.Setup(u => u.GetPaymentTransactionByOrderIdAsync(It.IsAny<Guid>()))
                 .ReturnsAsync(new Transaction { PaymentMethod = PaymentMethod.Cash });
@@ -664,9 +665,10 @@ namespace ScanToOrder.Application.UnitTest.Services
 
             await _refundService.RefundOrderAsync(request);
 
+            // Verify that we use the shift found at the beginning (Optimization)
             _mockTransactionRepo.Verify(u => u.AddAsync(It.Is<Transaction>(t => 
                 t.TransactionType == TransactionType.Refund && 
-                t.ShiftId == null)), Times.Once);
+                t.ShiftId == 1)), Times.Once);
         }
 
         // Verifies that a DomainException is thrown if no valid items remain after filtering the refund request.
@@ -869,6 +871,42 @@ namespace ScanToOrder.Application.UnitTest.Services
             order.Status.Should().Be(OrderStatus.Cancelled);
             _mockOrderRepo.Verify(u => u.Update(It.Is<Order>(o => o.Status == OrderStatus.Cancelled)), Times.AtLeastOnce);
         }
+        [Fact]
+        public async Task RefundOrderAsync_OneThirdRatio_ShouldBeExactlyOneThirdAmount()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var order = new Order
+            {
+                Id = orderId,
+                RestaurantId = 1,
+                TotalAmount = 90000,
+                FinalAmount = 90000,
+                Status = OrderStatus.Served,
+                OrderDetails = new List<OrderDetail>
+                {
+                    new OrderDetail { Id = 1, Quantity = 3, RefundedQuantity = 0, SubTotal = 90000, DiscountedPrice = 30000 }
+                }
+            };
+            SetupMocks(order);
+
+            var request = new RefundRequest
+            {
+                OrderId = orderId,
+                RefundType = RefundType.StaffError,
+                IsFullRefund = false,
+                RefundItems = new List<RefundItemDto> { new RefundItemDto { OrderDetailId = 1, QuantityToRefund = 1 } }
+            };
+
+            // Act
+            await _refundService.RefundOrderAsync(request);
+
+            // Assert
+            // (90000 * 1 / 3) = 30000.
+            _mockOrderRepo.Verify(u => u.AddAsync(It.Is<Order>(o => o.FinalAmount == 30000)), Times.Once);
+            order.FinalAmount.Should().Be(60000); // 90000 - 30000
+        }
         #endregion
+
     }
 }

@@ -8,6 +8,7 @@ using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
+using ScanToOrder.Domain.Entities.Shifts;
 
 namespace ScanToOrder.Application.Services
 {
@@ -108,7 +109,9 @@ namespace ScanToOrder.Application.Services
 
         public async Task<bool> RefundOrderAsync(RefundRequest request)
         {
-            var originalOrder = await ValidateRefundOrderOrThrowAsync(request);
+            var (originalOrder, activeShift) = await ValidateRefundOrderOrThrowAsync(request);
+
+            string? paymentProofUrl = await UploadProofImageAsync(request.ImageFile, originalOrder.OrderCode, "refund_proof");
 
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
@@ -130,15 +133,12 @@ namespace ScanToOrder.Application.Services
                     _unitOfWork.Orders.Update(originalOrder);
                 }
 
-                // Check if all items in the original order are now fully refunded
                 bool isAllItemsRefunded = originalOrder.OrderDetails.All(od => od.RefundedQuantity >= od.Quantity);
                 if (!request.IsFullRefund && isAllItemsRefunded && originalOrder.Status != OrderStatus.Cancelled)
                 {
                     originalOrder.Status = OrderStatus.Cancelled;
                     _unitOfWork.Orders.Update(originalOrder);
                 }
-
-                string? paymentProofUrl = await UploadProofImageAsync(request.ImageFile, originalOrder.OrderCode, "refund_proof");
 
                 var refundOrder = CreateRefundLogEntity(originalOrder, request, refundAmount, paymentProofUrl);
                 await _unitOfWork.Orders.AddAsync(refundOrder);
@@ -152,12 +152,11 @@ namespace ScanToOrder.Application.Services
                     await _unitOfWork.OrderDetails.AddRangeAsync(refundDetails);
                 }
 
-                await LogRefundTransactionIfCashAsync(originalOrder, refundOrder, refundAmount, request.RefundType);
+                await LogRefundTransactionIfCashAsync(originalOrder, refundOrder, refundAmount, request.RefundType, activeShift);
 
                 await _unitOfWork.SaveAsync();
                 await tx.CommitAsync();
 
-                // 7. Thông báo Realtime
                 await SendRefundNotificationsAsync(originalOrder, refundOrder);
 
                 return true;
@@ -170,7 +169,7 @@ namespace ScanToOrder.Application.Services
             }
         }
 
-        private async Task<Order> ValidateRefundOrderOrThrowAsync(RefundRequest request)
+        private async Task<(Order originalOrder, Shift activeShift)> ValidateRefundOrderOrThrowAsync(RefundRequest request)
         {
             var originalOrder = await _unitOfWork.Orders.GetOrderWithDetailsByIdAsync(request.OrderId);
 
@@ -206,7 +205,7 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(OrderMessage.OrderError.PARTIAL_REFUND_ITEMS_REQUIRED);
             }
 
-            return originalOrder;
+            return (originalOrder, activeShift);
         }
 
         private (decimal totalAmount, List<OrderDetail> details) PrepareRefundDetails(Order originalOrder, RefundRequest request)
@@ -214,7 +213,6 @@ namespace ScanToOrder.Application.Services
             decimal refundAmount = 0;
             var refundDetails = new List<OrderDetail>();
 
-            // Tính hệ số thanh toán thực tế (Sau Voucher)
             decimal paymentRatio = originalOrder.TotalAmount > 0 
                 ? originalOrder.FinalAmount / originalOrder.TotalAmount 
                 : 1;
@@ -239,12 +237,13 @@ namespace ScanToOrder.Application.Services
             }
             else
             {
+                var detailMap = originalOrder.OrderDetails.ToDictionary(od => od.Id);
+
                 foreach (var item in request.RefundItems!)
                 {
                     if (item.OrderDetailId <= 0 || item.QuantityToRefund <= 0) continue;
 
-                    var originalDetail = originalOrder.OrderDetails.FirstOrDefault(od => od.Id == item.OrderDetailId);
-                    if (originalDetail == null) continue;
+                    if (!detailMap.TryGetValue(item.OrderDetailId, out var originalDetail)) continue;
 
                     int availableToRefund = originalDetail.Quantity - originalDetail.RefundedQuantity;
                     if (availableToRefund <= 0) continue;
@@ -252,9 +251,7 @@ namespace ScanToOrder.Application.Services
                     int refundQty = Math.Min(item.QuantityToRefund, availableToRefund);
                     if (refundQty <= 0) continue;
 
-                    decimal ratio = (decimal)refundQty / originalDetail.Quantity;
-                    
-                    decimal rawItemRefund = (originalDetail.SubTotal * ratio) * paymentRatio;
+                    decimal rawItemRefund = (originalDetail.SubTotal * refundQty / originalDetail.Quantity) * paymentRatio;
                     decimal itemRefundAmount = (decimal)PricingUtils.RoundToNearestThousand(rawItemRefund);
 
                     refundAmount += itemRefundAmount;
@@ -268,7 +265,7 @@ namespace ScanToOrder.Application.Services
                         OriginalPrice = originalDetail.OriginalPrice,
                         DiscountedPrice = originalDetail.DiscountedPrice,
                         SubTotal = itemRefundAmount,
-                        PromotionAmount = originalDetail.PromotionAmount * ratio
+                        PromotionAmount = originalDetail.PromotionAmount * refundQty / originalDetail.Quantity
                     });
                 }
 
@@ -306,7 +303,7 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        private async Task LogRefundTransactionIfCashAsync(Order originalOrder, Order refundOrder, decimal refundAmount, RefundType refundType)
+        private async Task LogRefundTransactionIfCashAsync(Order originalOrder, Order refundOrder, decimal refundAmount, RefundType refundType, Shift? activeShift)
         {
             if (refundType != RefundType.Objective) return;
 
@@ -314,8 +311,6 @@ namespace ScanToOrder.Application.Services
 
             if (originalTransaction?.PaymentMethod == PaymentMethod.Cash)
             {
-                var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(originalOrder.RestaurantId);
-
                 var transaction = new Transaction
                 {
                     OrderId = refundOrder.Id,
@@ -326,7 +321,6 @@ namespace ScanToOrder.Application.Services
                     TransactionType = TransactionType.Refund
                 };
                 await _unitOfWork.Transactions.AddAsync(transaction);
-                await _unitOfWork.SaveAsync();
             }
         }
 
@@ -334,20 +328,17 @@ namespace ScanToOrder.Application.Services
         {
             try
             {
-                // Thông báo trạng thái đơn hàng gốc
                 await _realtimeService.NotifyOrderStatusChanged(originalOrder.RestaurantId.ToString(), originalOrder.Id.ToString(), (int)originalOrder.Status);
                 await _realtimeService.NotifyCustomerOrderStatusChanged(originalOrder.Id.ToString(), (int)originalOrder.Status);
 
-                // Nếu có đơn Refund log mới, thông báo luôn để app cập nhật danh sách Refund
                 if (refundOrder != null)
                 {
                     await _realtimeService.NotifyOrderStatusChanged(refundOrder.RestaurantId.ToString(), refundOrder.Id.ToString(), (int)refundOrder.Status);
                 }
 
-                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(originalOrder.RestaurantId);
+                var restaurant = originalOrder.Restaurant;
                 if (restaurant != null)
                 {
-                    // Gửi ListChanged đến cả TenantId và RestaurantId để đảm bảo Staff app và các bên liên quan đều nhận được
                     await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
                     await _realtimeService.NotifyListChanged(originalOrder.RestaurantId.ToString());
                 }
