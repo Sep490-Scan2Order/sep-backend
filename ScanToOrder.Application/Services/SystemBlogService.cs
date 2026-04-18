@@ -107,6 +107,10 @@ namespace ScanToOrder.Application.Services
             var blog = await _unitOfWork.SystemBlogs.GetByIdAsync(systemBlogId);
             if (blog == null)
                 throw new DomainException(BlogMessage.BlogError.BLOG_NOT_FOUND);
+            blog.TotalViews += 1;
+
+            _unitOfWork.SystemBlogs.Update(blog);
+            await _unitOfWork.SaveAsync();
             return new BlogDetailDto
             {
                 Title = blog.Title,
