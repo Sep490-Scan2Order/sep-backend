@@ -55,6 +55,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
             return await _dbSet
                 .Include(o => o.OrderDetails)
+                .Include(o => o.Restaurant)
                 .Where(o => o.Id == orderId && !o.IsDeleted)
                 .FirstOrDefaultAsync();
         }

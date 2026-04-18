@@ -212,7 +212,7 @@ namespace ScanToOrder.Application.Services
         public async Task<TenantDetailDto> GetTenantDetailAsync(Guid tenantId, DateTime startDate, DateTime endDate)
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId)
-                ?? throw new DomainException($"Tenant {tenantId} not found.");
+                ?? throw new DomainException($"Không tìm thấy thông tin tài khoản (ID: {tenantId}).");
 
             var restaurants = await _unitOfWork.Restaurants
                 .GetRestaurantsWithSubscriptionsByTenantIdAsync(tenantId);

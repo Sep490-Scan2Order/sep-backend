@@ -48,7 +48,8 @@ namespace ScanToOrder.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                throw new DomainException($"{StorageMessage.StorageError.UPLOAD_FAILED}: {ex.Message}");
+                _ = ex;
+                throw new DomainException($"{StorageMessage.StorageError.UPLOAD_FAILED}. Vui lòng thử lại sau hoặc liên hệ hỗ trợ nếu vấn đề tiếp tục.");
             }
         }
 
@@ -175,7 +176,8 @@ namespace ScanToOrder.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                throw new DomainException($"Upload QR thất bại: {ex.Message}");
+                _ = ex; // logged by middleware
+                throw new DomainException("Tải mã QR lên thất bại. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.");
             }
         }
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using ScanToOrder.Application.DTOs.Menu;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -9,9 +10,12 @@ namespace ScanToOrder.Api.Controllers
     public class MenuTemplateController : BaseController
     {
         private readonly IMenuTemplateService _menuTemplateService;
-        public MenuTemplateController(IMenuTemplateService menuTemplateService)
+        private readonly ILogger<MenuTemplateController> _logger;
+
+        public MenuTemplateController(IMenuTemplateService menuTemplateService, ILogger<MenuTemplateController> logger)
         {
             _menuTemplateService = menuTemplateService;
+            _logger = logger;
         }
 
         [Authorize(Roles = "Admin")]
@@ -71,10 +75,11 @@ namespace ScanToOrder.Api.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Lỗi khi tạo giao diện AI theo chủ đề ngày lễ. HolidayName: {HolidayName}", request?.HolidayName);
                 return BadRequest(new ApiResponse<string>
                 {
                     IsSuccess = false,
-                    Message = ex.Message
+                    Message = "Không thể tạo giao diện AI lúc này. Vui lòng thử lại sau ít phút."
                 });
             }
         }

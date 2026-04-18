@@ -164,7 +164,8 @@ namespace ScanToOrder.Application.Services
                 }
                 catch (Exception ex)
                 {
-                    throw new DomainException($"Lỗi khi tải ảnh lên: {ex.Message}");
+                    _ = ex; 
+                    throw new DomainException(DishMessage.DishError.IMAGE_UPLOAD_ERROR_FRIENDLY);
                 }
             }
 
@@ -287,7 +288,8 @@ namespace ScanToOrder.Application.Services
                 }
                 catch (Exception ex)
                 {
-                    throw new DomainException($"Lỗi khi tải ảnh lên: {ex.Message}");
+                    _ = ex; // logged by middleware
+                    throw new DomainException(DishMessage.DishError.IMAGE_UPLOAD_ERROR_FRIENDLY);
                 }
             }
 
@@ -410,12 +412,12 @@ namespace ScanToOrder.Application.Services
 
                     var qtySplit = p.Split(':', 2, StringSplitOptions.RemoveEmptyEntries);
                     if (qtySplit.Length != 2)
-                        throw new DomainException($"ComboItems invalid format. Missing ':' in part: {p}");
+                        throw new DomainException($"Dữ liệu combo không đúng định dạng tại phần '{p}'. Mỗi thành phần phải có dấu ':' để phân cách tên món và số lượng. Ví dụ đúng: 'Tên món:2'.");
 
                     var left = qtySplit[0].Trim();
                     var qtyStr = qtySplit[1].Trim();
                     if (!int.TryParse(qtyStr, out var qty) || qty <= 0)
-                        throw new DomainException($"ComboItems invalid quantity. Part: {p}");
+                        throw new DomainException($"Số lượng không hợp lệ tại phần '{p}'. Số lượng phải là số nguyên lớn hơn 0. Ví dụ đúng: 'Tên món:2'.");
 
                     string? itemCategoryName = null;
                     string itemDishName;
@@ -431,7 +433,7 @@ namespace ScanToOrder.Application.Services
                     }
 
                     if (string.IsNullOrWhiteSpace(itemDishName))
-                        throw new DomainException($"ComboItems invalid item. Part: {p}");
+                        throw new DomainException($"Tên món ăn bị thiếu tại phần '{p}'. Vui lòng nhập tên món ăn hợp lệ. Ví dụ đúng: 'Tên món:2' hoặc 'Danh mục|Tên món:2'.");
 
                     result.Add((itemCategoryName, itemDishName, qty));
                 }
@@ -627,7 +629,7 @@ namespace ScanToOrder.Application.Services
 
                 var parsedComponents = ParseComboItems(r.comboItems);
                 if (parsedComponents.Count == 0)
-                    throw new DomainException($"Combo '{r.dishName}' thiếu ComboItems (cột 6).");
+                    throw new DomainException($"Combo '{r.dishName}' chưa có thành phần món ăn. Vui lòng điền thông tin vào cột 6 (Combo Items) với format: 'Tên món:Số lượng', phân cách nhau bằng dấu ';'. Ví dụ: 'Gà rán:1;Khoai tây:2'.");
 
                 var componentDishIds = new List<(int dishId, int quantity)>();
                 var dishNameToDishes = dishDict
@@ -663,12 +665,12 @@ namespace ScanToOrder.Application.Services
                         var compDishKey = $"{compCategoryId}:{item.dishName.Trim().ToLowerInvariant()}";
                         if (!dishDict.TryGetValue(compDishKey, out var componentDish))
                             throw new DomainException(
-                                $"Combo '{r.dishName}' component '{item.dishName}' không tìm thấy. " +
-                                "Hãy đảm bảo component dish được import như dòng Single trước.");
+                                $"Không tìm thấy món '{item.dishName}' (thuộc danh mục '{item.categoryName}') trong combo '{r.dishName}'. " +
+                                "Vui lòng kiểm tra lại tên món và tên danh mục có khớp với các dòng đã nhập phía trên không.");
 
                         if (componentDish.Type != DishType.Single)
                             throw new DomainException(
-                                $"Combo '{r.dishName}' chỉ được bao gồm Single dishes. '{item.dishName}' hiện là Combo.");
+                                $"Món '{item.dishName}' không thể thêm vào combo '{r.dishName}' vì đây là một combo khác. Combo chỉ được phép chứa các món đơn (Single).");
 
                         componentDishId = componentDish.Id;
                     }
@@ -677,13 +679,13 @@ namespace ScanToOrder.Application.Services
                         var dishNameKey = item.dishName.Trim().ToLowerInvariant();
                         if (!dishNameToDishes.TryGetValue(dishNameKey, out var matches) || matches.Count == 0)
                             throw new DomainException(
-                                $"Combo '{r.dishName}' component '{item.dishName}' không tìm thấy. " +
-                                "Hãy đảm bảo component dish được import như dòng Single trước.");
+                                $"Không tìm thấy món '{item.dishName}' trong danh sách các món đã nhập cho combo '{r.dishName}'. " +
+                                "Vui lòng kiểm tra lại tên món có đúng chính tả và đã được nhập ở các dòng phía trên chưa.");
 
                         if (matches.Count > 1)
                             throw new DomainException(
-                                $"Combo '{r.dishName}' component '{item.dishName}' bị trùng nhiều dish trong các category. " +
-                                "Vui lòng ghi thêm category theo format 'CategoryName|DishName:Qty' để phân biệt.");
+                                $"Món '{item.dishName}' xuất hiện ở nhiều danh mục khác nhau, không thể xác định chính xác món nào cần thêm vào combo '{r.dishName}'. " +
+                                "Vui lòng chỉ rõ danh mục theo format 'Tên danh mục|Tên món:Số lượng'. Ví dụ: 'Đồ uống|Trà sữa:1'.");
 
                         componentDishId = matches[0].Id;
                     }

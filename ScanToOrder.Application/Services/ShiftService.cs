@@ -33,13 +33,11 @@ namespace ScanToOrder.Application.Services
                 throw new DomainException(Message.RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             }
 
-            // Xác định vai trò
             Enum.TryParse<Role>(_authenticatedUserService.Role, out var userRole);
             var isCashier = userRole == Role.Cashier;
 
             var activeCashierShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(restaurantId);
 
-            // Kiểm tra xem nhân viên này đã có ca làm nào đang mở chưa
             var existingOpenShift = await _unitOfWork.Shifts.GetCurrentShiftByStaffIdAsync(staffId);
             if (existingOpenShift != null)
             {
@@ -110,7 +108,6 @@ namespace ScanToOrder.Application.Services
             }
             else
             {
-                // Đối với nhân viên (Staff), chỉ cần đóng trạng thái
                 shift.EndDate = DateTime.UtcNow;
                 shift.Status = ShiftStatus.Closed;
                 shift.Note = note ?? string.Empty;
@@ -165,7 +162,6 @@ namespace ScanToOrder.Application.Services
 
         private static ShiftMetrics CalculateShiftMetrics(List<Transaction> transactions)
         {
-            // Chỉ lấy các giao dịch Thanh toán của đơn hàng đã Served
             var servedPayments = transactions
                 .Where(t => t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served)
                 .ToList();
@@ -178,7 +174,6 @@ namespace ScanToOrder.Application.Services
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer)
                 .Sum(t => t.Order.FinalAmount);
 
-            // Tiền hoàn vẫn tính từ Transaction để hiển thị thông tin
             decimal totalRefund = transactions
                 .Where(t => t.TransactionType == TransactionType.Refund)
                 .Sum(t => t.TotalAmount);

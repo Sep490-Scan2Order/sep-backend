@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using PayOS;
 using PayOS.Models.Webhooks;
 using ScanToOrder.Application.DTOs.External;
@@ -15,17 +16,20 @@ public class WebhooksController : BaseController
     private readonly IPaymentService _paymentService;
     private readonly ISubscriptionService _subscriptionService;
     private readonly IOrderService _orderService;
+    private readonly ILogger<WebhooksController> _logger;
 
     public WebhooksController(
         ITenantService tenantService,
         ISubscriptionService subscriptionService,
         IPaymentService paymentService,
-        IOrderService orderService)
+        IOrderService orderService,
+        ILogger<WebhooksController> logger)
     {
         _tenantService = tenantService;
         _subscriptionService = subscriptionService;
         _paymentService = paymentService;
         _orderService = orderService;
+        _logger = logger;
     }
 
     [HttpPost("payos")]
@@ -51,7 +55,8 @@ public class WebhooksController : BaseController
         }
         catch (Exception ex)
         {
-            return BadRequest(new { isSuccess = false, message = ex.Message });
+            _logger.LogError(ex, "Lỗi xử lý PayOS webhook. OrderCode: {OrderCode}", webhookBody?.Data?.OrderCode);
+            return BadRequest(new { isSuccess = false, message = "Hệ thống xử lý thanh toán đang gặp sự cố. Vui lòng thử lại sau." });
         }
     }
 
@@ -81,7 +86,8 @@ public class WebhooksController : BaseController
         }
         catch (Exception ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            _logger.LogError(ex, "Lỗi xử lý SePay webhook. TransferAmount: {Amount}, Content: {Content}", webhookBody?.TransferAmount, webhookBody?.Content);
+            return BadRequest(new { success = false, message = "Hệ thống xử lý thanh toán đang gặp sự cố. Vui lòng thử lại sau." });
         }
     }
 
