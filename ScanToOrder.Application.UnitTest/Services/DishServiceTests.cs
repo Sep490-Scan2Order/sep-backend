@@ -190,7 +190,7 @@ public class DishServiceTests
 
         var req = new CreateComboRequest { Items = new List<ComboItemRequest> { new ComboItemRequest { DishId = 1 } }, ImageUrl = CreateMockFile().Object };
         await _service.Invoking(s => s.CreateCombo(Guid.NewGuid(), 1, req))
-            .Should().ThrowAsync<DomainException>().WithMessage("Lỗi khi tải ảnh lên: S3 error");
+            .Should().ThrowAsync<DomainException>().WithMessage("Tải ảnh lên thất bại. Vui lòng thử lại hoặc chọn ảnh khác.");
     }
 
     [Fact]
@@ -352,7 +352,7 @@ public class DishServiceTests
 
         var req = new UpdateDishRequest { ImageUrl = CreateMockFile().Object };
         await _service.Invoking(s => s.UpdateDish(Guid.Empty, 1, 1, req))
-            .Should().ThrowAsync<DomainException>().WithMessage("Lỗi khi tải ảnh lên: Upload Error");
+            .Should().ThrowAsync<DomainException>().WithMessage("Tải ảnh lên thất bại. Vui lòng thử lại hoặc chọn ảnh khác.");
     }
 
     [Fact]
@@ -734,7 +734,7 @@ public class DishServiceTests
         });
 
         await _service.Invoking(s => s.ImportDishesFromExcelAsync(tenantId, mockFile.Object))
-            .Should().ThrowAsync<DomainException>().WithMessage("*chỉ được bao gồm Single dishes*");
+            .Should().ThrowAsync<DomainException>().WithMessage("*chỉ được phép chứa các món đơn*");
     }
 
     [Fact]
@@ -761,7 +761,7 @@ public class DishServiceTests
         });
 
         await _service.Invoking(s => s.ImportDishesFromExcelAsync(tenantId, mockFile.Object))
-            .Should().ThrowAsync<DomainException>().WithMessage("*trùng nhiều dish*");
+            .Should().ThrowAsync<DomainException>().WithMessage("*xuất hiện ở nhiều danh mục*");
     }
     #endregion
 
@@ -850,7 +850,7 @@ public class DishServiceTests
         });
 
         await _service.Invoking(s => s.ImportDishesFromExcelAsync(tenantId, mockFile.Object))
-            .Should().ThrowAsync<DomainException>().WithMessage("*invalid item*");
+            .Should().ThrowAsync<DomainException>().WithMessage("*Tên món ăn bị thiếu*");
     }
 
     [Fact]
@@ -1108,7 +1108,7 @@ public class DishServiceTests
         });
 
         await _service.Invoking(s => s.ImportDishesFromExcelAsync(tenantId, mockFile.Object))
-            .Should().ThrowAsync<DomainException>().WithMessage("*thiếu ComboItems*");
+            .Should().ThrowAsync<DomainException>().WithMessage("*chưa có thành phần món ăn*");
     }
     
     [Fact]

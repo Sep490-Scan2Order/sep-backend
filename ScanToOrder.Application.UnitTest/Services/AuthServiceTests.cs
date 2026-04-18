@@ -357,19 +357,21 @@ public class AuthServiceTests
     [Fact]
     public async Task AdministratorLoginAsync_WhenWrongPassword_ThrowsDomainException()
     {
-        var user = new AuthenticationUser { Role = UserRole.Admin, Password = "AdminPassword@123", IsActive = true };
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword("AdminPassword@123");
+        var user = new AuthenticationUser { Role = UserRole.Admin, Password = hashedPassword, IsActive = true };
         _mockUnitOfWork.Setup(u => u.AuthenticationUsers.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync(user);
 
         var action = async () => await _authService.AdministratorLoginAsync(new AdminLoginRequest { Email = "admin@test.com", Password = "WrongPassword@123" });
 
-        await action.Should().ThrowAsync<DomainException>().WithMessage(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD);
+        await action.Should().ThrowAsync<DomainException>().WithMessage(AuthMessage.AuthError.ACCOUNT_WRONG_PASSWORD_PHONE);
     }
 
     [Fact]
     public async Task AdministratorLoginAsync_WhenPasswordCorrect_ReturnsResponse()
     {
-        // Admin dùng so sánh bằng (==) trong code của bạn
-        var user = new AuthenticationUser { Role = UserRole.Admin, Password = "AdminPassword@123", IsActive = true };
+        // Service uses BCrypt.Verify so password must be a valid BCrypt hash
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword("AdminPassword@123");
+        var user = new AuthenticationUser { Role = UserRole.Admin, Password = hashedPassword, IsActive = true };
         _mockUnitOfWork.Setup(u => u.AuthenticationUsers.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync(user);
 
         var result = await _authService.AdministratorLoginAsync(new AdminLoginRequest { Email = "admin@test.com", Password = "AdminPassword@123" });

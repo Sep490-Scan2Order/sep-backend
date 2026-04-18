@@ -63,12 +63,12 @@ public partial class RestaurantServiceTests
     }
 
     [Fact]
-    public async Task UpdateActiveStatusAsync_ExpiredSubscription_ReturnsErrorMessage()
+    public async Task UpdateActiveStatusAsync_ExpiredSubscription_ThrowsDomainException()
     {
         var restaurant = new Restaurant { Id = 1, Slug = "test", Subscription = new Subscription { Status = SubscriptionStatus.Expired } };
         _mockUnitOfWork.Setup(u => u.Restaurants.GetByIdIncludeSubscriptionAsync(1)).ReturnsAsync(restaurant);
-        var result = await _service.UpdateActiveStatusAsync(1, true);
-        result.Should().Be("Không thể kích hoạt nhà hàng khi subscription đã hết hạn");
+        Func<Task> act = async () => await _service.UpdateActiveStatusAsync(1, true);
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Cannot activate restaurant without an active subscription*");
     }
 
     [Fact]

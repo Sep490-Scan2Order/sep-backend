@@ -763,7 +763,7 @@ public class SubscriptionServiceTests
         _mockUnitOfWork.Setup(x => x.Plans.GetByIds(It.IsAny<List<int>>())).ReturnsAsync(new Dictionary<int, Plan>());
         
         Func<Task> act = async () => await _subscriptionService.ProcessPaymentSuccessAsync(123);
-        await act.Should().ThrowAsync<DomainException>().WithMessage("*Gói dịch vụ không tìm thấy*");
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Cập nhật gói dịch vụ thất bại*");
     }
 
     [Fact]
@@ -1007,7 +1007,7 @@ public class SubscriptionServiceTests
 
         Func<Task> act = async () => await _subscriptionService.ProcessPaymentSuccessAsync(123);
         await act.Should().ThrowAsync<Exception>()
-            .WithMessage("Error while updating subscriptions: inner");
+            .WithMessage("*Cập nhật gói dịch vụ thất bại*");
     }
 
     [Fact]
@@ -1043,7 +1043,7 @@ public class SubscriptionServiceTests
         _mockUnitOfWork.Setup(x => x.Tenants.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Tenant?)null);
         
         Func<Task> act = async () => await _subscriptionService.ProcessPaymentSuccessAsync(123);
-        await act.Should().ThrowAsync<Exception>().WithMessage("*Tenant không tồn tại*");
+        await act.Should().ThrowAsync<Exception>().WithMessage("*Thanh toán hoa hồng thất bại*");
     }
 
     [Fact]
@@ -1135,7 +1135,7 @@ public class SubscriptionServiceTests
         _mockUnitOfWork.Setup(x => x.Tenants.GetByIdAsync(It.IsAny<Guid>())).ThrowsAsync(new Exception("DB Failure"));
 
         Func<Task> act = async () => await _subscriptionService.ProcessPaymentSuccessAsync(123);
-        await act.Should().ThrowAsync<Exception>().WithMessage("Error while settling commission fee: DB Failure");
+        await act.Should().ThrowAsync<Exception>().WithMessage("*Thanh toán hoa hồng thất bại*");
         _mockTransaction.Verify(x => x.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
     #endregion

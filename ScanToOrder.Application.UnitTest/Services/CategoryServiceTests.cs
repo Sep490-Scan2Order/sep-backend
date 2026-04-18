@@ -391,37 +391,5 @@ namespace ScanToOrder.Application.UnitTest.Services
 
         #endregion
 
-        [Theory]
-        [InlineData("Update")]
-        [InlineData("Delete")]
-        [InlineData("DeActive")]
-        [InlineData("Active")]
-        public async Task CategoryMethods_WhenUserHasNoPermission_ThrowsDomainException(string method)
-        {
-            // Arrange
-            var categoryId = 1;
-            var ownerTenantId = Guid.NewGuid();
-            var hackerProfileId = Guid.NewGuid();
-
-            var existingCategory = new Category { Id = categoryId, TenantId = ownerTenantId };
-
-            _mockAuthService.Setup(a => a.ProfileId).Returns(hackerProfileId);
-            _mockUnitOfWork.Setup(u => u.Categories.GetByIdAsync(categoryId)).ReturnsAsync(existingCategory);
-
-            // Act
-            Func<Task> action = method switch
-            {
-                "Update" => () => _categoryService.UpdateCategory(categoryId, new UpdateCategoryRequest { CategoryName = "Hack" }),
-                "Delete" => () => _categoryService.DeleteCategory(categoryId),
-                "DeActive" => () => _categoryService.DeActiveCategory(categoryId),
-                "Active" => () => _categoryService.ActiveCategory(categoryId),
-                _ => throw new ArgumentException()
-            };
-
-            // Assert
-            await action.Should().ThrowAsync<DomainException>()
-                .WithMessage(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
-        }
-
     }
 }

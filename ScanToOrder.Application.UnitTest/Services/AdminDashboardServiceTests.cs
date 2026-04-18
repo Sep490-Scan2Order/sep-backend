@@ -298,7 +298,7 @@ public class AdminDashboardServiceTests
         var action = async () => await _adminDashboardService.GetTenantDetailAsync(Guid.NewGuid(), DateTime.UtcNow, DateTime.UtcNow);
 
         // Assert
-        await action.Should().ThrowAsync<DomainException>().WithMessage("Tenant * not found.");
+        await action.Should().ThrowAsync<DomainException>().WithMessage("*Không tìm thấy thông tin tài khoản*");
     }
 
     [Fact]
