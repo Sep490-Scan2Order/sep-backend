@@ -349,45 +349,4 @@ public class BranchDishConfigServiceTests
         _mockUnitOfWork.Verify(u => u.SaveAsync(), Times.Once);
     }
     #endregion
-    
-    #region 7. DTO Coverage (Lách luật Coverage cho các property get/set)
-    
-    [Fact]
-    public void BranchDishConfigDto_Properties_GetAndSetCorrectly()
-    {
-        // Arrange & Act
-        var dto = new BranchDishConfigDto
-        {
-            Id = 1,
-            DishId = 99, 
-            RestaurantName = "Test Res",
-            DishName = "Test Dish",
-            DishImageUrl = "url",
-            IsSelling = true,
-            Price = 50000m, 
-            IsSoldOut = false
-        };
-
-        // Assert
-        dto.DishId.Should().Be(99); 
-        dto.Price.Should().Be(50000m);
-    }
-
-    [Fact]
-    public void CreateBranchDishConfig_Properties_GetAndSetCorrectly()
-    {
-        // Arrange & Act
-        var dto = new CreateBranchDishConfig
-        {
-            RestaurantId = 1,
-            DishId = 10,
-            IsSelling = true,
-            Price = 150000m, 
-            IsSoldOut = true
-        };
-
-        // Assert
-        dto.Price.Should().Be(150000m);
-    }
-    #endregion
 }

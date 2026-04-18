@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentAssertions;
 using Moq;
 using ScanToOrder.Application.DTOs.Plan;
@@ -249,40 +249,5 @@ namespace ScanToOrder.Application.UnitTest.Services
 
         #endregion
 
-        #region 5. DTO Coverage 
-
-        [Fact]
-        public void PlanResponse_Properties_GetAndSetCorrectly()
-        {
-            // Arrange
-            var mockFeatures = new PlanFeaturesResponse();
-
-            // Act
-            var dto = new PlanResponse
-            {
-                Id = 1,
-                Name = "Gói Pro",
-                MonthlyPrice = 500000m,
-                YearlyPrice = 5000000m,
-                DailyRateMonth = 16000m,
-                DailyRateYear = 13000m,
-                Level = 2,
-                Status = "Active",
-                Features = mockFeatures
-            };
-
-            // Assert
-            dto.Id.Should().Be(1);
-            dto.Name.Should().Be("Gói Pro");
-            dto.MonthlyPrice.Should().Be(500000m);
-            dto.YearlyPrice.Should().Be(5000000m);
-            dto.DailyRateMonth.Should().Be(16000m);
-            dto.DailyRateYear.Should().Be(13000m);
-            dto.Level.Should().Be(2);
-            dto.Status.Should().Be("Active");
-            dto.Features.Should().Be(mockFeatures);
-        }
-
-        #endregion
     }
 }

@@ -423,32 +423,5 @@ namespace ScanToOrder.Application.UnitTest.Services
                 .WithMessage(CategoryMessage.CategoryError.YOU_DONT_HAVE_PERMISSION);
         }
 
-        #region 7. DTO Coverage
-
-        [Fact]
-        public void CategoryDto_Properties_GetAndSetCorrectly()
-        {
-            // Arrange
-            var tenantId = Guid.NewGuid();
-            var date = DateTime.UtcNow;
-
-            // Act
-            var dto = new CategoryDto
-            {
-                Id = 1,
-                TenantId = tenantId,
-                CategoryName = "Test",
-                IsActive = true,
-                CreatedAt = date
-            };
-
-            // Assert
-            dto.Id.Should().Be(1);
-            dto.TenantId.Should().Be(tenantId);
-            dto.CategoryName.Should().Be("Test");
-            dto.CreatedAt.Should().Be(date);
-        }
-
-        #endregion
     }
 }
