@@ -1,0 +1,429 @@
+﻿-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.AuthenticationUsers (
+  Id uuid NOT NULL,
+  Email text NOT NULL,
+  Phone text,
+  Password text,
+  Role text NOT NULL,
+  Verified boolean NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  IsDeleted boolean NOT NULL DEFAULT false,
+  UpdatedAt timestamp with time zone,
+  IsActive boolean NOT NULL DEFAULT false,
+  Avatar text,
+  CONSTRAINT AuthenticationUsers_pkey PRIMARY KEY (Id)
+);
+CREATE TABLE public.Banks (
+  Id uuid NOT NULL,
+  Name text NOT NULL,
+  Code text NOT NULL,
+  Bin integer NOT NULL,
+  ShortName text NOT NULL,
+  LogoUrl text NOT NULL,
+  IconUrl text NOT NULL,
+  SwiftCode text NOT NULL,
+  LookupSupported integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT Banks_pkey PRIMARY KEY (Id)
+);
+CREATE TABLE public.BranchDishConfigs (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  RestaurantId integer NOT NULL,
+  DishId integer NOT NULL,
+  IsSelling boolean NOT NULL,
+  Price integer NOT NULL,
+  IsSoldOut boolean NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  DishAvailability integer NOT NULL DEFAULT 0,
+  CONSTRAINT BranchDishConfigs_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_BranchDishConfigs_Dishes_DishId FOREIGN KEY (DishId) REFERENCES public.Dishes(Id),
+  CONSTRAINT FK_BranchDishConfigs_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id)
+);
+CREATE TABLE public.Categories (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  TenantId uuid NOT NULL,
+  CategoryName character varying NOT NULL,
+  IsActive boolean,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT Categories_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Categories_Tenants_TenantId FOREIGN KEY (TenantId) REFERENCES public.Tenants(Id)
+);
+CREATE TABLE public.ComboDetails (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  DishId integer NOT NULL,
+  ItemDishId integer NOT NULL,
+  Quantity integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT ComboDetails_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_ComboDetails_Dishes_DishId FOREIGN KEY (DishId) REFERENCES public.Dishes(Id),
+  CONSTRAINT FK_ComboDetails_Dishes_ItemDishId FOREIGN KEY (ItemDishId) REFERENCES public.Dishes(Id)
+);
+CREATE TABLE public.Configurations (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  CommissionRate integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT Configurations_pkey PRIMARY KEY (Id)
+);
+CREATE TABLE public.Dishes (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  CategoryId integer NOT NULL,
+  DishName text NOT NULL,
+  Price integer NOT NULL,
+  Description text NOT NULL,
+  ImageUrl text NOT NULL,
+  IsAvailable boolean NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  Type integer NOT NULL DEFAULT 0,
+  SearchVector USER-DEFINED,
+  CONSTRAINT Dishes_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Dishes_Categories_CategoryId FOREIGN KEY (CategoryId) REFERENCES public.Categories(Id)
+);
+CREATE TABLE public.MenuRestaurants (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  RestaurantId integer NOT NULL,
+  MenuTemplateId integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT MenuRestaurants_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_MenuRestaurants_MenuTemplates_MenuTemplateId FOREIGN KEY (MenuTemplateId) REFERENCES public.MenuTemplates(Id),
+  CONSTRAINT FK_MenuRestaurants_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id)
+);
+CREATE TABLE public.MenuTemplates (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  TemplateName text NOT NULL,
+  LayoutConfigJson text,
+  ThemeColor text,
+  FontFamily text,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  BackgroundImageUrl text,
+  IsDefault boolean NOT NULL DEFAULT false,
+  CONSTRAINT MenuTemplates_pkey PRIMARY KEY (Id)
+);
+CREATE TABLE public.Notification (
+  NotificationId bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  NotifyTitle text NOT NULL,
+  NotifySub text,
+  NotifyStatus text NOT NULL,
+  SystemBlogUrl text,
+  SentAt timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT Notification_pkey PRIMARY KEY (NotificationId)
+);
+CREATE TABLE public.NotifyTenant (
+  NotifyTenantId integer NOT NULL DEFAULT nextval('"NotifyTenant_NotifyTenantId_seq"'::regclass),
+  NotificationId integer NOT NULL,
+  TenantId uuid NOT NULL,
+  Status integer NOT NULL DEFAULT 0,
+  ReadAt timestamp with time zone,
+  CONSTRAINT NotifyTenant_pkey PRIMARY KEY (NotifyTenantId),
+  CONSTRAINT fk_tenant_link FOREIGN KEY (TenantId) REFERENCES public.Tenants(Id),
+  CONSTRAINT fk_notification_link FOREIGN KEY (NotificationId) REFERENCES public.Notification(NotificationId)
+);
+CREATE TABLE public.OrderDetails (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  OrderId uuid NOT NULL,
+  DishId integer NOT NULL,
+  Quantity integer NOT NULL,
+  SubTotal numeric NOT NULL,
+  PromotionAmount numeric NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  DiscountedPrice numeric NOT NULL DEFAULT 0.0,
+  OriginalPrice numeric NOT NULL DEFAULT 0.0,
+  RefundedQuantity integer NOT NULL DEFAULT 0,
+  CONSTRAINT OrderDetails_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_OrderDetails_Dishes_DishId FOREIGN KEY (DishId) REFERENCES public.Dishes(Id),
+  CONSTRAINT FK_OrderDetails_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES public.Orders(Id)
+);
+CREATE TABLE public.Orders (
+  Id uuid NOT NULL,
+  RestaurantId integer NOT NULL,
+  PromotionId integer,
+  OrderCode integer NOT NULL,
+  IsPreOrder boolean NOT NULL,
+  Note text,
+  TotalAmount numeric NOT NULL,
+  PromotionDiscount numeric NOT NULL,
+  FinalAmount numeric NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  Status text NOT NULL DEFAULT ''::text,
+  IsScanned boolean NOT NULL DEFAULT false,
+  Type text NOT NULL DEFAULT ''::text,
+  NumberPhone text NOT NULL DEFAULT ''::text,
+  QrCodeUrl text NOT NULL DEFAULT ''::text,
+  RefundOrderId uuid,
+  RefundType text,
+  ResponsibleStaffId uuid,
+  typeOrder text NOT NULL DEFAULT ''::text,
+  PaymentProofUrl text,
+  ConfirmedPickupAt timestamp with time zone,
+  RequestedPickupAt timestamp with time zone,
+  CONSTRAINT Orders_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Orders_Promotions_PromotionId FOREIGN KEY (PromotionId) REFERENCES public.Promotions(Id),
+  CONSTRAINT FK_Orders_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id)
+);
+CREATE TABLE public.PaymentTransactions (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  TenantId uuid NOT NULL,
+  PaymentDate timestamp with time zone NOT NULL,
+  TransactionCode text NOT NULL,
+  TotalAmount numeric NOT NULL,
+  Status text NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  Payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  PaymentTransactionType integer NOT NULL DEFAULT 0,
+  CONSTRAINT PaymentTransactions_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_PaymentTransactions_Tenants_TenantId FOREIGN KEY (TenantId) REFERENCES public.Tenants(Id)
+);
+CREATE TABLE public.Plans (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  Name text NOT NULL,
+  Status text NOT NULL,
+  DurationInDays integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  YearlyPrice numeric NOT NULL DEFAULT 0,
+  DailyRateMonth numeric NOT NULL DEFAULT 0,
+  DailyRateYear numeric NOT NULL DEFAULT 0,
+  MonthlyPrice numeric NOT NULL DEFAULT 0,
+  Level integer NOT NULL DEFAULT 0,
+  Features jsonb NOT NULL DEFAULT '{"MaxStaff": 2, "CanUseCombo": false, "CanUsePromotions": false, "CanCustomMenuTemplate": false}'::jsonb,
+  CONSTRAINT Plans_pkey PRIMARY KEY (Id)
+);
+CREATE TABLE public.PromotionDishes (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  DishId integer NOT NULL,
+  PromotionId integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT PromotionDishes_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_PromotionDishes_Dishes_DishId FOREIGN KEY (DishId) REFERENCES public.Dishes(Id),
+  CONSTRAINT FK_PromotionDishes_Promotions_PromotionId FOREIGN KEY (PromotionId) REFERENCES public.Promotions(Id)
+);
+CREATE TABLE public.Promotions (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  TenantId uuid NOT NULL,
+  Name text NOT NULL,
+  IsActive boolean NOT NULL,
+  IsGlobal boolean NOT NULL,
+  Type integer NOT NULL,
+  DiscountType integer NOT NULL,
+  DiscountValue numeric NOT NULL,
+  MaxDiscountValue numeric,
+  MinOrderValue numeric NOT NULL,
+  StartDate timestamp with time zone,
+  EndDate timestamp with time zone,
+  DailyStartTime interval,
+  DailyEndTime interval,
+  DaysOfWeek integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  Priority integer NOT NULL DEFAULT 0,
+  Scope integer NOT NULL DEFAULT 0,
+  CONSTRAINT Promotions_pkey PRIMARY KEY (Id)
+);
+CREATE TABLE public.RestaurantPromotions (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  RestaurantId integer NOT NULL,
+  PromotionId integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT RestaurantPromotions_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_RestaurantPromotions_Promotions_PromotionId FOREIGN KEY (PromotionId) REFERENCES public.Promotions(Id),
+  CONSTRAINT FK_RestaurantPromotions_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id)
+);
+CREATE TABLE public.Restaurants (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  TenantId uuid NOT NULL,
+  RestaurantName text NOT NULL,
+  Address text,
+  Location USER-DEFINED,
+  Image text,
+  Phone text,
+  Description text,
+  ProfileUrl text,
+  QrMenu text,
+  IsActive boolean,
+  IsOpened boolean,
+  IsReceivingOrders boolean,
+  TotalOrder integer,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  Slug text NOT NULL DEFAULT ''::text,
+  IsAvailableShift boolean NOT NULL DEFAULT false,
+  PresentCashierId uuid,
+  MinCashAmount numeric NOT NULL DEFAULT 0,
+  SearchVector USER-DEFINED,
+  CloseTime time without time zone,
+  OpenTime time without time zone,
+  CONSTRAINT Restaurants_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Restaurants_Tenants_TenantId FOREIGN KEY (TenantId) REFERENCES public.Tenants(Id)
+);
+CREATE TABLE public.ShiftReports (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  ShiftId integer NOT NULL,
+  ReportDate timestamp with time zone NOT NULL,
+  TotalCashOrder numeric NOT NULL,
+  TotalTransferOrder numeric NOT NULL,
+  ActualCashAmount numeric NOT NULL,
+  Difference numeric NOT NULL,
+  Note text NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  ExpectedCashAmount numeric NOT NULL DEFAULT 0.0,
+  TotalRefundAmount numeric NOT NULL DEFAULT 0.0,
+  CONSTRAINT ShiftReports_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_ShiftReports_Shifts_ShiftId FOREIGN KEY (ShiftId) REFERENCES public.Shifts(Id)
+);
+CREATE TABLE public.Shifts (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  RestaurantId integer NOT NULL,
+  StaffId uuid NOT NULL,
+  StartDate timestamp with time zone NOT NULL,
+  EndDate timestamp with time zone,
+  OpeningCashAmount numeric NOT NULL,
+  Note text NOT NULL,
+  Status text NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  ParentShiftId integer,
+  Type text NOT NULL DEFAULT ''::text,
+  CONSTRAINT Shifts_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Shifts_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id),
+  CONSTRAINT FK_Shifts_Staffs_StaffId FOREIGN KEY (StaffId) REFERENCES public.Staffs(Id),
+  CONSTRAINT FK_Shifts_Shifts_ParentShiftId FOREIGN KEY (ParentShiftId) REFERENCES public.Shifts(Id)
+);
+CREATE TABLE public.Staffs (
+  Id uuid NOT NULL,
+  AccountId uuid NOT NULL,
+  RestaurantId integer NOT NULL,
+  Name text NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL DEFAULT '-infinity'::timestamp with time zone,
+  IsDeleted boolean NOT NULL DEFAULT false,
+  UpdatedAt timestamp with time zone,
+  CONSTRAINT Staffs_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Staffs_AuthenticationUsers_AccountId FOREIGN KEY (AccountId) REFERENCES public.AuthenticationUsers(Id),
+  CONSTRAINT FK_Staffs_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id)
+);
+CREATE TABLE public.SubscriptionLogs (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  RestaurantId integer NOT NULL,
+  PaymentTransactionId integer NOT NULL,
+  OldPlanId integer,
+  NewPlanId integer NOT NULL,
+  ActionType text NOT NULL,
+  AmountAllocated numeric NOT NULL,
+  BalanceConvereted numeric NOT NULL,
+  DaysAdded integer NOT NULL,
+  OldExpired timestamp with time zone,
+  NewExpired timestamp with time zone NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  CONSTRAINT SubscriptionLogs_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_SubscriptionLogs_PaymentTransactions_PaymentTransactionId FOREIGN KEY (PaymentTransactionId) REFERENCES public.PaymentTransactions(Id),
+  CONSTRAINT FK_SubscriptionLogs_Plans_NewPlanId FOREIGN KEY (NewPlanId) REFERENCES public.Plans(Id),
+  CONSTRAINT FK_SubscriptionLogs_Plans_OldPlanId FOREIGN KEY (OldPlanId) REFERENCES public.Plans(Id),
+  CONSTRAINT FK_SubscriptionLogs_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id)
+);
+CREATE TABLE public.Subscriptions (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  PlanId integer NOT NULL,
+  StartDate timestamp with time zone NOT NULL,
+  EndDate timestamp with time zone NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  RestaurantId integer NOT NULL DEFAULT 0,
+  Status text NOT NULL DEFAULT ''::text,
+  CONSTRAINT Subscriptions_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Subscriptions_Restaurants_RestaurantId FOREIGN KEY (RestaurantId) REFERENCES public.Restaurants(Id),
+  CONSTRAINT FK_Subscriptions_Plans_PlanId FOREIGN KEY (PlanId) REFERENCES public.Plans(Id)
+);
+CREATE TABLE public.SystemBlog (
+  SystemBlogId integer NOT NULL DEFAULT nextval('"SystemBlog_SystemBlogId_seq"'::regclass),
+  Content text NOT NULL,
+  Title text NOT NULL,
+  ColorTitle character varying,
+  CreatedAt date NOT NULL DEFAULT CURRENT_DATE,
+  UpdatedAt date NOT NULL DEFAULT CURRENT_DATE,
+  TotalViews integer DEFAULT 0,
+  ImageUrl jsonb NOT NULL,
+  BlogType text NOT NULL,
+  IsDeleted boolean,
+  IsActive boolean,
+  ThumbnailUrl character varying,
+  CONSTRAINT SystemBlog_pkey PRIMARY KEY (SystemBlogId)
+);
+CREATE TABLE public.Tenants (
+  Id uuid NOT NULL,
+  AccountId uuid NOT NULL,
+  TaxNumber text,
+  CardNumber text,
+  IsVerifyTax boolean NOT NULL,
+  Name text,
+  BankId uuid,
+  CreatedAt timestamp with time zone NOT NULL DEFAULT '-infinity'::timestamp with time zone,
+  IsDeleted boolean NOT NULL DEFAULT false,
+  UpdatedAt timestamp with time zone,
+  Phone character varying,
+  DebtStartedAt timestamp with time zone,
+  IsVerifyBank boolean NOT NULL DEFAULT false,
+  LastWarningSentAt timestamp with time zone,
+  SubscriptionExpiryDate timestamp with time zone,
+  TotalDebtAmount numeric NOT NULL DEFAULT 0.0,
+  IsSuspended boolean NOT NULL DEFAULT false,
+  SuspendedAt timestamp with time zone,
+  CONSTRAINT Tenants_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Tenants_AuthenticationUsers_AccountId FOREIGN KEY (AccountId) REFERENCES public.AuthenticationUsers(Id),
+  CONSTRAINT FK_Tenants_Banks_BankId FOREIGN KEY (BankId) REFERENCES public.Banks(Id)
+);
+CREATE TABLE public.Transactions (
+  Id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
+  OrderId uuid NOT NULL,
+  Status integer NOT NULL,
+  TotalAmount numeric NOT NULL,
+  TransactionCode text,
+  PaymentMethod integer NOT NULL,
+  CreatedAt timestamp with time zone NOT NULL,
+  UpdatedAt timestamp with time zone,
+  IsDeleted boolean NOT NULL,
+  ShiftId integer,
+  TransactionType integer NOT NULL DEFAULT 0,
+  CONSTRAINT Transactions_pkey PRIMARY KEY (Id),
+  CONSTRAINT FK_Transactions_Orders_OrderId FOREIGN KEY (OrderId) REFERENCES public.Orders(Id),
+  CONSTRAINT FK_Transactions_Shifts_ShiftId FOREIGN KEY (ShiftId) REFERENCES public.Shifts(Id)
+);
+CREATE TABLE public.__EFMigrationsHistory (
+  MigrationId character varying NOT NULL,
+  ProductVersion character varying NOT NULL,
+  CONSTRAINT __EFMigrationsHistory_pkey PRIMARY KEY (MigrationId)
+);
