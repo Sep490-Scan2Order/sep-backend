@@ -565,7 +565,7 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.GetByIdIncludeSubscriptionAsync(restaurantId);
     
             if (restaurant == null)
-                return null; 
+                 return null; 
             
             if (isActive)
             {
