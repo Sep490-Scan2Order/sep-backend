@@ -73,6 +73,7 @@ namespace ScanToOrder.Infrastructure.Services
                     UpdatedAt = createdAt.AddMinutes(random.Next(15, 60)), // Finished ~15-60 mins later
                     TotalAmount = 0,
                     FinalAmount = 0,
+                    IsScanned = true,
                     PromotionDiscount = 0,
                     OrderDetails = new List<OrderDetail>()
                 };
