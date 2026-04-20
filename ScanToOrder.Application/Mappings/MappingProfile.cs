@@ -61,6 +61,8 @@ namespace ScanToOrder.Application.Mappings
         .ForMember(dest => dest.RestaurantName,
             opt => opt.MapFrom(src => src.Restaurant.RestaurantName))
         .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Account.Email))
+        .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Account.Phone))
+        .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Account.IsActive))
         .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Account.Role.ToString()));
             CreateMap<AuthenticationUser, AdminDto>();
 

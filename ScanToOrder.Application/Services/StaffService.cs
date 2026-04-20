@@ -88,6 +88,39 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<StaffDto>(staffEntity);
         }
 
+        public async Task<StaffDto> UpdateStaff(Guid staffId, UpdateStaffRequest request)
+        {
+            var staff = await _unitOfWork.Staffs.GetByFieldsIncludeAsync(
+                s => s.Id == staffId,
+                s => s.Account,
+                s => s.Restaurant);
+
+            if (staff == null)
+            {
+                throw new DomainException(StaffMessage.StaffError.STAFF_NOT_FOUND);
+            }
+
+            var isPhoneChanged = !string.Equals(staff.Account.Phone, request.Phone, StringComparison.Ordinal);
+            if (isPhoneChanged)
+            {
+                var existingUserByPhone = await _unitOfWork.AuthenticationUsers.GetByPhoneAsync(request.Phone);
+                if (existingUserByPhone != null && existingUserByPhone.Id != staff.AccountId)
+                {
+                    throw new DomainException(StaffMessage.StaffError.STAFF_ALREADY_EXISTS);
+                }
+            }
+
+            staff.Name = request.Name;
+            staff.Account.Phone = request.Phone;
+            staff.Account.IsActive = request.IsActive;
+            staff.Account.Role = request.Role;
+
+            _unitOfWork.Staffs.Update(staff);
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<StaffDto>(staff);
+        }
+
         public async Task<PagedResult<StaffDto>> GetAllStaff(int restaurantId, int page, int pageSize)
         {
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
@@ -96,12 +129,7 @@ namespace ScanToOrder.Application.Services
 
             var staffDtos = _mapper.Map<List<StaffDto>>(data);
 
-            foreach (var staff in staffDtos)
-            {   if (staff != null)
-                {
-                    staff.IsActive = true;
-                }
-            }
+          
             return new PagedResult<StaffDto>
             {
                 Items = staffDtos,

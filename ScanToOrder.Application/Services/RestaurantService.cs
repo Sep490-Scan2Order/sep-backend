@@ -565,13 +565,13 @@ namespace ScanToOrder.Application.Services
             var restaurant = await _unitOfWork.Restaurants.GetByIdIncludeSubscriptionAsync(restaurantId);
     
             if (restaurant == null)
-                return null; 
+                 return null; 
             
             if (isActive)
             {
                 if (restaurant.Subscription == null || restaurant.Subscription.Status == SubscriptionStatus.Expired)
                 {
-                    throw new DomainException("Cannot activate restaurant without an active subscription.");
+                    throw new DomainException("Không thể kích hoạt nhà hàng khi chưa đăng ký hoặc gói đã hết hạn.");
                 }
             }
             

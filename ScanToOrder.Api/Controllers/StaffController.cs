@@ -25,6 +25,14 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [Authorize(Roles = "Admin, Tenant, Cashier")]
+        [HttpPut("update-staff/{staffId:guid}")]
+        public async Task<ActionResult<ApiResponse<StaffDto>>> UpdateStaff(Guid staffId, [FromBody] UpdateStaffRequest request)
+        {
+            var result = await _staffService.UpdateStaff(staffId, request);
+            return Success(result, "Cập nhật thông tin nhân viên thành công.");
+        }
+
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
         [HttpGet ("get-all")]
         public async Task<IActionResult> GetAllStaff(int restaurantId, int page = 1, int pageSize = 10)
         {
