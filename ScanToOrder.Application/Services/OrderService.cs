@@ -1253,18 +1253,18 @@ public class OrderService : IOrderService
                     else
                         dishQuantitiesToRefund[detail.DishId] = detail.Quantity;
 
-                    if (detail.Dish != null && detail.Dish.Type == DishType.Combo)
-                    {
-                        var comboItems = comboDetailsLookup[detail.DishId];
-                        foreach (var comboItem in comboItems)
-                        {
-                            var qty = detail.Quantity * comboItem.Quantity;
-                            if (dishQuantitiesToRefund.ContainsKey(comboItem.ItemDishId))
-                                dishQuantitiesToRefund[comboItem.ItemDishId] += qty;
-                            else
-                                dishQuantitiesToRefund[comboItem.ItemDishId] = qty;
-                        }
-                    }
+                    // if (detail.Dish != null && detail.Dish.Type == DishType.Combo)
+                    // {
+                    //     var comboItems = comboDetailsLookup[detail.DishId];
+                    //     foreach (var comboItem in comboItems)
+                    //     {
+                    //         var qty = detail.Quantity * comboItem.Quantity;
+                    //         if (dishQuantitiesToRefund.ContainsKey(comboItem.ItemDishId))
+                    //             dishQuantitiesToRefund[comboItem.ItemDishId] += qty;
+                    //         else
+                    //             dishQuantitiesToRefund[comboItem.ItemDishId] = qty;
+                    //     }
+                    // }
                 }
 
                 if (dishQuantitiesToRefund.Any())
