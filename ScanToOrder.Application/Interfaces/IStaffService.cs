@@ -11,6 +11,7 @@ namespace ScanToOrder.Application.Interfaces
     public interface IStaffService
     {
         Task<StaffDto> CreateStaff(CreateStaffRequest staffDto);
+        Task<StaffDto> UpdateStaff(Guid staffId, UpdateStaffRequest request);
         Task<PagedResult<StaffDto>> GetAllStaff(int restaurantId, int page, int pageSize);
         Task<List<StaffDto>> GetAvailableCashiers();
         Task<List<StaffDto>> GetStaffByRestaurant(int restaurantId);
