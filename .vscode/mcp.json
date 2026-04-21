@@ -1,0 +1,15 @@
+{
+	"servers": {
+		"google-sheets": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@freema/mcp-gsheets"
+			],
+			"env": {
+				"GOOGLE_APPLICATION_CREDENTIALS": "D:\\N8N_WorkFlow\\keys\\credentials.json"
+			}
+		}
+	},
+	"inputs": []
+}

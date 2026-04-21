@@ -9,6 +9,7 @@ using ScanToOrder.Domain.Entities.Dishes;
 using ScanToOrder.Domain.Enums;
 using System;
 using System.Collections.Generic;
+using ScanToOrder.Application.Interfaces;
 
 namespace ScanToOrder.Api.Controllers
 {
@@ -19,13 +20,30 @@ namespace ScanToOrder.Api.Controllers
     {
         private readonly IBackgroundJobClient _backgroundJobClient;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IStorageService _storageService;
 
-        public DevController(IBackgroundJobClient backgroundJobClient, IUnitOfWork unitOfWork)
+        public DevController(IBackgroundJobClient backgroundJobClient, IUnitOfWork unitOfWork, IStorageService storageService)
         {
             _backgroundJobClient = backgroundJobClient;
             _unitOfWork = unitOfWork;
+            _storageService = storageService;
         }
 
+        [HttpPost("test-audio")]
+        public async Task<IActionResult> CreateSound([FromQuery] int orderNumber = 123, [FromQuery] string textToSpeak = "Xin chào, đây là tin nhắn thử nghiệm", [FromQuery] decimal amount = 50000)
+        {
+            var orderAudioUrl = await _storageService.GetOrGenerateOrderAudioAsync(orderNumber, textToSpeak);
+            var scanAudioUrl = await _storageService.GetOrGenerateScanAudioAsync(orderNumber, textToSpeak);
+            var paymentAudioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(orderNumber, amount);
+
+            return Ok(ApiResponse<object>.Success(new 
+            { 
+                OrderAudioUrl = orderAudioUrl, 
+                ScanAudioUrl = scanAudioUrl, 
+                PaymentAudioUrl = paymentAudioUrl 
+            }, "Generated audio URLs successfully"));
+        }
+        
         [HttpPost("seed-orders/{restaurantId}")]
         public IActionResult SeedOrders(int restaurantId, [FromQuery] int numberOfOrders = 1000)
         {
