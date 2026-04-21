@@ -72,6 +72,12 @@ namespace ScanToOrder.Infrastructure.Services
             await _hubContext.Clients.Group(restaurantId).SendAsync("PaymentReceived", new { orderCode, amount, audioUrl });
         }
 
+        public async Task NotifyShiftTransferSuccess(string staffId, int shiftId)
+        {
+            Console.WriteLine($"NotifyShiftTransferSuccess called | staffId={staffId}, shiftId={shiftId}");
+            var group = $"staff:{staffId}";
+            await _hubContext.Clients.Group(group).SendAsync("ShiftTransferSuccess", new { ShiftId = shiftId });
+        }
         public async Task NotifyShiftChanged(string staffId, object shift)
         {
             Console.WriteLine($"NotifyShiftChanged called | staffId={staffId}, shift={JsonSerializer.Serialize(shift)}");

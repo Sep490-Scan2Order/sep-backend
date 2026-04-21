@@ -97,6 +97,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public async Task<ShiftReport?> GetReportByShiftIdAsync(int shiftId)
         {
             return await _context.ShiftReports
+                .Include(r => r.Shift)
                 .FirstOrDefaultAsync(r => r.ShiftId == shiftId);
         }
     }

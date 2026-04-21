@@ -390,6 +390,11 @@ namespace ScanToOrder.Application.Services
                 
                 report.Difference = report.ActualCashAmount - report.TotalCashOrder;
                 _unitOfWork.ShiftReports.Update(report);
+
+                if (report.IsTransferred)
+                {
+                    await _realtimeService.NotifyShiftTransferSuccess(report.Shift.StaffId.ToString(), transfer.ShiftId);
+                }
             }
 
             await _unitOfWork.SaveAsync();
