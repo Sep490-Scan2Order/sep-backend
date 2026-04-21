@@ -651,10 +651,7 @@ namespace ScanToOrder.Application.Services
 
             var metrics = await _unitOfWork.Orders.GetRevenueSummaryAsync(restaurantId, startDate, endDate);
             var topDishes = await _unitOfWork.Orders.GetTopSellingDishesAsync(restaurantId, startDate, endDate, 10);
-            
-            // To maintain compatibility with TotalRefund logic, we will still fetch it from ShiftReports if specifically needed, 
-            // but the Dashboard API design just reads from metrics.RefundRevenue now. We can still get total refund from ShiftReports just for TotalRefund field if necessary.
-            var shiftMetrics = await _unitOfWork.ShiftReports.GetPaymentMetricsAsync(restaurantId, startDate, endDate);
+
 
             var result = new RevenueSummaryDto
             {
@@ -668,9 +665,9 @@ namespace ScanToOrder.Application.Services
             result.Summary.TotalOrders = metrics.TotalOrders;
             result.Summary.GrossRevenue = metrics.GrossRevenue;
             result.Summary.NetRevenue = metrics.NetRevenue;
-            result.Summary.TotalDiscount = metrics.TotalDiscount;
+            result.Summary.TotalDiscount = metrics.GrossRevenue - metrics.RegularRevenue;
             result.Summary.AverageOrderValue = metrics.TotalOrders > 0 ? (metrics.NetRevenue / metrics.TotalOrders) : 0;
-            result.Summary.TotalRefund = shiftMetrics.TotalRefund; // Keep using shift report for this specific legacy field if necessary, or use metrics.RefundRevenue
+            result.Summary.TotalRefund = metrics.RefundRevenue;
 
             result.OrderTypes.Regular.Count = metrics.RegularCount;
             result.OrderTypes.Regular.Revenue = metrics.RegularRevenue;
