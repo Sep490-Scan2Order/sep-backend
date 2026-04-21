@@ -10,8 +10,6 @@ using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Api.Controllers;
 
-[ApiController]
-[Route("api/webhooks")]
 public class WebhooksController : BaseController
 {
     private readonly ITenantService _tenantService;
@@ -92,6 +90,7 @@ public class WebhooksController : BaseController
             }
             else
             {
+                _logger.LogWarning("SEPAY WEBHOOK không tìm được paymentCode. Code={Code}, Content={Content}, Desc={Desc}",
                     webhookBody?.Code, webhookBody?.Content, webhookBody?.Description);
             }
 

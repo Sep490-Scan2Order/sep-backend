@@ -371,26 +371,18 @@ namespace ScanToOrder.Application.Services
 
             if (transfer.Status == ShiftTransferStatus.Success) return;
 
-            // Chấp nhận sai số nhỏ do làm tròn
-            if (Math.Abs(transfer.Amount - amount) > 100)
-            {
-                // Có thể log lại lỗi lệch tiền ở đây
-            }
 
             transfer.Status = ShiftTransferStatus.Success;
             _unitOfWork.ShiftTransfers.Update(transfer);
 
-            // Cập nhật báo cáo ca
             var report = await _unitOfWork.ShiftReports.GetReportByShiftIdAsync(transfer.ShiftId);
             if (report != null)
             {
-                // Tính lại ActualCashAmount dựa trên tất cả các chuyển khoản thành công
                 var allSuccessTransfers = await _unitOfWork.ShiftTransfers
                     .FindAsync(t => t.ShiftId == transfer.ShiftId && t.Status == ShiftTransferStatus.Success);
                 
                 report.ActualCashAmount = allSuccessTransfers.Sum(t => t.Amount) + amount;
                 
-                // Nếu tổng tiền nộp đã đủ hoặc khớp với doanh thu tiền mặt
                 if (report.ActualCashAmount >= report.TotalCashOrder)
                 {
                     report.IsTransferred = true;
