@@ -8,6 +8,8 @@ using ScanToOrder.Domain.Exceptions;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Domain.Entities.Orders;
 
+using ScanToOrder.Application.Utils;
+
 namespace ScanToOrder.Application.Services
 {
     public class ShiftService : IShiftService
@@ -24,7 +26,7 @@ namespace ScanToOrder.Application.Services
             _authenticatedUserService = authenticatedUserService;
         }
 
-        public async Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, decimal openingCashAmount, string? note)
+        public async Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, string? note)
         {
             var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(restaurantId);
 
@@ -46,11 +48,6 @@ namespace ScanToOrder.Application.Services
 
             if (isCashier)
             {
-                if (openingCashAmount < restaurant.MinCashAmount)
-                {
-                    throw new DomainException(Message.ShiftMessage.ShiftError.OPENING_CASH_INVALID);
-                }
-
                 if (activeCashierShift != null)
                 {
                     throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_ALREADY_OPEN);
@@ -69,7 +66,6 @@ namespace ScanToOrder.Application.Services
                 RestaurantId = restaurantId,
                 StaffId = staffId,
                 StartDate = DateTime.UtcNow,
-                OpeningCashAmount = isCashier ? openingCashAmount : 0,
                 Note = note ?? string.Empty,
                 Status = ShiftStatus.Open,
                 Type = isCashier ? ShiftType.Cashier : ShiftType.Staff,
@@ -83,17 +79,13 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<ShiftDto>(shift);
         }
 
-        public async Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal actualCashAmount, string? note)
+        public async Task<ShiftDto> CheckOutShiftAsync(int shiftId, string? note)
         {
             var shift = await GetAndValidateOpenShiftAsync(shiftId);
 
             if (shift.Type == ShiftType.Cashier)
             {
                 var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
-                if (restaurant != null && actualCashAmount < restaurant.MinCashAmount)
-                {
-                    throw new DomainException(Message.ShiftMessage.ShiftError.CASH_AMOUNT_INVALID);
-                }
 
                 var hasOpenStaff = await _unitOfWork.Shifts.HasOpenSubShiftsAsync(shiftId);
                 if (hasOpenStaff)
@@ -104,7 +96,7 @@ namespace ScanToOrder.Application.Services
                 var transactions = await GetSuccessfulTransactionsAsync(shiftId);
                 var metrics = CalculateShiftMetrics(transactions);
 
-                await PerformCheckOutTransitionAsync(shift, actualCashAmount, metrics, note);
+                await PerformCheckOutTransitionAsync(shift, metrics, note);
             }
             else
             {
@@ -186,7 +178,7 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        private async Task PerformCheckOutTransitionAsync(Shift shift, decimal actualCashAmount, ShiftMetrics metrics, string? note)
+        private async Task PerformCheckOutTransitionAsync(Shift shift, ShiftMetrics metrics, string? note)
         {
             await using var tx = await _unitOfWork.BeginTransactionAsync();
             try
@@ -196,8 +188,8 @@ namespace ScanToOrder.Application.Services
                 shift.Note = note ?? string.Empty;
                 _unitOfWork.Shifts.Update(shift);
 
-                decimal expectedCash = shift.OpeningCashAmount + metrics.TotalCashOrder;
-                decimal difference = actualCashAmount - expectedCash;
+                decimal totalTransferred = shift.ShiftTransfers.Sum(t => t.Amount);
+                decimal difference = totalTransferred - metrics.TotalCashOrder;
 
                 var report = new ShiftReport
                 {
@@ -206,9 +198,9 @@ namespace ScanToOrder.Application.Services
                     TotalCashOrder = metrics.TotalCashOrder,
                     TotalTransferOrder = metrics.TotalTransferOrder,
                     TotalRefundAmount = metrics.TotalRefundAmount,
-                    ExpectedCashAmount = expectedCash,
-                    ActualCashAmount = actualCashAmount,
+                    ActualCashAmount = totalTransferred,
                     Difference = difference,
+                    IsTransferred = (difference == 0),
                     Note = note ?? string.Empty
                 };
 
@@ -238,7 +230,7 @@ namespace ScanToOrder.Application.Services
             if (report == null)
                 throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_REPORT_NOT_FOUND);
 
-            return MapToShiftReportDto(report, shift.OpeningCashAmount, staff?.Name ?? string.Empty);
+            return MapToShiftReportDto(report, staff?.Name ?? string.Empty);
         }
 
         public async Task<ShiftReportDto> GetShiftPreviewAsync(int shiftId)
@@ -253,7 +245,8 @@ namespace ScanToOrder.Application.Services
             ).ToList();
             var metrics = CalculateShiftMetrics(filteredTransactions);
 
-            decimal expectedCash = shift.OpeningCashAmount + metrics.TotalCashOrder;
+            decimal totalTransferred = shift.ShiftTransfers.Sum(t => t.Amount);
+            decimal difference = totalTransferred - metrics.TotalCashOrder;
 
             return new ShiftReportDto
             {
@@ -263,11 +256,11 @@ namespace ScanToOrder.Application.Services
                 TotalCashOrder = metrics.TotalCashOrder,
                 TotalTransferOrder = metrics.TotalTransferOrder,
                 TotalRefundAmount = metrics.TotalRefundAmount,
-                ExpectedCashAmount = expectedCash,
-                ActualCashAmount = 0,
-                Difference = 0,
+                ActualCashAmount = totalTransferred,
+                Difference = difference,
+                IsTransferred = (difference == 0),
                 Note = shift.Note ?? string.Empty,
-                ExpectedTotalAmount = shift.OpeningCashAmount + metrics.TotalCashOrder + metrics.TotalTransferOrder,
+                ExpectedTotalAmount = metrics.TotalCashOrder + metrics.TotalTransferOrder,
                 CashierName = staff?.Name ?? string.Empty
             };
         }
@@ -279,7 +272,7 @@ namespace ScanToOrder.Application.Services
 
             return new PagedResult<ShiftReportDto>
             {
-                Items = result.Items.Select(x => MapToShiftReportDto(x.Report, x.OpeningCashAmount, x.CashierName)),
+                Items = result.Items.Select(x => MapToShiftReportDto(x.Report, x.CashierName)),
                 TotalCount = result.TotalCount,
                 Page = pageIndex,
                 PageSize = pageSize
@@ -292,7 +285,7 @@ namespace ScanToOrder.Application.Services
 
             return new PagedResult<ShiftReportDto>
             {
-                Items = result.Items.Select(x => MapToShiftReportDto(x.Report, x.OpeningCashAmount, x.CashierName)),
+                Items = result.Items.Select(x => MapToShiftReportDto(x.Report, x.CashierName)),
                 TotalCount = result.TotalCount,
                 Page = pageIndex,
                 PageSize = pageSize
@@ -308,7 +301,7 @@ namespace ScanToOrder.Application.Services
             return _mapper.Map<ShiftDto>(shift);
         }
 
-        private static ShiftReportDto MapToShiftReportDto(ShiftReport report, decimal openingCashAmount, string cashierName)
+        private static ShiftReportDto MapToShiftReportDto(ShiftReport report, string cashierName)
         {
             return new ShiftReportDto
             {
@@ -318,13 +311,89 @@ namespace ScanToOrder.Application.Services
                 TotalCashOrder = report.TotalCashOrder,
                 TotalTransferOrder = report.TotalTransferOrder,
                 TotalRefundAmount = report.TotalRefundAmount,
-                ExpectedCashAmount = report.ExpectedCashAmount,
                 ActualCashAmount = report.ActualCashAmount,
                 Difference = report.Difference,
+                IsTransferred = report.IsTransferred,
                 Note = report.Note,
-                ExpectedTotalAmount = openingCashAmount + report.TotalCashOrder + report.TotalTransferOrder,
+                ExpectedTotalAmount = report.TotalCashOrder + report.TotalTransferOrder,
                 CashierName = cashierName
             };
         }
+        public async Task<ShiftTransferQrResponse> GetTransferQrAsync(int shiftId)
+        {
+            var shift = await _unitOfWork.Shifts.GetByIdAsync(shiftId);
+            if (shift == null)
+                throw new DomainException(Message.ShiftMessage.ShiftError.SHIFT_NOT_FOUND);
+
+            var restaurant = await _unitOfWork.Restaurants.GetByIdWithTenantBankAsync(shift.RestaurantId);
+            if (restaurant?.Tenant?.Bank == null || string.IsNullOrWhiteSpace(restaurant.Tenant.CardNumber))
+                throw new DomainException(Message.OrderMessage.OrderError.RESTAURANT_NO_BANK_CONFIGURED);
+
+            var transactions = await GetSuccessfulTransactionsAsync(shiftId);
+            var metrics = CalculateShiftMetrics(transactions);
+            var amountToTransfer = metrics.TotalCashOrder;
+
+            if (amountToTransfer <= 0)
+                throw new DomainException("Ca làm việc không có doanh thu tiền mặt cần nộp.");
+
+            var (qrUrl, paymentCode) = BankQrLinkUtils.GenerateSePayQrUrl(
+                restaurant.Tenant.CardNumber,
+                restaurant.Tenant.Bank.ShortName,
+                amountToTransfer,
+                PaymentIntent.ShiftPayment
+            );
+
+            var transfer = new ShiftTransfer
+            {
+                ShiftId = shiftId,
+                Amount = amountToTransfer,
+                TransactionCode = paymentCode,
+                Status = ShiftTransferStatus.Pending,
+                Note = $"Nộp tiền ca làm việc #{shiftId}"
+            };
+
+            await _unitOfWork.ShiftTransfers.AddAsync(transfer);
+            await _unitOfWork.SaveAsync();
+
+            return new ShiftTransferQrResponse
+            {
+                QrUrl = qrUrl,
+                PaymentCode = paymentCode,
+                Amount = amountToTransfer,
+                Note = transfer.Note
+            };
+        }
+
+        public async Task HandleShiftTransferWebhookAsync(string paymentCode, decimal amount)
+        {
+            var transfer = await _unitOfWork.ShiftTransfers.FirstOrDefaultAsync(t => t.TransactionCode.ToLower() == paymentCode.ToLower());
+            if (transfer == null) return;
+
+            if (transfer.Status == ShiftTransferStatus.Success) return;
+
+
+            transfer.Status = ShiftTransferStatus.Success;
+            _unitOfWork.ShiftTransfers.Update(transfer);
+
+            var report = await _unitOfWork.ShiftReports.GetReportByShiftIdAsync(transfer.ShiftId);
+            if (report != null)
+            {
+                var allSuccessTransfers = await _unitOfWork.ShiftTransfers
+                    .FindAsync(t => t.ShiftId == transfer.ShiftId && t.Status == ShiftTransferStatus.Success);
+                
+                report.ActualCashAmount = allSuccessTransfers.Sum(t => t.Amount) + amount;
+                
+                if (report.ActualCashAmount >= report.TotalCashOrder)
+                {
+                    report.IsTransferred = true;
+                }
+                
+                report.Difference = report.ActualCashAmount - report.TotalCashOrder;
+                _unitOfWork.ShiftReports.Update(report);
+            }
+
+            await _unitOfWork.SaveAsync();
+        }
+
     }
 }

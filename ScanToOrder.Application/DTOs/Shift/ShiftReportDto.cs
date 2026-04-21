@@ -10,9 +10,9 @@ namespace ScanToOrder.Application.DTOs.Shift
         public decimal TotalTransferOrder { get; set; }
         public decimal TotalRefundAmount { get; set; }
 
-        public decimal ExpectedCashAmount { get; set; }
         public decimal ActualCashAmount { get; set; }
         public decimal Difference { get; set; }
+        public bool IsTransferred { get; set; }
 
         public decimal ExpectedTotalAmount { get; set; }
 

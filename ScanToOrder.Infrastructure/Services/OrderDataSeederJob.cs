@@ -73,6 +73,7 @@ namespace ScanToOrder.Infrastructure.Services
                     UpdatedAt = createdAt.AddMinutes(random.Next(15, 60)), // Finished ~15-60 mins later
                     TotalAmount = 0,
                     FinalAmount = 0,
+                    IsScanned = true,
                     PromotionDiscount = 0,
                     OrderDetails = new List<OrderDetail>()
                 };
@@ -156,7 +157,6 @@ namespace ScanToOrder.Infrastructure.Services
                         StaffId = staffIdToUse,
                         StartDate = shiftDate.AddHours(8), // Start at 8 AM
                         EndDate = shiftDate.AddHours(22),  // End at 10 PM
-                        OpeningCashAmount = 1000000,       // 1,000,000 VND 
                         Note = "Seeded shift",
                         Status = ShiftStatus.Closed,       // Shifts in the past are closed
                         CreatedAt = shiftDate.AddHours(8)

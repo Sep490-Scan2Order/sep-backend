@@ -36,6 +36,7 @@ namespace ScanToOrder.Domain.Interfaces
         IBankRepository Banks { get; }
         IShiftRepository Shifts { get; }
         IShiftReportRepository ShiftReports { get; }
+        IShiftTransferRepository ShiftTransfers { get; }
         IPaymentTransactionRepository PaymentTransactions { get; }
         ISubscriptionLogRepository SubscriptionLogs { get; }
         IComboDetailRepository ComboDetails { get; }

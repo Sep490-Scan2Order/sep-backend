@@ -10,8 +10,8 @@ namespace ScanToOrder.Application.Interfaces
 {
     public  interface IShiftService
     {
-        Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, decimal openingCashAmount, string? note);
-        Task<ShiftDto> CheckOutShiftAsync(int shiftId, decimal closingCashAmount, string? note);
+        Task<ShiftDto> CheckInShiftAsync(int restaurantId, Guid staffId, string? note);
+        Task<ShiftDto> CheckOutShiftAsync(int shiftId, string? note);
         Task BlockStaffShiftAsync(int shiftId, string reason);
         Task<IEnumerable<ShiftDto>> GetStaffShiftsByCashierShiftIdAsync(int cashierShiftId);
         Task<ShiftReportDto> GetShiftPreviewAsync(int shiftId);
@@ -19,5 +19,7 @@ namespace ScanToOrder.Application.Interfaces
         Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to);
         Task<PagedResult<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId, int pageIndex, int pageSize);
         Task<ShiftDto> GetShiftByIdAsync(Guid staffId);
+        Task<ShiftTransferQrResponse> GetTransferQrAsync(int shiftId);
+        Task HandleShiftTransferWebhookAsync(string paymentCode, decimal amount);
     }
 }

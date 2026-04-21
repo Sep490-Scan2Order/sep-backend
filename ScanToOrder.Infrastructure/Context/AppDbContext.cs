@@ -47,6 +47,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Shift> Shifts { get; set; } = null!;
     public DbSet<ShiftReport> ShiftReports { get; set; } = null!;
+    public DbSet<ShiftTransfer> ShiftTransfers { get; set; } = null!;
 
     public DbSet<Configurations> Configurations { get; set; } = null!;
     public DbSet<SystemBlog> SystemBlogs { get; set; } = null!;
@@ -220,6 +221,15 @@ public class AppDbContext : DbContext
             .HasOne(sr => sr.Shift)
             .WithMany()
             .HasForeignKey(sr => sr.ShiftId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        /*
+         * ShiftTransfer
+         */
+        modelBuilder.Entity<ShiftTransfer>()
+            .HasOne(st => st.Shift)
+            .WithMany(s => s.ShiftTransfers)
+            .HasForeignKey(st => st.ShiftId)
             .OnDelete(DeleteBehavior.Cascade);
 
         /*

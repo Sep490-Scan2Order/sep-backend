@@ -16,6 +16,7 @@ public class WebhooksController : BaseController
     private readonly IPaymentService _paymentService;
     private readonly ISubscriptionService _subscriptionService;
     private readonly IOrderService _orderService;
+    private readonly IShiftService _shiftService;
     private readonly ILogger<WebhooksController> _logger;
 
     public WebhooksController(
@@ -23,12 +24,14 @@ public class WebhooksController : BaseController
         ISubscriptionService subscriptionService,
         IPaymentService paymentService,
         IOrderService orderService,
+        IShiftService shiftService,
         ILogger<WebhooksController> logger)
     {
         _tenantService = tenantService;
         _subscriptionService = subscriptionService;
         _paymentService = paymentService;
         _orderService = orderService;
+        _shiftService = shiftService;
         _logger = logger;
     }
 
@@ -80,6 +83,15 @@ public class WebhooksController : BaseController
                 {
                     await _orderService.ProcessOrderPaymentAsync(paymentCode, webhookBody.TransferAmount);
                 }
+                else if (result == PaymentIntent.ShiftPayment)
+                {
+                    await _shiftService.HandleShiftTransferWebhookAsync(paymentCode, webhookBody.TransferAmount);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("SEPAY WEBHOOK không tìm được paymentCode. Code={Code}, Content={Content}, Desc={Desc}",
+                    webhookBody?.Code, webhookBody?.Content, webhookBody?.Description);
             }
 
             return Ok(new { isSuccess = true });
@@ -107,9 +119,10 @@ public class WebhooksController : BaseController
                 end++;
             }
 
-            var candidate = span[..end].ToString();
+            var candidate = span[..end].ToString().TrimEnd('.', ',', '!', '?', ';', ':');
             if (candidate.EndsWith("ORD", StringComparison.OrdinalIgnoreCase) ||
-                candidate.EndsWith("VER", StringComparison.OrdinalIgnoreCase))
+                candidate.EndsWith("VER", StringComparison.OrdinalIgnoreCase) ||
+                candidate.EndsWith("SFT", StringComparison.OrdinalIgnoreCase))
             {
                 return candidate;
             }

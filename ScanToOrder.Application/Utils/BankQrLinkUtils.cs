@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Text;
 using ScanToOrder.Domain.Enums;
@@ -39,7 +39,13 @@ public static class BankQrLinkUtils
             throw new ArgumentException("Số tài khoản và ngân hàng không được để trống.");
         }
 
-        string intentSuffix = intent == PaymentIntent.OrderPayment ? "ORD" : "VER";
+        string intentSuffix = intent switch
+        {
+            PaymentIntent.OrderPayment => "ORD",
+            PaymentIntent.TenantVerification => "VER",
+            PaymentIntent.ShiftPayment => "SFT",
+            _ => throw new ArgumentOutOfRangeException(nameof(intent), $"Unexpected payment intent: {intent}")
+        };
 
         int numericLength = MaxSuffixLength - intentSuffix.Length;
 
@@ -68,6 +74,9 @@ public static class BankQrLinkUtils
 
         if (paymentCode.EndsWith("VER", StringComparison.OrdinalIgnoreCase))
             return PaymentIntent.TenantVerification;
+
+        if (paymentCode.EndsWith("SFT", StringComparison.OrdinalIgnoreCase))
+            return PaymentIntent.ShiftPayment;
 
         return null;
     }

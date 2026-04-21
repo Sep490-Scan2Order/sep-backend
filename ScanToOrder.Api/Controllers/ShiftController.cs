@@ -26,7 +26,6 @@ namespace ScanToOrder.Api.Controllers
             var result = await _shiftService.CheckInShiftAsync(
                 request.RestaurantId,
                 request.StaffId,
-                request.OpeningCashAmount,
                 request.Note
             );
 
@@ -39,7 +38,6 @@ namespace ScanToOrder.Api.Controllers
         {
             var result = await _shiftService.CheckOutShiftAsync(
                 request.ShiftId,
-                request.CashAmount,
                 request.Note
             );
 
@@ -107,6 +105,13 @@ namespace ScanToOrder.Api.Controllers
         public async Task<ActionResult<ApiResponse<IEnumerable<ShiftDto>>>> GetStaffShifts([FromRoute] int cashierShiftId)
         {
             var result = await _shiftService.GetStaffShiftsByCashierShiftIdAsync(cashierShiftId);
+            return Success(result);
+        }
+        [HttpGet("{shiftId}/transfer-qr")]
+        [Authorize(Roles = "Cashier")]
+        public async Task<ActionResult<ApiResponse<ShiftTransferQrResponse>>> GetTransferQr([FromRoute] int shiftId)
+        {
+            var result = await _shiftService.GetTransferQrAsync(shiftId);
             return Success(result);
         }
     }

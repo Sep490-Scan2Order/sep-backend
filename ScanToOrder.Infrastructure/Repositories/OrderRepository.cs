@@ -237,7 +237,23 @@ namespace ScanToOrder.Infrastructure.Repositories
                 })
                 .FirstOrDefaultAsync();
 
-            return metrics ?? new OrderRevenueMetrics();
+            var result = metrics ?? new OrderRevenueMetrics();
+            
+            var dishLevelDiscount = await _context.OrderDetails.AsNoTracking()
+                .Where(od => od.Order.RestaurantId == restaurantId
+                    && od.Order.typeOrder == TypeOrder.Regular
+                    && od.Order.Status == OrderStatus.Served
+                    && od.Order.CreatedAt >= startDate
+                    && od.Order.CreatedAt <= endDate
+                    && od.OriginalPrice > 0
+                    && od.OriginalPrice > od.DiscountedPrice)
+                .Select(od => (decimal?)((od.OriginalPrice - od.DiscountedPrice) * od.Quantity))
+                .SumAsync() ?? 0m;
+
+            result.GrossRevenue += dishLevelDiscount;
+            result.TotalDiscount += dishLevelDiscount;
+
+            return result;
         }
 
         public async Task<List<(int DishId, string DishName, int QuantitySold, decimal Revenue)>> GetTopSellingDishesAsync(int restaurantId, DateTime startDate, DateTime endDate, int top)
