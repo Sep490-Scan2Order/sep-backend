@@ -39,7 +39,13 @@ public static class BankQrLinkUtils
             throw new ArgumentException("Số tài khoản và ngân hàng không được để trống.");
         }
 
-        string intentSuffix = intent == PaymentIntent.OrderPayment ? "ORD" : "VER";
+        string intentSuffix = intent switch
+        {
+            PaymentIntent.OrderPayment => "ORD",
+            PaymentIntent.TenantVerification => "VER",
+            PaymentIntent.ShiftPayment => "SFT",
+            _ => throw new ArgumentOutOfRangeException(nameof(intent), $"Unexpected payment intent: {intent}")
+        };
 
         int numericLength = MaxSuffixLength - intentSuffix.Length;
 

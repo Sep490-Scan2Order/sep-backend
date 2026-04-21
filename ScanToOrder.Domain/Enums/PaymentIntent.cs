@@ -3,5 +3,6 @@
 public enum PaymentIntent
 {
     OrderPayment, 
-    TenantVerification 
+    TenantVerification ,
+    ShiftPayment
 }
