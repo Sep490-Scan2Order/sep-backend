@@ -114,5 +114,14 @@ namespace ScanToOrder.Api.Controllers
             var result = await _shiftService.GetTransferQrAsync(shiftId);
             return Success(result);
         }
+
+        [HttpGet("current/pending-report")]
+        [Authorize(Roles = "Cashier, Staff")]
+        public async Task<ActionResult<ApiResponse<ShiftReportDto>>> GetPendingShiftReport()
+        {
+            var staffId = _authenticatedUserService.ProfileId.Value;
+            var result = await _shiftService.GetPendingShiftReportAsync(staffId);
+            return Success(result);
+        }
     }
 }

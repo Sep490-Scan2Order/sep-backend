@@ -395,5 +395,21 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
         }
 
+        public async Task<ShiftReportDto?> GetPendingShiftReportAsync(Guid staffId)
+        {
+            var reports = await _unitOfWork.ShiftReports.FindAsync(r => 
+                r.Shift.StaffId == staffId && 
+                r.Shift.Status == ShiftStatus.Closed && 
+                !r.IsTransferred);
+
+            var pendingReport = reports
+                .OrderByDescending(r => r.ReportDate)
+                .FirstOrDefault();
+
+            if (pendingReport == null) return null;
+
+            var staff = await _unitOfWork.Staffs.GetByIdAsync(staffId);
+            return MapToShiftReportDto(pendingReport, staff?.Name ?? string.Empty);
+        }
     }
 }

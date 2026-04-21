@@ -21,5 +21,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<ShiftDto> GetShiftByIdAsync(Guid staffId);
         Task<ShiftTransferQrResponse> GetTransferQrAsync(int shiftId);
         Task HandleShiftTransferWebhookAsync(string paymentCode, decimal amount);
+        Task<ShiftReportDto?> GetPendingShiftReportAsync(Guid staffId);
     }
 }
