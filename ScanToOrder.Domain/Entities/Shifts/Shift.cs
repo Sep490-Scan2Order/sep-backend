@@ -16,7 +16,6 @@ namespace ScanToOrder.Domain.Entities.Shifts
         public Guid StaffId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public decimal OpeningCashAmount { get; set; }
         public string Note { get; set; } = string.Empty;
         public ShiftStatus Status { get; set; }
         public ShiftType Type { get; set; }
@@ -26,5 +25,6 @@ namespace ScanToOrder.Domain.Entities.Shifts
         public virtual ICollection<Shift> SubShifts { get; set; } = new List<Shift>();
         public virtual Restaurant Restaurants { get; set; } = null!;
         public virtual Staff Staffs { get; set; } = null!;
+        public virtual ICollection<ShiftTransfer> ShiftTransfers { get; set; } = new List<ShiftTransfer>();
     }
 }

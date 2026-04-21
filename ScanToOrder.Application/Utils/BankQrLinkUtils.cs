@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Text;
 using ScanToOrder.Domain.Enums;
@@ -74,6 +74,9 @@ public static class BankQrLinkUtils
 
         if (paymentCode.EndsWith("VER", StringComparison.OrdinalIgnoreCase))
             return PaymentIntent.TenantVerification;
+
+        if (paymentCode.EndsWith("SFT", StringComparison.OrdinalIgnoreCase))
+            return PaymentIntent.ShiftPayment;
 
         return null;
     }

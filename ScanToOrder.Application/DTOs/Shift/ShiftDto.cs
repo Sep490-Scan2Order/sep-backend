@@ -17,8 +17,6 @@ namespace ScanToOrder.Application.DTOs.Shift
         public DateTime? EndDate { get; set; }
 
 
-        public decimal OpeningCashAmount { get; set; }
-
         public string Note { get; set; } = string.Empty;
         public string StaffName { get; set; } = string.Empty;
 

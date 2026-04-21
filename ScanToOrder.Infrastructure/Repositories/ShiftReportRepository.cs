@@ -12,7 +12,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         {
         }
 
-        public async Task<(List<(ShiftReport Report, decimal OpeningCashAmount, string CashierName)> Items, int TotalCount)> GetReportsByRestaurantAsync(
+        public async Task<(List<(ShiftReport Report, string CashierName)> Items, int TotalCount)> GetReportsByRestaurantAsync(
             int restaurantId, DateTime? from, DateTime? to, int pageIndex = 1, int pageSize = 10)
         {
             var query = _context.ShiftReports
@@ -21,7 +21,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                     _context.Shifts.Where(s => s.RestaurantId == restaurantId && s.Status == ShiftStatus.Closed).Include(s => s.Staffs),
                     report => report.ShiftId,
                     shift => shift.Id,
-                    (report, shift) => new { Report = report, shift.OpeningCashAmount, CashierName = shift.Staffs.Name }
+                    (report, shift) => new { Report = report, CashierName = shift.Staffs.Name }
                 )
                 .AsQueryable();
 
@@ -40,13 +40,13 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .ToListAsync();
 
             var items = results
-                .Select(x => (x.Report, x.OpeningCashAmount, x.CashierName))
+                .Select(x => (x.Report, x.CashierName))
                 .ToList();
 
             return (items, totalCount);
         }
 
-        public async Task<(List<(ShiftReport Report, decimal OpeningCashAmount, string CashierName)> Items, int TotalCount)> GetReportsByStaffAsync(Guid staffId, int pageIndex = 1, int pageSize = 10)
+        public async Task<(List<(ShiftReport Report, string CashierName)> Items, int TotalCount)> GetReportsByStaffAsync(Guid staffId, int pageIndex = 1, int pageSize = 10)
         {
             var query = _context.ShiftReports
                 .AsNoTracking()
@@ -54,7 +54,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                     _context.Shifts.Where(s => s.StaffId == staffId && s.Status == ShiftStatus.Closed).Include(s => s.Staffs),
                     report => report.ShiftId,
                     shift => shift.Id,
-                    (report, shift) => new { Report = report, shift.OpeningCashAmount, CashierName = shift.Staffs.Name }
+                    (report, shift) => new { Report = report, CashierName = shift.Staffs.Name }
                 )
                 .AsQueryable();
 
@@ -67,7 +67,7 @@ namespace ScanToOrder.Infrastructure.Repositories
                 .ToListAsync();
 
             var items = results
-                .Select(x => (x.Report, x.OpeningCashAmount, x.CashierName))
+                .Select(x => (x.Report, x.CashierName))
                 .ToList();
 
             return (items, totalCount);

@@ -157,7 +157,6 @@ namespace ScanToOrder.Infrastructure.Services
                         StaffId = staffIdToUse,
                         StartDate = shiftDate.AddHours(8), // Start at 8 AM
                         EndDate = shiftDate.AddHours(22),  // End at 10 PM
-                        OpeningCashAmount = 1000000,       // 1,000,000 VND 
                         Note = "Seeded shift",
                         Status = ShiftStatus.Closed,       // Shifts in the past are closed
                         CreatedAt = shiftDate.AddHours(8)

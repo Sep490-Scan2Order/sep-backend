@@ -31,6 +31,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         public IBankRepository Banks { get; }
         public IShiftRepository Shifts { get; }
         public IShiftReportRepository ShiftReports { get; }
+        public IShiftTransferRepository ShiftTransfers { get; }
         public IPaymentTransactionRepository PaymentTransactions { get; }
         public ISubscriptionLogRepository SubscriptionLogs { get; }
         public IComboDetailRepository ComboDetails { get; }
@@ -61,6 +62,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             IBankRepository banks,
             IShiftRepository shifts,
             IShiftReportRepository shiftReports,
+            IShiftTransferRepository shiftTransfers,
             IPaymentTransactionRepository paymentTransactions,
             ISubscriptionLogRepository subscriptionLogs,
             IComboDetailRepository comboDetails)
@@ -90,6 +92,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             Banks = banks;
             Shifts = shifts;
             ShiftReports = shiftReports;
+            ShiftTransfers = shiftTransfers;
             PaymentTransactions = paymentTransactions;
             SubscriptionLogs = subscriptionLogs;
             ComboDetails = comboDetails;
