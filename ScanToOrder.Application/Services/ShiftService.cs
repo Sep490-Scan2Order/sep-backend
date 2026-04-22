@@ -76,6 +76,15 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
             await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
 
+            if (shift.ParentShiftId.HasValue)
+            {
+                var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
+                if (parentShift != null)
+                {
+                    await _realtimeService.NotifyShiftChanged(parentShift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+                }
+            }
+
             return _mapper.Map<ShiftDto>(shift);
         }
 
@@ -106,6 +115,15 @@ namespace ScanToOrder.Application.Services
                 _unitOfWork.Shifts.Update(shift);
                 await _unitOfWork.SaveAsync();
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+                if (shift.ParentShiftId.HasValue)
+                {
+                    var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
+                    if (parentShift != null)
+                    {
+                        await _realtimeService.NotifyShiftChanged(parentShift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+                    }
+                }
             }
 
             return _mapper.Map<ShiftDto>(shift);
@@ -127,6 +145,15 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Shifts.Update(shift);
             await _unitOfWork.SaveAsync();
             await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+            if (shift.ParentShiftId.HasValue)
+            {
+                var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
+                if (parentShift != null)
+                {
+                    await _realtimeService.NotifyShiftChanged(parentShift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+                }
+            }
         }
 
         public async Task<IEnumerable<ShiftDto>> GetStaffShiftsByCashierShiftIdAsync(int cashierShiftId)
