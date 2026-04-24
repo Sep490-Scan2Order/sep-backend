@@ -453,4 +453,72 @@ public class CronJobService : ICronJobService
 
             _logger.LogInformation("Đã hoàn thành CronJob: MonitorAndSuspendOverdueDebtsAsync");
         }
+
+        public async Task WarnUnpaidShiftsAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: WarnUnpaidShiftsAsync vào lúc {Time}", DateTimeOffset.Now);
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var unpaidReports = await _unitOfWork.ShiftReports.GetAllAsync(
+                    r => r.IsTransferred == false && r.Shift.Status == ScanToOrder.Domain.Enums.ShiftStatus.Closed && r.Difference < 0,
+                    r => r.Shift.Staffs.Account,
+                    r => r.Shift.Restaurants
+                );
+
+                if (!unpaidReports.Any())
+                {
+                    _logger.LogInformation("Không có ca nào chưa nộp tiền hợp lệ để cảnh báo.");
+                    return;
+                }
+
+                var reportsByStaff = unpaidReports.GroupBy(r => r.Shift.StaffId);
+
+                foreach (var group in reportsByStaff)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var firstReport = group.FirstOrDefault();
+                    var staff = firstReport?.Shift?.Staffs;
+                    var email = staff?.Account?.Email;
+
+                    if (!string.IsNullOrWhiteSpace(email))
+                    {
+                        var totalDebt = group.Sum(r => r.TotalCashOrder);
+                        
+                        var shiftDetailsHtml = string.Join("", group.Select(r => 
+                            $"<li>Ca <strong>#{r.ShiftId}</strong> (Nhà hàng: {r.Shift?.Restaurants?.RestaurantName ?? string.Empty}): Cần nộp <strong>{r.TotalCashOrder:N0} VNĐ</strong></li>"
+                        ));
+
+                        var subject = "Canh bao chua nop tien ca lam viec - ScanToOrder";
+                        var htmlContent = $@"
+                            <h3>Kính gửi {staff.Name},</h3>
+                            <p>Tài khoản của bạn hiện đang có <strong>{group.Count()}</strong> ca trực đã kết thúc nhưng chưa hoàn tất việc nộp tiền mặt.</p>
+                            <ul>
+                                {shiftDetailsHtml}
+                            </ul>
+                            <p>Tổng số tiền nợ cần chuyển: <strong style='color:red;'>{totalDebt:N0} VNĐ</strong>.</p>
+                            <p>Vui lòng tiến hành quét mã nộp tiền trên hệ thống đối với các ca chưa hoàn thành để hoàn tất đóng ca làm việc, tránh ảnh hưởng đến kiểm toán của nhà hàng.</p>
+                            <p>Trân trọng,<br>ScanToOrder</p>";
+
+                        await _emailService.SendEmailAsync(email, subject, htmlContent);
+                    }
+                }
+
+                _logger.LogInformation("Đã kiểm tra và gửi cảnh báo dạng gộp cho {StaffCount} nhân viên với tổng cộng {ShiftCount} ca chưa nộp tiền.", reportsByStaff.Count(), unpaidReports.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("CronJob WarnUnpaidShiftsAsync bị hủy.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: WarnUnpaidShiftsAsync");
+            }
+
+            _logger.LogInformation("Đã hoàn thành CronJob: WarnUnpaidShiftsAsync");
+        }
 }
