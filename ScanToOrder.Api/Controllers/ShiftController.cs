@@ -115,12 +115,12 @@ namespace ScanToOrder.Api.Controllers
             return Success(result);
         }
 
-        [HttpGet("current/pending-report")]
+        [HttpGet("current/pending-reports")]
         [Authorize(Roles = "Cashier, Staff")]
-        public async Task<ActionResult<ApiResponse<ShiftReportDto>>> GetPendingShiftReport()
+        public async Task<ActionResult<ApiResponse<IEnumerable<ShiftReportDto>>>> GetPendingShiftReports()
         {
             var staffId = _authenticatedUserService.ProfileId.Value;
-            var result = await _shiftService.GetPendingShiftReportAsync(staffId);
+            var result = await _shiftService.GetPendingShiftReportsAsync(staffId);
             return Success(result);
         }
     }

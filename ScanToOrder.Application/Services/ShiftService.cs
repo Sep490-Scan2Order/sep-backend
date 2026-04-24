@@ -358,10 +358,13 @@ namespace ScanToOrder.Application.Services
 
             var transactions = await GetSuccessfulTransactionsAsync(shiftId);
             var metrics = CalculateShiftMetrics(transactions);
-            var amountToTransfer = metrics.TotalCashOrder;
+            var allSuccessTransfers = await _unitOfWork.ShiftTransfers
+                .FindAsync(t => t.ShiftId == shiftId && t.Status == ShiftTransferStatus.Success);
+            var alreadyTransferred = allSuccessTransfers.Sum(t => t.Amount);
+            var amountToTransfer = metrics.TotalCashOrder - alreadyTransferred;
 
             if (amountToTransfer <= 0)
-                throw new DomainException("Ca làm việc không có doanh thu tiền mặt cần nộp.");
+                throw new DomainException("Ca làm việc đã nộp đủ doanh thu tiền mặt.");
 
             var (qrUrl, paymentCode) = BankQrLinkUtils.GenerateSePayQrUrl(
                 restaurant.Tenant.CardNumber,
@@ -427,21 +430,19 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task<ShiftReportDto?> GetPendingShiftReportAsync(Guid staffId)
+        public async Task<IEnumerable<ShiftReportDto>> GetPendingShiftReportsAsync(Guid staffId)
         {
             var reports = await _unitOfWork.ShiftReports.FindAsync(r => 
                 r.Shift.StaffId == staffId && 
                 r.Shift.Status == ShiftStatus.Closed && 
                 !r.IsTransferred);
 
-            var pendingReport = reports
-                .OrderByDescending(r => r.ReportDate)
-                .FirstOrDefault();
-
-            if (pendingReport == null) return null;
-
             var staff = await _unitOfWork.Staffs.GetByIdAsync(staffId);
-            return MapToShiftReportDto(pendingReport, staff?.Name ?? string.Empty);
+            var cashierName = staff?.Name ?? string.Empty;
+
+            return reports
+                .OrderByDescending(r => r.ReportDate)
+                .Select(r => MapToShiftReportDto(r, cashierName));
         }
     }
 }
