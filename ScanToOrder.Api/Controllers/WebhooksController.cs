@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using PayOS;
 using PayOS.Models.Webhooks;
@@ -10,6 +11,7 @@ using ScanToOrder.Domain.Enums;
 
 namespace ScanToOrder.Api.Controllers;
 
+[EnableRateLimiting("ip-limit")]
 public class WebhooksController : BaseController
 {
     private readonly ITenantService _tenantService;

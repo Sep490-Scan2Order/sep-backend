@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ScanToOrder.Application.DTOs.Dashboard;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Wrapper;
@@ -7,6 +8,7 @@ using ScanToOrder.Application.Wrapper;
 namespace ScanToOrder.Api.Controllers
 {
     [Authorize(Roles = "Admin")]
+    [EnableRateLimiting("ip-limit")]
     public class AdminController : BaseController
     {
         private readonly IAdminDashboardService _dashboardService;
