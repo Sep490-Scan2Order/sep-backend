@@ -26,6 +26,8 @@ namespace ScanToOrder.Api.Middleware
             }
             catch (Exception ex)
             {
+                var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                _logger.LogError(ex, "Exception occurred from IP: {IP} | Message: {Message}", clientIp, ex.Message);
                 _logger.LogError(ex, "Exception occurred: {Message}", ex.Message);
                 await HandleExceptionAsync(context, ex);
             }

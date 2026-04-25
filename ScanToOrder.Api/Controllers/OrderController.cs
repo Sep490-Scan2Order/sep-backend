@@ -1,17 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.DTOs.Other;
+using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.Interfaces;
+using ScanToOrder.Application.Message;
 using ScanToOrder.Application.Wrapper;
 using ScanToOrder.Domain.Enums;
-using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Domain.Exceptions;
-using ScanToOrder.Application.Message;
 
 namespace ScanToOrder.Api.Controllers;
 
+[EnableRateLimiting("ip-limit")]
 public class OrderController : BaseController
 {
     private readonly IOrderService _orderService;
