@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ScanToOrder.Application.DTOs.Payment;
 using ScanToOrder.Application.DTOs.Plan;
 using ScanToOrder.Application.Interfaces;
@@ -11,6 +12,7 @@ namespace ScanToOrder.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [EnableRateLimiting("ip-limit")]
     public class SubscriptionController : BaseController
     {
         private readonly ISubscriptionService _subscriptionService;
