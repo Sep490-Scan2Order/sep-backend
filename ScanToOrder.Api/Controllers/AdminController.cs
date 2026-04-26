@@ -8,7 +8,6 @@ using ScanToOrder.Application.Wrapper;
 namespace ScanToOrder.Api.Controllers
 {
     [Authorize(Roles = "Admin")]
-    [EnableRateLimiting("ip-limit")]
     public class AdminController : BaseController
     {
         private readonly IAdminDashboardService _dashboardService;

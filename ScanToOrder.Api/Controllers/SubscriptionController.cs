@@ -12,7 +12,6 @@ namespace ScanToOrder.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [EnableRateLimiting("ip-limit")]
     public class SubscriptionController : BaseController
     {
         private readonly ISubscriptionService _subscriptionService;
