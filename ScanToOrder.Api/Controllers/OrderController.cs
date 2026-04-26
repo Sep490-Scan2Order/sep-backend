@@ -13,7 +13,6 @@ using ScanToOrder.Domain.Exceptions;
 
 namespace ScanToOrder.Api.Controllers;
 
-[EnableRateLimiting("ip-limit")]
 public class OrderController : BaseController
 {
     private readonly IOrderService _orderService;
