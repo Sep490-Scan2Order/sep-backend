@@ -181,15 +181,15 @@ namespace ScanToOrder.Application.Services
 
         private static ShiftMetrics CalculateShiftMetrics(List<Transaction> transactions)
         {
-            var servedPayments = transactions
-                .Where(t => t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served)
+            var payments = transactions
+                .Where(t => t.TransactionType == TransactionType.Payment)
                 .ToList();
 
-            decimal totalCash = servedPayments
+            decimal totalCash = payments
                 .Where(t => t.PaymentMethod == PaymentMethod.Cash)
                 .Sum(t => t.Order.FinalAmount);
 
-            decimal totalTransfer = servedPayments
+            decimal totalTransfer = payments
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer)
                 .Sum(t => t.Order.FinalAmount);
 
@@ -267,7 +267,7 @@ namespace ScanToOrder.Application.Services
 
             var transactions = await GetSuccessfulTransactionsAsync(shiftId);
             var filteredTransactions = transactions.Where(t => 
-                (t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served) || 
+                (t.TransactionType == TransactionType.Payment) || 
                 (t.TransactionType == TransactionType.Refund)
             ).ToList();
             var metrics = CalculateShiftMetrics(filteredTransactions);

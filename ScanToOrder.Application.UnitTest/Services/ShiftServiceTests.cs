@@ -509,8 +509,8 @@ namespace ScanToOrder.Application.UnitTest.Services
             // Assert
             result.Should().NotBeNull();
             result.CashierName.Should().Be("Đạt D");
-            // Cash: 50k. ExpectedCash = 100k open + 50k = 150k
-            result.ExpectedTotalAmount.Should().Be(200000);
+            // Cash: 50k + 100k (Preparing). Expected = 150k Cash + 150k Transfer
+            result.ExpectedTotalAmount.Should().Be(300000);
             result.Note.Should().Be("Ca sáng");
         }
 
