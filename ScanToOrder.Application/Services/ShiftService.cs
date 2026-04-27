@@ -75,6 +75,7 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.Shifts.AddAsync(shift);
             await _unitOfWork.SaveAsync();
             await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+            await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
 
             if (shift.ParentShiftId.HasValue)
             {
@@ -116,6 +117,12 @@ namespace ScanToOrder.Application.Services
                 await _unitOfWork.SaveAsync();
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
 
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null)
+                {
+                    await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                }
+
                 if (shift.ParentShiftId.HasValue)
                 {
                     var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
@@ -145,6 +152,12 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Shifts.Update(shift);
             await _unitOfWork.SaveAsync();
             await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+            if (restaurant != null)
+            {
+                await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+            }
 
             if (shift.ParentShiftId.HasValue)
             {
@@ -236,6 +249,12 @@ namespace ScanToOrder.Application.Services
                 await tx.CommitAsync();
 
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null)
+                {
+                    await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                }
             }
             catch
             {
@@ -470,6 +489,12 @@ namespace ScanToOrder.Application.Services
                 _unitOfWork.Shifts.Update(shift);
                 await _unitOfWork.SaveAsync();
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null)
+                {
+                    await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                }
 
                 if (shift.ParentShiftId.HasValue)
                 {
