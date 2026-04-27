@@ -292,10 +292,10 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to)
+        public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to, bool? isTransferred, string? cashierName)
         {
             var result = await _unitOfWork.ShiftReports
-                .GetReportsByRestaurantAsync(restaurantId, from, to, pageIndex, pageSize);
+                .GetReportsByRestaurantAsync(restaurantId, from, to, pageIndex, pageSize, isTransferred, cashierName);
 
             return new PagedResult<ShiftReportDto>
             {
@@ -443,6 +443,45 @@ namespace ScanToOrder.Application.Services
             return reports
                 .OrderByDescending(r => r.ReportDate)
                 .Select(r => MapToShiftReportDto(r, cashierName));
+        }
+        public async Task<IEnumerable<ShiftDto>> GetActiveShiftsAsync(int restaurantId)
+        {
+            var shifts = await _unitOfWork.Shifts.FindAsync(s => s.RestaurantId == restaurantId && s.Status == ShiftStatus.Open);
+            return _mapper.Map<IEnumerable<ShiftDto>>(shifts);
+        }
+
+        public async Task<ShiftDto> ForceCheckOutShiftAsync(int shiftId, string? note)
+        {
+            var shift = await GetAndValidateOpenShiftAsync(shiftId);
+
+            if (shift.Type == ShiftType.Cashier)
+            {
+                var transactions = await GetSuccessfulTransactionsAsync(shiftId);
+                var metrics = CalculateShiftMetrics(transactions);
+
+                // Skip validation for open staff shifts when forcing checkout
+                await PerformCheckOutTransitionAsync(shift, metrics, string.IsNullOrWhiteSpace(note) ? "Quản lý ép kết ca" : note);
+            }
+            else
+            {
+                shift.EndDate = DateTime.UtcNow;
+                shift.Status = ShiftStatus.Closed;
+                shift.Note = string.IsNullOrWhiteSpace(note) ? "Quản lý ép kết ca" : note;
+                _unitOfWork.Shifts.Update(shift);
+                await _unitOfWork.SaveAsync();
+                await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+                if (shift.ParentShiftId.HasValue)
+                {
+                    var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
+                    if (parentShift != null)
+                    {
+                        await _realtimeService.NotifyShiftChanged(parentShift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+                    }
+                }
+            }
+
+            return _mapper.Map<ShiftDto>(shift);
         }
     }
 }
