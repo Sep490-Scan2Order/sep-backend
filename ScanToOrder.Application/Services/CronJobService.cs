@@ -463,7 +463,7 @@ public class CronJobService : ICronJobService
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var unpaidReports = await _unitOfWork.ShiftReports.GetAllAsync(
-                    r => r.IsTransferred == false && r.Shift.Status == ScanToOrder.Domain.Enums.ShiftStatus.Closed && r.Difference < 0,
+                    r => r.IsTransferred == false && r.Shift.Status == ScanToOrder.Domain.Enums.ShiftStatus.Closed,
                     r => r.Shift.Staffs.Account,
                     r => r.Shift.Restaurants
                 );
