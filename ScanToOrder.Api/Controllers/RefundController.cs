@@ -9,7 +9,6 @@ namespace ScanToOrder.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [EnableRateLimiting("ip-limit")]
     public class RefundController : BaseController
     {
         private readonly IRefundService _refundService;

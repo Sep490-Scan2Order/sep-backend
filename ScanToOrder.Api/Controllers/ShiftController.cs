@@ -66,9 +66,27 @@ namespace ScanToOrder.Api.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] DateTime? from = null,
-            [FromQuery] DateTime? to = null)
+            [FromQuery] DateTime? to = null,
+            [FromQuery] bool? isTransferred = null,
+            [FromQuery] string? cashierName = null)
         {
-            var result = await _shiftService.GetAllShiftReportsAsync(restaurantId, pageIndex, pageSize, from, to);
+            var result = await _shiftService.GetAllShiftReportsAsync(restaurantId, pageIndex, pageSize, from, to, isTransferred, cashierName);
+            return Success(result);
+        }
+
+        [HttpGet("active")]
+        [Authorize(Roles = "Admin, Tenant, Cashier")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<ShiftDto>>>> GetActiveShifts([FromQuery] int restaurantId)
+        {
+            var result = await _shiftService.GetActiveShiftsAsync(restaurantId);
+            return Success(result);
+        }
+
+        [HttpPost("{shiftId}/force-checkout")]
+        [Authorize(Roles = "Admin, Tenant")]
+        public async Task<ActionResult<ApiResponse<ShiftDto>>> ForceCheckOut([FromRoute] int shiftId, [FromBody] CheckOutShiftRequest request)
+        {
+            var result = await _shiftService.ForceCheckOutShiftAsync(shiftId, request.Note);
             return Success(result);
         }
 

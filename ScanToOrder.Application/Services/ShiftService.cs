@@ -75,6 +75,7 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.Shifts.AddAsync(shift);
             await _unitOfWork.SaveAsync();
             await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+            await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
 
             if (shift.ParentShiftId.HasValue)
             {
@@ -116,6 +117,12 @@ namespace ScanToOrder.Application.Services
                 await _unitOfWork.SaveAsync();
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
 
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null)
+                {
+                    await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                }
+
                 if (shift.ParentShiftId.HasValue)
                 {
                     var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
@@ -145,6 +152,12 @@ namespace ScanToOrder.Application.Services
             _unitOfWork.Shifts.Update(shift);
             await _unitOfWork.SaveAsync();
             await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+            var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+            if (restaurant != null)
+            {
+                await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+            }
 
             if (shift.ParentShiftId.HasValue)
             {
@@ -181,15 +194,15 @@ namespace ScanToOrder.Application.Services
 
         private static ShiftMetrics CalculateShiftMetrics(List<Transaction> transactions)
         {
-            var servedPayments = transactions
-                .Where(t => t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served)
+            var payments = transactions
+                .Where(t => t.TransactionType == TransactionType.Payment)
                 .ToList();
 
-            decimal totalCash = servedPayments
+            decimal totalCash = payments
                 .Where(t => t.PaymentMethod == PaymentMethod.Cash)
                 .Sum(t => t.Order.FinalAmount);
 
-            decimal totalTransfer = servedPayments
+            decimal totalTransfer = payments
                 .Where(t => t.PaymentMethod == PaymentMethod.BankTransfer)
                 .Sum(t => t.Order.FinalAmount);
 
@@ -236,6 +249,12 @@ namespace ScanToOrder.Application.Services
                 await tx.CommitAsync();
 
                 await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null)
+                {
+                    await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                }
             }
             catch
             {
@@ -267,7 +286,7 @@ namespace ScanToOrder.Application.Services
 
             var transactions = await GetSuccessfulTransactionsAsync(shiftId);
             var filteredTransactions = transactions.Where(t => 
-                (t.TransactionType == TransactionType.Payment && t.Order.Status == OrderStatus.Served) || 
+                (t.TransactionType == TransactionType.Payment) || 
                 (t.TransactionType == TransactionType.Refund)
             ).ToList();
             var metrics = CalculateShiftMetrics(filteredTransactions);
@@ -292,10 +311,10 @@ namespace ScanToOrder.Application.Services
             };
         }
 
-        public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to)
+        public async Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to, bool? isTransferred, string? cashierName)
         {
             var result = await _unitOfWork.ShiftReports
-                .GetReportsByRestaurantAsync(restaurantId, from, to, pageIndex, pageSize);
+                .GetReportsByRestaurantAsync(restaurantId, from, to, pageIndex, pageSize, isTransferred, cashierName);
 
             return new PagedResult<ShiftReportDto>
             {
@@ -443,6 +462,51 @@ namespace ScanToOrder.Application.Services
             return reports
                 .OrderByDescending(r => r.ReportDate)
                 .Select(r => MapToShiftReportDto(r, cashierName));
+        }
+        public async Task<IEnumerable<ShiftDto>> GetActiveShiftsAsync(int restaurantId)
+        {
+            var shifts = await _unitOfWork.Shifts.FindAsync(s => s.RestaurantId == restaurantId && s.Status == ShiftStatus.Open);
+            return _mapper.Map<IEnumerable<ShiftDto>>(shifts);
+        }
+
+        public async Task<ShiftDto> ForceCheckOutShiftAsync(int shiftId, string? note)
+        {
+            var shift = await GetAndValidateOpenShiftAsync(shiftId);
+
+            if (shift.Type == ShiftType.Cashier)
+            {
+                var transactions = await GetSuccessfulTransactionsAsync(shiftId);
+                var metrics = CalculateShiftMetrics(transactions);
+
+                // Skip validation for open staff shifts when forcing checkout
+                await PerformCheckOutTransitionAsync(shift, metrics, string.IsNullOrWhiteSpace(note) ? "Quản lý ép kết ca" : note);
+            }
+            else
+            {
+                shift.EndDate = DateTime.UtcNow;
+                shift.Status = ShiftStatus.Closed;
+                shift.Note = string.IsNullOrWhiteSpace(note) ? "Quản lý ép kết ca" : note;
+                _unitOfWork.Shifts.Update(shift);
+                await _unitOfWork.SaveAsync();
+                await _realtimeService.NotifyShiftChanged(shift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+
+                var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(shift.RestaurantId);
+                if (restaurant != null)
+                {
+                    await _realtimeService.NotifyListChanged(restaurant.TenantId.ToString());
+                }
+
+                if (shift.ParentShiftId.HasValue)
+                {
+                    var parentShift = await _unitOfWork.Shifts.GetByIdAsync(shift.ParentShiftId.Value);
+                    if (parentShift != null)
+                    {
+                        await _realtimeService.NotifyShiftChanged(parentShift.StaffId.ToString(), _mapper.Map<ShiftDto>(shift));
+                    }
+                }
+            }
+
+            return _mapper.Map<ShiftDto>(shift);
         }
     }
 }

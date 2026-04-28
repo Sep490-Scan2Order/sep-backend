@@ -30,7 +30,6 @@ public class AuthController : BaseController
     //    return Success(otp);
     //}  
 
-    [EnableRateLimiting("ip-limit")]
     [HttpPost("tenant-login")]
     public async Task<ActionResult<ApiResponse<AuthResponse<TenantDto>>>> TenantLogin(
         [FromBody] TenantLoginRequest request)
@@ -39,7 +38,6 @@ public class AuthController : BaseController
         return Success(result);
     }
 
-    [EnableRateLimiting("ip-limit")]
     [HttpPost("staff-login")]
     public async Task<ActionResult<ApiResponse<AuthResponse<StaffDto>>>> StaffLogin(
         [FromBody] StaffLoginRequest request)
@@ -48,7 +46,6 @@ public class AuthController : BaseController
         return Success(result);
     }
 
-    [EnableRateLimiting("ip-limit")]
     [HttpPost("administrator-login")]
     public async Task<ActionResult<ApiResponse<AuthResponse<AdminDto>>>> AdministratorLogin(
         [FromBody] AdminLoginRequest request)
@@ -82,14 +79,12 @@ public class AuthController : BaseController
     }
 
     // Test
-    [EnableRateLimiting("ip-limit")]
     [HttpPost("BankLookup")]
     public async Task<ActionResult<ApiResponse<object?>>> TestBank([FromBody] BankLookRequest request)
     {
         return Success<object?>(await _lookupService.LookupAccountAsync(request));
     }
 
-    [EnableRateLimiting("ip-limit")]
     [HttpGet("Tax")]
     public async Task<ActionResult<ApiResponse<object?>>> TestTax([FromQuery] string taxCode)
     {

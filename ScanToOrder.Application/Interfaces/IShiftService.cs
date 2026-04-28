@@ -16,11 +16,13 @@ namespace ScanToOrder.Application.Interfaces
         Task<IEnumerable<ShiftDto>> GetStaffShiftsByCashierShiftIdAsync(int cashierShiftId);
         Task<ShiftReportDto> GetShiftPreviewAsync(int shiftId);
         Task<ShiftReportDto> GetShiftReportAsync(int shiftId);
-        Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to);
+        Task<PagedResult<ShiftReportDto>> GetAllShiftReportsAsync(int restaurantId, int pageIndex, int pageSize, DateTime? from, DateTime? to, bool? isTransferred, string? cashierName);
         Task<PagedResult<ShiftReportDto>> GetShiftReportsByStaffAsync(Guid staffId, int pageIndex, int pageSize);
         Task<ShiftDto> GetShiftByIdAsync(Guid staffId);
         Task<ShiftTransferQrResponse> GetTransferQrAsync(int shiftId);
         Task HandleShiftTransferWebhookAsync(string paymentCode, decimal amount);
         Task<IEnumerable<ShiftReportDto>> GetPendingShiftReportsAsync(Guid staffId);
+        Task<IEnumerable<ShiftDto>> GetActiveShiftsAsync(int restaurantId);
+        Task<ShiftDto> ForceCheckOutShiftAsync(int shiftId, string? note);
     }
 }

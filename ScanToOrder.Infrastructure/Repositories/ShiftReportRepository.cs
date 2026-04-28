@@ -13,7 +13,7 @@ namespace ScanToOrder.Infrastructure.Repositories
         }
 
         public async Task<(List<(ShiftReport Report, string CashierName)> Items, int TotalCount)> GetReportsByRestaurantAsync(
-            int restaurantId, DateTime? from, DateTime? to, int pageIndex = 1, int pageSize = 10)
+            int restaurantId, DateTime? from, DateTime? to, int pageIndex = 1, int pageSize = 10, bool? isTransferred = null, string? cashierName = null)
         {
             var query = _context.ShiftReports
                 .AsNoTracking()
@@ -30,6 +30,12 @@ namespace ScanToOrder.Infrastructure.Repositories
 
             if (to.HasValue)
                 query = query.Where(x => x.Report.ReportDate <= to.Value.ToUniversalTime());
+
+            if (isTransferred.HasValue)
+                query = query.Where(x => x.Report.IsTransferred == isTransferred.Value);
+
+            if (!string.IsNullOrWhiteSpace(cashierName))
+                query = query.Where(x => x.CashierName.Contains(cashierName));
 
             int totalCount = await query.CountAsync();
 

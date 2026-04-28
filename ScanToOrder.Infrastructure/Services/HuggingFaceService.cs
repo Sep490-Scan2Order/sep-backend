@@ -22,23 +22,26 @@ namespace ScanToOrder.Infrastructure.Services
 
         public async Task<byte[]> GenerateImageBytesAsync(string prompt, int width = 512, int height = 1024)
         {
-            var url = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0";
+            var url = "https://router.huggingface.co/fal-ai/fal-ai/flux/schnell";
             var request = new HttpRequestMessage(HttpMethod.Post, url);
 
             if (!string.IsNullOrEmpty(_apiKey))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             }
-
+           
             var payload = new
             {
-                inputs = prompt + ", simple flat design, vector style, very blurry background, out of focus, minimalist, high quality, soft colors, low contrast, professional wallpaper",
-                parameters = new
+                prompt = prompt + ", photorealistic, cinematic lighting, shallow depth of field, soft blurry background for text overlay, bokeh, ultra detailed, 8K, masterpiece, professional app wallpaper",
+                image_size = new
                 {
                     width = width,
-                    height = height,
-                    guidance_scale = 8.5
-                }
+                    height = height
+                },
+                num_inference_steps = 4,
+                guidance_scale = 3.5,
+                num_images = 1,
+                output_format = "png"
             };
 
             var jsonContent = JsonSerializer.Serialize(payload);
@@ -52,7 +55,25 @@ namespace ScanToOrder.Infrastructure.Services
                 throw new Exception($"Hugging Face API Error ({response.StatusCode}): {errorBody}");
             }
 
-            return await response.Content.ReadAsByteArrayAsync();
+            var responseBody = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseBody);
+            var imageUrl = doc.RootElement
+                .GetProperty("images")[0]
+                .GetProperty("url")
+                .GetString();
+
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                throw new Exception("Fal AI returned empty image URL");
+            }
+
+            var imageResponse = await _httpClient.GetAsync(imageUrl);
+            if (!imageResponse.IsSuccessStatusCode)
+            {
+                throw new Exception($"Failed to download generated image from {imageUrl}");
+            }
+
+            return await imageResponse.Content.ReadAsByteArrayAsync();
         }
     }
 }
