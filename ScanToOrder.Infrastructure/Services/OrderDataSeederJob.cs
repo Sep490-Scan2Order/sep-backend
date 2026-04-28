@@ -38,7 +38,7 @@ namespace ScanToOrder.Infrastructure.Services
             var orders = new List<Order>();
             var random = new Random();
 
-            var orderTypes = new[] { "SePay", "Cash", "Bank Transfer" };
+            var orderTypes = new[] { "SePay", "Cash" };
             var notesList = new[] { "Ít cay", "Không hành", "Thêm nhiều sốt", "Không lấy muỗng đũa nhựa", "", "", "", "Lấy thêm tương ớt", "Giao nhanh giúp mình" };
 
             // Find the maximum OrderCode currently in DB to continue sequentially
