@@ -26,4 +26,9 @@ public class HangfireBackgroundJobService : IBackgroundJobService
     {
         _backgroundJobClient.Enqueue<ISearchIndexService>(x => x.FullReIndexAsync());
     }
+
+    public void EnqueueUploadOrderQr(byte[] qrBytes, Guid orderId)
+    {
+        _backgroundJobClient.Enqueue<IStorageService>(x => x.UploadOrderQrAsync(qrBytes, orderId));
+    }
 }

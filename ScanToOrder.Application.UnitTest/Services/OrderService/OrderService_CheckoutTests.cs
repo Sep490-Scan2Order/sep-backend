@@ -38,6 +38,7 @@ public class OrderService_CheckoutTests
     private readonly Mock<IQrCodeService> _mockQrCodeService;
     private readonly Mock<IPlanLimitationService> _mockPlanLimitationService;
     private readonly Mock<IAIUpsellService> _mockAiUpsellService;
+    private readonly Mock<IBackgroundJobService> _mockBackgroundJobService;
 
     private readonly Application.Services.OrderService _orderService;
 
@@ -55,6 +56,7 @@ public class OrderService_CheckoutTests
         _mockQrCodeService = new Mock<IQrCodeService>();
         _mockPlanLimitationService = new Mock<IPlanLimitationService>();
         _mockAiUpsellService = new Mock<IAIUpsellService>();
+        _mockBackgroundJobService = new Mock<IBackgroundJobService>();
 
         _orderService = new Application.Services.OrderService(
             _mockUnitOfWork.Object,
@@ -68,7 +70,8 @@ public class OrderService_CheckoutTests
             _mockLogger.Object,
             _mockQrCodeService.Object,
             _mockPlanLimitationService.Object,
-            _mockAiUpsellService.Object
+            _mockAiUpsellService.Object,
+            _mockBackgroundJobService.Object
         );
     }
 
@@ -519,7 +522,7 @@ public class OrderService_CheckoutTests
 
         #region Assert
         result.Should().NotBeNull();
-        result.OrderCode.Should().Be(999);
+        result.OrderCode.Should().Be(1);
         result.Status.Should().Be(OrderStatus.Unpaid);
         
         _mockUnitOfWork.Verify(u => u.Orders.AddAsync(It.IsAny<Order>()), Times.Once);

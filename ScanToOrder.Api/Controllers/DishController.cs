@@ -19,10 +19,14 @@ namespace ScanToOrder.Api.Controllers
         }
 
         [HttpGet("get-dishes-by-tenant")]
-        public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetAllDishesByTenant()
+        public async Task<ActionResult<ApiResponse<List<DishDto>>>> GetAllDishesByTenant([FromQuery] Guid? tenantId)
         {
-            var tenantId = _authenticatedUserService.ProfileId.Value;
-            var dishes = await dishService.GetAllDishesByTenant(tenantId);
+            var id = _authenticatedUserService.ProfileId ?? tenantId;
+            if (id == null)
+            {
+                throw new DomainException("TenantId is required.");
+            }
+            var dishes = await dishService.GetAllDishesByTenant(id.Value);
             return Success(dishes, DishMessage.DishSuccess.DISH_RETRIEVED);
         }
 

@@ -37,6 +37,7 @@ public class OrderService : IOrderService
     private readonly IQrCodeService _qrCodeService;
     private readonly IPlanLimitationService _planLimitationService;
     private readonly IAIUpsellService _aiUpsellService;
+    private readonly IBackgroundJobService _backgroundJobService;
     
     public OrderService(
         IUnitOfWork unitOfWork,
@@ -50,7 +51,8 @@ public class OrderService : IOrderService
         ILogger<OrderService> logger,
         IQrCodeService qrCodeService,
         IPlanLimitationService planLimitationService,
-        IAIUpsellService aiUpsellService)
+        IAIUpsellService aiUpsellService,
+        IBackgroundJobService backgroundJobService)
     {
         _unitOfWork = unitOfWork;
         _cartRedisService = cartRedisService;
@@ -64,6 +66,7 @@ public class OrderService : IOrderService
         _qrCodeService = qrCodeService;
         _planLimitationService = planLimitationService;
         _aiUpsellService = aiUpsellService;
+        _backgroundJobService = backgroundJobService;
     }
 
     public async Task<CartDto> AddToCartAsync(AddToCartRequest request)
@@ -410,6 +413,7 @@ public class OrderService : IOrderService
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         Guid orderId;
         string qrOrderUrl;
+        string qrBase64DataUri;
         try
         {
             foreach (var item in cart.Items)
@@ -430,8 +434,9 @@ public class OrderService : IOrderService
             orderId = Guid.NewGuid();
             string qrContent = orderId.ToString();
             var qrBytes = _qrCodeService.GenerateQrCodeBytes(qrContent);
-
-            qrOrderUrl = await _storageService.UploadOrderQrAsync(qrBytes, orderId);
+            qrBase64DataUri = $"data:image/png;base64,{Convert.ToBase64String(qrBytes)}";
+            qrOrderUrl = _storageService.GetOrderQrUrl(orderId);
+            _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
             var order = new Order
             {
                 Id = orderId,
@@ -526,7 +531,7 @@ public class OrderService : IOrderService
             PaymentCode = paymentCode,
             TotalAmount = amount,
             RestaurantName = restaurant.RestaurantName ?? "",
-            QrCodeBase64 = qrOrderUrl
+            QrCodeBase64 = qrBase64DataUri
         };
     }
 
@@ -586,6 +591,8 @@ public class OrderService : IOrderService
         await using var tx = await _unitOfWork.BeginTransactionAsync();
         Guid orderId;
         string qrOrderUrl;
+        string qrBase64DataUri;
+        int orderCode;
 
         try
         {
@@ -601,14 +608,15 @@ public class OrderService : IOrderService
             }
 
             var (startUtc, endUtc, dateInt) = TimeUtils.GetVietnamDayRangeUtc();
-            int orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
+            orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
                 cart.RestaurantId, startUtc, endUtc, dateInt);
 
             orderId = Guid.NewGuid();
             string qrContent = orderId.ToString();
             var qrBytes = _qrCodeService.GenerateQrCodeBytes(qrContent);
-
-            qrOrderUrl = await _storageService.UploadOrderQrAsync(qrBytes, orderId);
+            qrBase64DataUri = $"data:image/png;base64,{Convert.ToBase64String(qrBytes)}";
+            qrOrderUrl = _storageService.GetOrderQrUrl(orderId);
+            _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
             var order = new Order
             {
                 Id = orderId,
@@ -688,13 +696,13 @@ public class OrderService : IOrderService
         return new CashCheckoutResponse
         {
             OrderId = orderId,
-            OrderCode = (await _unitOfWork.Orders.GetByIdAsync(orderId))!.OrderCode,
+            OrderCode = orderCode,
             TotalAmount = amount,
             RestaurantName = restaurant.RestaurantName,
             Phone = request.Phone,
             Note = cart.Note,
             Status = OrderStatus.Unpaid,
-            QrCodeBase64 = qrOrderUrl
+            QrCodeBase64 = qrBase64DataUri
         };
 
     }

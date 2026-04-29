@@ -69,7 +69,8 @@ public class OrderService_CartTests
             _mockLogger.Object,
             _mockQrCodeService.Object,
             _mockPlanLimitationService.Object,
-            _mockAiUpsellService.Object
+            _mockAiUpsellService.Object,
+            new Mock<IBackgroundJobService>().Object
         );
 
         // Setup common valid objects

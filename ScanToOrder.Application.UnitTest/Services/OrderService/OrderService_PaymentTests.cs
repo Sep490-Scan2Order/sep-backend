@@ -63,7 +63,8 @@ public class OrderService_PaymentTests
             _mockLogger.Object,
             _mockQrCodeService.Object,
             _mockPlanLimitationService.Object,
-            _mockAiUpsellService.Object
+            _mockAiUpsellService.Object,
+            new Mock<IBackgroundJobService>().Object
         );
     }
 

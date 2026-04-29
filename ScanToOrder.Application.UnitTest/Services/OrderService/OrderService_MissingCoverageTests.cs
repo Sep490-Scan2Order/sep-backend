@@ -68,7 +68,8 @@ public class OrderService_MissingCoverageTests
             _mockLogger.Object,
             _mockQrCodeService.Object,
             _mockPlanLimitationService.Object,
-            _mockAiUpsellService.Object
+            _mockAiUpsellService.Object,
+            new Mock<IBackgroundJobService>().Object
         );
 
         _mockPlanLimitationService.Setup(x => x.GetRestaurantFeaturesAsync(It.IsAny<int>()))
