@@ -93,5 +93,12 @@ public static class CronJobServiceExtension
             Cron.Daily(3, 00), // Run daily at 3:00 AM VN time (sau khi sync data xong)
             options
         );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Warn-Unpaid-Shifts",
+            job => job.WarnUnpaidShiftsAsync(CancellationToken.None),
+            Cron.Daily(22, 00), // Báo cáo vào 10H tối VN
+            options
+        );
     }
 }
