@@ -176,9 +176,8 @@ namespace ScanToOrder.Infrastructure.Services
                 return _supabaseStorageService.GetPublicUrl(bucketName, fileName);
             }
             catch (Exception ex)
-            {
-                _ = ex; // logged by middleware
-                throw new DomainException("Tải mã QR lên thất bại. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.");
+            {           
+                throw new DomainException($"Tải mã QR lên Supabase thất bại. Lỗi chi tiết: {ex.Message}");
             }
         }
 

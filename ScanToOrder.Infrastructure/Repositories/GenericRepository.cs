@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScanToOrder.Domain.Interfaces;
 using ScanToOrder.Infrastructure.Context;
 using System.Linq.Expressions;
@@ -45,7 +45,7 @@ namespace ScanToOrder.Infrastructure.Repositories
             Expression<Func<T, bool>> predicate, 
             params Expression<Func<T, object>>[] includes)
         {
-            IQueryable<T> query = _dbSet;
+            IQueryable<T> query = _dbSet.AsNoTracking();
 
             if (includes != null)
             {
@@ -91,6 +91,18 @@ namespace ScanToOrder.Infrastructure.Repositories
                 {
                     query = query.Include(property.Trim());
                 }
+            }
+
+            return await query.FirstOrDefaultAsync(predicate);
+        }
+
+        public async Task<T?> FirstOrDefaultAsNoTrackingAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbSet.AsNoTracking();
+
+            if (includes != null)
+            {
+                query = includes.Aggregate(query, (current, include) => current.Include(include));
             }
 
             return await query.FirstOrDefaultAsync(predicate);

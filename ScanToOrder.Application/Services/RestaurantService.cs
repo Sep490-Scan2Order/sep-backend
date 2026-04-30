@@ -299,7 +299,7 @@ namespace ScanToOrder.Application.Services
 
         public async Task<RestaurantDto> GetRestaurantBySlugAsync(string slug)
         {
-            var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
+            var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsNoTrackingAsync(r => r.Slug == slug);
             if (restaurant == null)
                 throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
             if (restaurant.IsActive == false && restaurant.IsReceivingOrders == false && restaurant.IsOpened == false)
@@ -309,7 +309,7 @@ namespace ScanToOrder.Application.Services
 
         public async Task<byte[]> GetRestaurantQrImageBySlugAsync(string slug)
         {
-            var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsync(r => r.Slug == slug);
+            var restaurant = await _unitOfWork.Restaurants.FirstOrDefaultAsNoTrackingAsync(r => r.Slug == slug);
 
             if (restaurant == null)
                 throw new DomainException(QrMessage.QrError.NO_RESTAURANT_FOUND_TO_GENERATE_QR);

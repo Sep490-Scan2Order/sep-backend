@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using ScanToOrder.Domain.Entities;
 
 namespace ScanToOrder.Domain.Interfaces
@@ -17,6 +17,7 @@ namespace ScanToOrder.Domain.Interfaces
         IQueryable<T> GetQueryable();
         Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, string includeProperties = "");
+        Task<T?> FirstOrDefaultAsNoTrackingAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
         void RemoveRange(IEnumerable<T> entities);
         void UpdateRange(IEnumerable<T> entities);
