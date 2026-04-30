@@ -124,7 +124,7 @@ namespace ScanToOrder.Infrastructure.Services
                     // (e.g. Fried Chicken & French Fries in the same combo → they are related)
                     foreach (var siblingId in items.Where(x => x != itemDishId))
                     {
-                        AddOrIncrement(coOccurrences, targetId: itemDishId, recommendedId: comboId, weight: 2);
+                        AddOrIncrement(coOccurrences, targetId: itemDishId, recommendedId: siblingId, weight: 2);
                     }
                 }
             }
