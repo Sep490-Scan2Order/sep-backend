@@ -31,4 +31,9 @@ public class HangfireBackgroundJobService : IBackgroundJobService
     {
         _backgroundJobClient.Enqueue<IStorageService>(x => x.UploadOrderQrAsync(qrBytes, orderId));
     }
+
+    public void EnqueueGeneratePaymentAudio(int orderCode, decimal amount)
+    {
+        _backgroundJobClient.Enqueue<IStorageService>(x => x.GetOrGeneratePaymentReceivedAudioAsync(orderCode, amount));
+    }
 }

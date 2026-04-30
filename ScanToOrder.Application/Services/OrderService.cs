@@ -436,10 +436,11 @@ public class OrderService : IOrderService
 
         // bắt đầu lưu db 
         await using var tx = await _unitOfWork.BeginTransactionAsync();
+        int orderCode = 0;
         try
         {
             var (startUtc, endUtc, dateInt) = TimeUtils.GetVietnamDayRangeUtc();
-            int orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
+            orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
                 cart.RestaurantId, startUtc, endUtc, dateInt);
 
             var order = new Order
@@ -524,6 +525,12 @@ public class OrderService : IOrderService
         }
 
         await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
+
+        // Pre-generate audio for webhook later
+        if (orderCode > 0)
+        {
+            _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
+        }
 
         return new PaymentQrDto
         {
