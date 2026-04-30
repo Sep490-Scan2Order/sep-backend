@@ -15,11 +15,12 @@ public class CronJobService : ICronJobService
         private readonly IRealtimeService _realtimeService;
         private readonly ISubscriptionService _subscriptionService;
         private readonly IEmailService _emailService;
+        private readonly IAIUpsellRedisService _aiUpsellRedisService;
 
         public CronJobService(ILogger<CronJobService> logger, IUnitOfWork unitOfWork, 
             IOrderService orderService, IDishRedisService dishRedisService,
             IRealtimeService realtimeService, ISubscriptionService subscriptionService,
-            IEmailService emailService)
+            IEmailService emailService, IAIUpsellRedisService aiUpsellRedisService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -28,6 +29,7 @@ public class CronJobService : ICronJobService
             _realtimeService = realtimeService;
             _subscriptionService = subscriptionService;
             _emailService = emailService;
+            _aiUpsellRedisService = aiUpsellRedisService;
         }
         
         public async Task CancelExpiredUnpaidOrdersAsync(CancellationToken cancellationToken = default)
@@ -520,5 +522,49 @@ public class CronJobService : ICronJobService
             }
 
             _logger.LogInformation("Đã hoàn thành CronJob: WarnUnpaidShiftsAsync");
+        }
+
+        public async Task CalculateBestSellersAndAIEligibilityAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Bắt đầu chạy CronJob: CalculateBestSellersAndAIEligibilityAsync vào lúc {Time}", DateTimeOffset.Now);
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var restaurants = await _unitOfWork.Restaurants.FindAsync(r => r.IsActive == true);
+
+                foreach (var restaurant in restaurants)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var orderCount = await _unitOfWork.Orders.CountAsync(o => o.RestaurantId == restaurant.Id && !o.IsDeleted);
+
+                    bool isEligible = orderCount >= 50;
+                    await _aiUpsellRedisService.SetAIEligibilityAsync(restaurant.Id, isEligible);
+
+                    var bestSellers = await _unitOfWork.OrderDetails.QueryAsync(q => q
+                        .Where(od => od.Order.RestaurantId == restaurant.Id && !od.Order.IsDeleted)
+                        .GroupBy(od => od.DishId)
+                        .Select(g => new { DishId = g.Key, TotalSold = g.Sum(x => x.Quantity) })
+                        .OrderByDescending(x => x.TotalSold)
+                        .Take(10)
+                        .Select(x => x.DishId)
+                    );
+
+                    await _aiUpsellRedisService.SetBestSellersAsync(restaurant.Id, bestSellers);
+                }
+
+                _logger.LogInformation("Đã hoàn thành CalculateBestSellersAndAIEligibilityAsync cho {Count} nhà hàng.", System.Linq.Enumerable.Count(restaurants));
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("CronJob CalculateBestSellersAndAIEligibilityAsync bị hủy.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi chạy CronJob: CalculateBestSellersAndAIEligibilityAsync");
+            }
         }
 }

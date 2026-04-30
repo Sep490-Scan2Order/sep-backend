@@ -423,13 +423,13 @@ namespace ScanToOrder.Application.UnitTest.Services
                 (new ShiftReport { Id = 1 }, "Admin")
             };
 
-            _mockShiftReportRepo.Setup(r => r.GetReportsByRestaurantAsync(It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int>(), It.IsAny<int>()))
+            _mockShiftReportRepo.Setup(r => r.GetReportsByRestaurantAsync(It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool?>(), It.IsAny<string?>()))
                 .ReturnsAsync((reports, 1));
 
             _mockMapper.Setup(m => m.Map<ShiftReportDto>(It.IsAny<(ShiftReport, string)>()))
                 .Returns((ValueTuple<ShiftReport, string> src) => new ShiftReportDto { CashierName = src.Item2 });
 
-            var result = await _shiftService.GetAllShiftReportsAsync(1, 1, 10, null, null);
+            var result = await _shiftService.GetAllShiftReportsAsync(1, 1, 10, null, null, null, null);
 
             result.Should().NotBeNull();
             result.Items.Should().HaveCount(1);

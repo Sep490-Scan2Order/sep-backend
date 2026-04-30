@@ -10,4 +10,5 @@ public interface ICronJobService
     Task CalculateWeeklyCommissionFeeAsync(CancellationToken cancellationToken = default);
     Task MonitorAndSuspendOverdueDebtsAsync(CancellationToken cancellationToken = default);
     Task WarnUnpaidShiftsAsync(CancellationToken cancellationToken = default);
+    Task CalculateBestSellersAndAIEligibilityAsync(CancellationToken cancellationToken = default);
 }

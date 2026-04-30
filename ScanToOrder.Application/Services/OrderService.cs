@@ -170,19 +170,35 @@ public class OrderService : IOrderService
         // 9. Trả về full CartDto 
         var cartDto = _mapper.Map<CartDto>(cart);
 
-        // 10. Lấy danh sách ID đã có trong giỏ hàng để AI gửi Recommendation
+        return cartDto;
+    }
+
+    public async Task<List<MenuDishItemDto>> GetCartRecommendationsAsync(string cartId)
+    {
+        if (string.IsNullOrWhiteSpace(cartId))
+        {
+            throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
+        }
+
+        var json = await _cartRedisService.GetRawCartAsync(cartId);
+        if (string.IsNullOrEmpty(json))
+        {
+            throw new DomainException(OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED);
+        }
+
+        var cart = JsonSerializer.Deserialize<CartModel>(json)
+                   ?? throw new DomainException(OrderMessage.OrderError.INVALID_CART_DATA);
+
         var cartDishIds = cart.Items.Select(x => x.DishId).ToList();
 
-        // 11. Yêu cầu AIUpsellService đưa ra gợi ý, AIUpsellService tự chặn giới hạn Plan.
         var (recommendedIds, source) = await _aiUpsellService.GetRecommendationsAsync(cart.RestaurantId, cartDishIds, 3);
         
         if (recommendedIds != null && recommendedIds.Any())
         {
-            var recommendedDishes = await GetDishesByIdsWithPromotionAsync(cart.RestaurantId, recommendedIds);
-            cartDto.Recommendations = recommendedDishes;
+            return await GetDishesByIdsWithPromotionAsync(cart.RestaurantId, recommendedIds);
         }
 
-        return cartDto;
+        return new List<MenuDishItemDto>();
     }
 
     public async Task<CartDto> GetCartAsync(string cartId)

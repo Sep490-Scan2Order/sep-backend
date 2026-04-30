@@ -10,23 +10,23 @@ namespace ScanToOrder.Infrastructure.Services
     public class AIUpsellService : IAIUpsellService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAIUpsellRedisService _aiUpsellRedisService;
         private readonly PredictionEnginePool<DishCoOccurrence, DishPrediction>? _predictionPool;
         private readonly IAIUpsellPredictor? _predictor;
         private readonly Func<int, int, float>? _poolScoreProvider;
-
-        // Minimum number of orders required to trust AI predictions
-        private const int MinOrdersRequiredForAI = 50;
 
         private readonly IPlanLimitationService _planLimitationService;
 
         public AIUpsellService(
             IUnitOfWork unitOfWork,
+            IAIUpsellRedisService aiUpsellRedisService,
             IPlanLimitationService planLimitationService,
             PredictionEnginePool<DishCoOccurrence, DishPrediction>? predictionPool = null,
             IAIUpsellPredictor? predictor = null,
             Func<int, int, float>? poolScoreProvider = null)
         {
             _unitOfWork = unitOfWork;
+            _aiUpsellRedisService = aiUpsellRedisService;
             _planLimitationService = planLimitationService;
             _predictionPool = predictionPool;
             _predictor = predictor;
@@ -83,10 +83,9 @@ namespace ScanToOrder.Infrastructure.Services
             // TIER 1: AI Matrix Factorization
             if (_predictionPool != null || _predictor != null)
             {
-                var orderCount = await _unitOfWork.Orders.GetQueryable()
-                    .CountAsync(o => o.RestaurantId == restaurantId && !o.IsDeleted);
+                var isEligible = await _aiUpsellRedisService.GetAIEligibilityAsync(restaurantId);
 
-                if (orderCount >= MinOrdersRequiredForAI)
+                if (isEligible)
                 {
                     var scores = new Dictionary<int, float>();
 
@@ -119,15 +118,13 @@ namespace ScanToOrder.Infrastructure.Services
                 }
             }
 
-            // TIER 2: Best-Sellers Fallback
-            var bestSellers = await _unitOfWork.OrderDetails.GetQueryable()
-                .Where(od => candidates.Contains(od.DishId) && !od.Order.IsDeleted)
-                .GroupBy(od => od.DishId)
-                .Select(g => new { DishId = g.Key, TotalSold = g.Sum(x => x.Quantity) })
-                .OrderByDescending(x => x.TotalSold)
+            // TIER 2: Best-Sellers Fallback (đọc từ Redis)
+            var cachedBestSellers = await _aiUpsellRedisService.GetBestSellersAsync(restaurantId);
+            
+            var bestSellers = cachedBestSellers
+                .Where(id => candidates.Contains(id))
                 .Take(top)
-                .Select(x => x.DishId)
-                .ToListAsync();
+                .ToList();
 
             if (bestSellers.Any())
                 return (bestSellers, "BestSellers_Fallback");

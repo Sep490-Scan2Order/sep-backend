@@ -100,5 +100,12 @@ public static class CronJobServiceExtension
             Cron.Daily(22, 00), // Báo cáo vào 10H tối VN
             options
         );
+
+        recurringJobManager.AddOrUpdate<ICronJobService>(
+            "Calculate-AI-BestSellers",
+            job => job.CalculateBestSellersAndAIEligibilityAsync(CancellationToken.None),
+            Cron.Hourly(),
+            options
+        );
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using FluentAssertions;
@@ -25,6 +25,7 @@ public class AIUpsellServiceTests
     private readonly Mock<IComboDetailRepository> _comboDetails = new(MockBehavior.Strict);
     private readonly Mock<IOrderRepository> _orders = new(MockBehavior.Strict);
     private readonly Mock<IOrderDetailRepository> _orderDetails = new(MockBehavior.Strict);
+    private readonly Mock<IAIUpsellRedisService> _aiUpsellRedisService = new(MockBehavior.Strict);
 
     public AIUpsellServiceTests()
     {
@@ -41,7 +42,7 @@ public class AIUpsellServiceTests
             .Setup(x => x.GetRestaurantFeaturesAsync(1))
             .ReturnsAsync(new PlanFeaturesConfig { CanUseAIUpsell = false });
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null);
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 10 }, 3);
 
@@ -65,7 +66,7 @@ public class AIUpsellServiceTests
         _branchDishConfigs.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(branchConfigs));
         _comboDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(new List<ComboDetail>()));
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null);
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 10 }, 3);
 
@@ -94,7 +95,7 @@ public class AIUpsellServiceTests
         _branchDishConfigs.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(branchConfigs));
         _comboDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(comboDetails));
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null);
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 100 }, 3);
 
@@ -127,7 +128,12 @@ public class AIUpsellServiceTests
         _comboDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(new List<ComboDetail>()));
         _orderDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(orderDetails));
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null);
+        _aiUpsellRedisService.Setup(x => x.GetBestSellersAsync(1))
+            .ReturnsAsync(new List<int> { 20, 30 });
+        _aiUpsellRedisService.Setup(x => x.GetAIEligibilityAsync(1))
+            .ReturnsAsync(false);
+
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 10 }, 2);
 
@@ -153,7 +159,12 @@ public class AIUpsellServiceTests
         _comboDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(new List<ComboDetail>()));
         _orderDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(new List<OrderDetail>()));
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null);
+        _aiUpsellRedisService.Setup(x => x.GetBestSellersAsync(1))
+            .ReturnsAsync(new List<int>());
+        _aiUpsellRedisService.Setup(x => x.GetAIEligibilityAsync(1))
+            .ReturnsAsync(false);
+
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 10 }, 2);
 
@@ -190,7 +201,10 @@ public class AIUpsellServiceTests
         _predictor.Setup(x => x.PredictScore(11, 20)).Returns(0.3f);
         _predictor.Setup(x => x.PredictScore(11, 30)).Returns(0.1f);
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null, _predictor.Object);
+        _aiUpsellRedisService.Setup(x => x.GetAIEligibilityAsync(1))
+            .ReturnsAsync(true);
+
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null, _predictor.Object);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 10, 11 }, 1);
 
@@ -226,7 +240,12 @@ public class AIUpsellServiceTests
         _orders.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(orders));
         _orderDetails.Setup(x => x.GetQueryable()).Returns(AsAsyncQueryable(orderDetails));
 
-        var sut = new AIUpsellService(_unitOfWork.Object, _planLimitationService.Object, null, _predictor.Object);
+        _aiUpsellRedisService.Setup(x => x.GetAIEligibilityAsync(1))
+            .ReturnsAsync(false);
+        _aiUpsellRedisService.Setup(x => x.GetBestSellersAsync(1))
+            .ReturnsAsync(new List<int> { 20 });
+
+        var sut = new AIUpsellService(_unitOfWork.Object, _aiUpsellRedisService.Object, _planLimitationService.Object, null, _predictor.Object);
 
         var (dishIds, source) = await sut.GetRecommendationsAsync(1, new List<int> { 10 }, 1);
 
@@ -262,8 +281,12 @@ public class AIUpsellServiceTests
         float PoolScoreProvider(int targetDishId, int candidateId)
             => candidateId == 30 ? 0.8f : 0.1f;
 
+        _aiUpsellRedisService.Setup(x => x.GetAIEligibilityAsync(1))
+            .ReturnsAsync(true);
+
         var sut = new AIUpsellService(
             _unitOfWork.Object,
+            _aiUpsellRedisService.Object,
             _planLimitationService.Object,
             fakePool,
             predictor: null,

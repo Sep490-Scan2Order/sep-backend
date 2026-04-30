@@ -57,6 +57,14 @@ public class OrderController : BaseController
     //     return Success(result);
     // }
 
+    [HttpGet("cart/{cartId}/recommendations")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<List<MenuDishItemDto>>>> GetCartRecommendations([FromRoute] string cartId)
+    {
+        var result = await _orderService.GetCartRecommendationsAsync(cartId);
+        return Success(result, "Lấy danh sách món ăn gợi ý thành công.");
+    }
+
     [HttpPost("checkout/bank-transfer")]
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PaymentQrDto>>> GetPaymentQr([FromBody] PaymentQrRequest request)
