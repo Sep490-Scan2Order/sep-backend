@@ -1261,12 +1261,19 @@ public class OrderService : IOrderService
 
         var comboDetailsLookup = allComboDetails.ToLookup(c => c.DishId);
 
-        foreach (var order in expiredOrders)
+        await using var tx = await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            await using var tx = await _unitOfWork.BeginTransactionAsync();
-            try
+            var refundsByRestaurant = new Dictionary<int, Dictionary<int, int>>();
+            var transactionsToRemove = new List<Transaction>();
+            var orderDetailsToRemove = new List<OrderDetail>();
+
+            foreach (var order in expiredOrders)
             {
-                var dishQuantitiesToRefund = new Dictionary<int, int>();
+                if (!refundsByRestaurant.ContainsKey(order.RestaurantId))
+                    refundsByRestaurant[order.RestaurantId] = new Dictionary<int, int>();
+
+                var dishQuantitiesToRefund = refundsByRestaurant[order.RestaurantId];
 
                 foreach (var detail in order.OrderDetails)
                 {
@@ -1274,47 +1281,36 @@ public class OrderService : IOrderService
                         dishQuantitiesToRefund[detail.DishId] += detail.Quantity;
                     else
                         dishQuantitiesToRefund[detail.DishId] = detail.Quantity;
-
-                    // if (detail.Dish != null && detail.Dish.Type == DishType.Combo)
-                    // {
-                    //     var comboItems = comboDetailsLookup[detail.DishId];
-                    //     foreach (var comboItem in comboItems)
-                    //     {
-                    //         var qty = detail.Quantity * comboItem.Quantity;
-                    //         if (dishQuantitiesToRefund.ContainsKey(comboItem.ItemDishId))
-                    //             dishQuantitiesToRefund[comboItem.ItemDishId] += qty;
-                    //         else
-                    //             dishQuantitiesToRefund[comboItem.ItemDishId] = qty;
-                    //     }
-                    // }
                 }
 
-                if (dishQuantitiesToRefund.Any())
-                {
-                    await _unitOfWork.BranchDishConfigs.RefundDishAvailabilityBatchAsync(order.RestaurantId, dishQuantitiesToRefund);
-                }
-
-                var transactions = (await _unitOfWork.Transactions.FindAsync(t => t.OrderId == order.Id)).ToList();
-                if (transactions.Any())
-                {
-                    _unitOfWork.Transactions.RemoveRange(transactions);
-                }
-
-                if (order.OrderDetails.Any())
-                {
-                    _unitOfWork.OrderDetails.RemoveRange(order.OrderDetails);
-                }
-
+                var transactions = await _unitOfWork.Transactions.FindAsync(t => t.OrderId == order.Id);
+                transactionsToRemove.AddRange(transactions);
+                orderDetailsToRemove.AddRange(order.OrderDetails);
+                
                 _unitOfWork.Orders.Delete(order);
+            }
 
-                await _unitOfWork.SaveAsync();
-                await tx.CommitAsync();
-            }
-            catch (Exception ex)
+            foreach (var kvp in refundsByRestaurant)
             {
-                await tx.RollbackAsync();
-                _logger.LogError(ex, "Lỗi khi hủy đơn hàng chưa thanh toán quá hạn: {OrderId}", order.Id);
+                if (kvp.Value.Any())
+                {
+                    await _unitOfWork.BranchDishConfigs.RefundDishAvailabilityBatchAsync(kvp.Key, kvp.Value);
+                }
             }
+
+            if (transactionsToRemove.Any())
+                _unitOfWork.Transactions.RemoveRange(transactionsToRemove);
+
+            if (orderDetailsToRemove.Any())
+                _unitOfWork.OrderDetails.RemoveRange(orderDetailsToRemove);
+
+            await _unitOfWork.SaveAsync();
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            _logger.LogError(ex, "Lỗi khi hủy hàng loạt đơn hàng chưa thanh toán quá hạn.");
         }
     }
 
