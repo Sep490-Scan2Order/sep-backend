@@ -501,11 +501,22 @@ public class OrderService : IOrderService
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
 
-            _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
-            if (orderCode > 0)
+            // Không chặn response nếu enqueue job (Hangfire/DB) bị chậm.
+            _ = Task.Run(() =>
             {
-                _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
-            }
+                try
+                {
+                    _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
+                    if (orderCode > 0)
+                    {
+                        _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Enqueue background jobs failed for order {OrderId}", orderId);
+                }
+            });
 
             try
             {
@@ -525,8 +536,6 @@ public class OrderService : IOrderService
                         Price = i.DiscountedPrice
                     }).ToList()
                 };
-
-                await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
 
                 _ = Task.WhenAll(
                         _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
@@ -700,7 +709,18 @@ public class OrderService : IOrderService
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
 
-            _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
+            // Không chặn response nếu enqueue job (Hangfire/DB) bị chậm.
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Enqueue UploadOrderQr failed for cash order {OrderId}", orderId);
+                }
+            });
            
             try
             {
@@ -905,12 +925,9 @@ public class OrderService : IOrderService
             return;
         }
 
-        var orderIdString = await _transactionRedisService.GetCartIdByOrderPaymentCodeAsync(paymentCode);
-        if (string.IsNullOrWhiteSpace(orderIdString))
-            throw new DomainException(OrderMessage.OrderError.ORDER_FROM_PAYMENT_CODE_NOT_FOUND_OR_EXPIRED);
-
-        if (!Guid.TryParse(orderIdString, out var orderId))
-            throw new DomainException(OrderMessage.OrderError.INVALID_ORDER_CODE);
+        var orderId = transaction.OrderId;
+        if (orderId == Guid.Empty)
+            throw new DomainException(OrderMessage.OrderError.INVALID_ORDER_ID);
 
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
         if (order == null)
@@ -989,10 +1006,6 @@ public class OrderService : IOrderService
                     "Lỗi SignalR khi xử lý SePay webhook. PaymentCode={PaymentCode}, OrderId={OrderId}",
                     paymentCode,
                     order.Id);
-            }
-            finally
-            {
-                await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
             }
         }
         catch
