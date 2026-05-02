@@ -549,8 +549,9 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi xảy ra trong quá trình GetPaymentQrAsync cho cart {CartId}", request.CartId);
+            _logger.LogError(ex, "Lỗi xảy ra trong quá trình GetPaymentQrAsync cho cart {CartId}", cartId);
             throw;
+        }
     }
 
     public async Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request)

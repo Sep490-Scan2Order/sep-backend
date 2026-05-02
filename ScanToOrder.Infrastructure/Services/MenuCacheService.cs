@@ -104,7 +104,7 @@ public class MenuCacheService : IMenuCacheService
             if (isUpdated)
             {
                 var key = GetMenuKey(restaurantId);
-                var expiry = await _database.KeyExpireTimeAsync(key);
+                var expiry = await _database.KeyTimeToLiveAsync(key);
                 await SetMenuAsync(restaurantId, menu, expiry ?? DefaultMenuTtl);
                 _logger.LogInformation("Menu cache patched successfully for restaurantId={RestaurantId}", restaurantId);
             }
