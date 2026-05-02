@@ -352,6 +352,12 @@ public class OrderService : IOrderService
         if (string.IsNullOrWhiteSpace(cartId))
             throw new DomainException(OrderMessage.OrderError.CART_ID_REQUIRED);
 
+        if (string.IsNullOrWhiteSpace(phone))
+            throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
+
+        if (isPreOrder && requestedPickupAt == null)
+            throw new DomainException("RequestedPickupAt là bắt buộc cho đơn đặt trước.");
+
         var json = await _cartRedisService.GetRawCartAsync(cartId);
         if (string.IsNullOrEmpty(json))
             throw new DomainException(OrderMessage.OrderError.CART_NOT_FOUND_OR_EXPIRED);
@@ -373,16 +379,10 @@ public class OrderService : IOrderService
         if (!tenant.IsVerifyBank)
             throw new DomainException(OrderMessage.OrderError.RESTAURANT_BANK_NOT_VERIFIED);
 
-        if (string.IsNullOrWhiteSpace(phone))
-            throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
-
-        if (isPreOrder && requestedPickupAt == null)
-            throw new DomainException("RequestedPickupAt là bắt buộc cho đơn đặt trước.");
-
         var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(cart.RestaurantId);
-        
         if (activeShift == null)
             throw new DomainException(ShiftMessage.ShiftError.SHIFT_NOT_OPEN_YET);
+
         
         // Treat null as "not explicitly disabled" to avoid null-casts.
         if (restaurant.IsActive == false)
@@ -502,11 +502,14 @@ public class OrderService : IOrderService
             await tx.CommitAsync();
 
             _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
+            if (orderCode > 0)
+            {
+                _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
+            }
 
             try
             {
                 var reservedTuples = dishQuantities.Select(r => (r.Key, r.Value));
-                await _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples);
                 var orderRealtime = new OrderRealtimeDto
                 {
                     Id = order.Id,
@@ -522,19 +525,16 @@ public class OrderService : IOrderService
                         Price = i.DiscountedPrice
                     }).ToList()
                 };
-                await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime);
+
+                await Task.WhenAll(
+                    _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
+                    _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime),
+                    _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString())
+                );
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send realtime update or invalidate cache for order {OrderId}", order.Id);
-            }
-
-            await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
-
-            // Pre-generate audio for webhook later
-            if (orderCode > 0)
-            {
-                _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
             }
 
             return new PaymentQrDto
@@ -695,7 +695,6 @@ public class OrderService : IOrderService
             try
             {
                 var reservedTuples = dishQuantities.Select(r => (r.Key, r.Value));
-                await _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples);
                 var orderRealtime = new OrderRealtimeDto
                 {
                     Id = order.Id,
@@ -711,15 +710,18 @@ public class OrderService : IOrderService
                         Price = i.DiscountedPrice
                     }).ToList()
                 };
-                await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime);
+
+                await Task.WhenAll(
+                    _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
+                    _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime),
+                    _cartRedisService.DeleteCartAsync(request.CartId)
+                );
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi gửi realtime hoặc invalidate cache cho đơn {OrderId}", order.Id);
             }
 
-            // Xóa cart vì checkout cash đã thành công
-            await _cartRedisService.DeleteCartAsync(request.CartId);     
 
             return new CashCheckoutResponse
             {
@@ -737,7 +739,6 @@ public class OrderService : IOrderService
         {
             throw;
         }
-
     }
 
     public async Task ConfirmCashPaymentAsync(Guid orderId)
@@ -932,26 +933,45 @@ public class OrderService : IOrderService
 
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
-            if (_realtimeService != null)
+            try
             {
-                await _realtimeService.NotifyOrderStatusChanged(
-                    order.RestaurantId.ToString(),
-                    order.Id.ToString(),
-                    (int)order.Status
-                );
-                string audioUrl = string.Empty;
-                try
+                if (_realtimeService != null)
                 {
-                    audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, transferAmount);
-                    Console.WriteLine($"Generated audio URL: {audioUrl}");
+                    await _realtimeService.NotifyOrderStatusChanged(
+                        order.RestaurantId.ToString(),
+                        order.Id.ToString(),
+                        (int)order.Status
+                    );
+
+                    await _realtimeService.NotifyCustomerOrderStatusChanged(order.Id.ToString(), (int)order.Status);
+
+                    var audioUrl = string.Empty;
+                    try
+                    {
+                        audioUrl = await _storageService.GetOrGeneratePaymentReceivedAudioAsync(order.OrderCode, transferAmount);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Tạo audio thông báo đã nhận chuyển khoản thất bại. OrderCode={OrderCode}, Amount={Amount}",
+                            order.OrderCode,
+                            transferAmount);
+                    }
+
+                    await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transferAmount, audioUrl);
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Tạo audio thông báo đã nhận chuyển khoản thất bại. OrderCode={OrderCode}, Amount={Amount}", order.OrderCode, transferAmount);
-                }
-                await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transferAmount, audioUrl);
             }
-            await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Lỗi SignalR khi xử lý SePay webhook. PaymentCode={PaymentCode}, OrderId={OrderId}",
+                    paymentCode,
+                    order.Id);
+            }
+            finally
+            {
+                await _transactionRedisService.DeleteOrderPaymentCodeAsync(paymentCode);
+            }
         }
         catch
         {

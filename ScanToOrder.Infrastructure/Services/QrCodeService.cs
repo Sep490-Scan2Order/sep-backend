@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using QRCoder;
 using ScanToOrder.Application.Interfaces;
 
@@ -21,7 +21,7 @@ namespace ScanToOrder.Infrastructure.Services
             using var qrCodeData = qrGenerator.CreateQrCode(fullUrl, QRCodeGenerator.ECCLevel.Q);
             using var qrCode = new PngByteQRCode(qrCodeData);
 
-            return qrCode.GetGraphic(20);
+            return qrCode.GetGraphic(10);
         }
 
         public byte[] GenerateQrCodeBytes(string content)
@@ -30,7 +30,7 @@ namespace ScanToOrder.Infrastructure.Services
             using var qrCodeData = qrGenerator.CreateQrCode(content, QRCodeGenerator.ECCLevel.Q);
             using var qrCode = new PngByteQRCode(qrCodeData);
 
-            return qrCode.GetGraphic(20);
+            return qrCode.GetGraphic(10);
         }
     }
 }
