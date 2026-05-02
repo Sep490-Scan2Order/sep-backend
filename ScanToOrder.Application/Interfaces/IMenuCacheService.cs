@@ -10,4 +10,5 @@ public interface IMenuCacheService
     
     Task InvalidateMenuAsync(int restaurantId);
     Task UpdateMenuStockInCacheAsync(int restaurantId, IEnumerable<(int DishId, int Quantity)> reservedItems);
+    Task SetDishStockInCacheAsync(int restaurantId, int dishId, bool isSoldOut, int quantity);
 }

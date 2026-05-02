@@ -96,7 +96,7 @@ namespace ScanToOrder.Application.Services
 
             _unitOfWork.BranchDishConfigs.Update(branchDishConfig);
             await _unitOfWork.SaveAsync();
-            await _menuCacheService.InvalidateMenuAsync(restaurantId);
+            await _menuCacheService.SetDishStockInCacheAsync(restaurantId, dishId, isSoldOut, quantity);
             return Message.BranchDishMessage.BranchDishSuccess.BRANCH_DISH_SOLD_OUT_UPDATED;
         }
 
