@@ -417,34 +417,12 @@ public class OrderService : IOrderService
         var finalAmount = (decimal)PricingUtils.RoundToNearestThousand(Math.Max(0, cart.TotalAmount - promotionDiscount));
         var amount = finalAmount;
 
-        // trừ tồn kho trước khi mở transaction để tránh lock db lâu
-        var reservedItems = new List<(int DishId, int Quantity, string DishName)>();
-        foreach (var item in cart.Items)
-        {
-            var reserved = await _unitOfWork.BranchDishConfigs
-                .ReserveDishAvailabilityAsync(cart.RestaurantId, item.DishId, item.Quantity);
-
-            if (!reserved)
-            {
-                foreach (var r in reservedItems)
-                {
-                    await _unitOfWork.BranchDishConfigs
-                        .RefundDishAvailabilityAsync(cart.RestaurantId, r.DishId, r.Quantity);
-                }
-                var ex = new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
-                ex.Data["failedDishId"] = item.DishId;
-                throw ex;
-            }
-            reservedItems.Add((item.DishId, item.Quantity, item.DishName));
-        }
-
-        // xử lý các logic tốn thời gian (sinh qr code) bên ngoài transaction
+        // sinh mã qr
         Guid orderId = Guid.NewGuid();
         string qrContent = orderId.ToString();
         var qrBytes = _qrCodeService.GenerateQrCodeBytes(qrContent);
         string qrBase64DataUri = $"data:image/png;base64,{Convert.ToBase64String(qrBytes)}";
         string qrOrderUrl = _storageService.GetOrderQrUrl(orderId);
-        _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
 
         var (qrUrl, paymentCode) = BankQrLinkUtils.GenerateSePayQrUrl(
             tenant.CardNumber,
@@ -452,11 +430,24 @@ public class OrderService : IOrderService
             amount,
             PaymentIntent.OrderPayment);
 
-        // bắt đầu lưu db 
-        await using var tx = await _unitOfWork.BeginTransactionAsync();
-        int orderCode = 0;
         try
         {
+            // bắt đầu giao dịch với db
+            await using var tx = await _unitOfWork.BeginTransactionAsync();
+
+            var dishQuantities = cart.Items.ToDictionary(i => i.DishId, i => i.Quantity);
+            var failedDishIds = await _unitOfWork.BranchDishConfigs.ReserveDishAvailabilityBatchAsync(cart.RestaurantId, dishQuantities);
+
+            if (failedDishIds.Any())
+            {
+                var failedId = failedDishIds.First();
+                var failedName = cart.Items.First(i => i.DishId == failedId).DishName;
+                var ex = new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, failedName));
+                ex.Data["failedDishId"] = failedId;
+                throw ex;
+            }
+
+            int orderCode = 0;
             var (startUtc, endUtc, dateInt) = TimeUtils.GetVietnamDayRangeUtc();
             orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
                 cart.RestaurantId, startUtc, endUtc, dateInt);
@@ -510,55 +501,56 @@ public class OrderService : IOrderService
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
 
-            await _menuCacheService.InvalidateMenuAsync(cart.RestaurantId);
-            var orderRealtime = new OrderRealtimeDto
+            _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
+
+            try
             {
-                Id = order.Id,
-                OrderCode = order.OrderCode,
-                Phone = order.NumberPhone,
-                TotalAmount = order.FinalAmount,
-                Note = order.Note,
-                Status = (int)order.Status,
-                Items = cart.Items.Select(i => new OrderItemRealtimeDto
+                var reservedTuples = dishQuantities.Select(r => (r.Key, r.Value));
+                await _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples);
+                var orderRealtime = new OrderRealtimeDto
                 {
-                    DishId = i.DishId,
-                    Quantity = i.Quantity,
-                    Price = i.DiscountedPrice
-                }).ToList()
-            };
-            await _realtimeService.SendOrderToKitchen(
-                order.RestaurantId.ToString(),
-                orderRealtime
-            );
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            foreach (var r in reservedItems)
-            {
-                await _unitOfWork.BranchDishConfigs
-                    .RefundDishAvailabilityAsync(cart.RestaurantId, r.DishId, r.Quantity);
+                    Id = order.Id,
+                    OrderCode = order.OrderCode,
+                    Phone = order.NumberPhone,
+                    TotalAmount = order.FinalAmount,
+                    Note = order.Note,
+                    Status = (int)order.Status,
+                    Items = cart.Items.Select(i => new OrderItemRealtimeDto
+                    {
+                        DishId = i.DishId,
+                        Quantity = i.Quantity,
+                        Price = i.DiscountedPrice
+                    }).ToList()
+                };
+                await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send realtime update or invalidate cache for order {OrderId}", order.Id);
+            }
+
+            await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
+
+            // Pre-generate audio for webhook later
+            if (orderCode > 0)
+            {
+                _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
+            }
+
+            return new PaymentQrDto
+            {
+                OrderId = orderId,
+                QrUrl = qrUrl,
+                PaymentCode = paymentCode,
+                TotalAmount = amount,
+                RestaurantName = restaurant.RestaurantName ?? "",
+                QrCodeBase64 = qrBase64DataUri
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi xảy ra trong quá trình GetPaymentQrAsync cho cart {CartId}", request.CartId);
             throw;
-        }
-
-        await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
-
-        // Pre-generate audio for webhook later
-        if (orderCode > 0)
-        {
-            _backgroundJobService.EnqueueGeneratePaymentAudio(orderCode, amount);
-        }
-
-        return new PaymentQrDto
-        {
-            OrderId = orderId,
-            QrUrl = qrUrl,
-            PaymentCode = paymentCode,
-            TotalAmount = amount,
-            RestaurantName = restaurant.RestaurantName ?? "",
-            QrCodeBase64 = qrBase64DataUri
-        };
     }
 
     public async Task<CashCheckoutResponse> CheckoutCashAsync(CashCheckoutRequest request)
@@ -582,6 +574,13 @@ public class OrderService : IOrderService
         var restaurant = await _unitOfWork.Restaurants.GetByIdAsync(cart.RestaurantId);
         if (restaurant == null)
             throw new DomainException(RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+
+        // Validate trạng thái hoạt động của nhà hàng
+        if (restaurant.IsActive == false)
+            throw new DomainException("Nhà hàng hiện không hoạt động.");
+
+        if (restaurant.IsReceivingOrders == false)
+            throw new DomainException("Nhà hàng hiện không nhận đơn.");
 
         var activeShift = await _unitOfWork.Shifts.GetActiveCashierShiftAsync(cart.RestaurantId);
 
@@ -614,41 +613,31 @@ public class OrderService : IOrderService
         var finalAmount = (decimal)PricingUtils.RoundToNearestThousand(Math.Max(0, cart.TotalAmount - promotionDiscount));
         var amount = finalAmount;
 
-        var reservedItems = new List<(int DishId, int Quantity, string DishName)>();
-        foreach (var item in cart.Items)
-        {
-            var reserved = await _unitOfWork.BranchDishConfigs
-                .ReserveDishAvailabilityAsync(cart.RestaurantId, item.DishId, item.Quantity);
-
-            if (!reserved)
-            {
-                foreach (var r in reservedItems)
-                {
-                    await _unitOfWork.BranchDishConfigs
-                        .RefundDishAvailabilityAsync(cart.RestaurantId, r.DishId, r.Quantity);
-                }
-                var ex = new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
-                ex.Data["failedDishId"] = item.DishId;
-                throw ex;
-            }
-
-            reservedItems.Add((item.DishId, item.Quantity, item.DishName));
-        }
-
-        // sinh mã qr bên ngoài transaction giúp giảm nghẽn connection pool
+        // sinh mã qr
         Guid orderId = Guid.NewGuid();
         string qrContent = orderId.ToString();
         var qrBytes = _qrCodeService.GenerateQrCodeBytes(qrContent);
         string qrBase64DataUri = $"data:image/png;base64,{Convert.ToBase64String(qrBytes)}";
         string qrOrderUrl = _storageService.GetOrderQrUrl(orderId);
-        _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
-
-        // bắt đầu giao dịch với db
-        await using var tx = await _unitOfWork.BeginTransactionAsync();
-        int orderCode;
 
         try
         {
+            // bắt đầu giao dịch với db
+            await using var tx = await _unitOfWork.BeginTransactionAsync();
+
+            var dishQuantities = cart.Items.ToDictionary(i => i.DishId, i => i.Quantity);
+            var failedDishIds = await _unitOfWork.BranchDishConfigs.ReserveDishAvailabilityBatchAsync(cart.RestaurantId, dishQuantities);
+
+            if (failedDishIds.Any())
+            {
+                var failedId = failedDishIds.First();
+                var failedName = cart.Items.First(i => i.DishId == failedId).DishName;
+                var ex = new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, failedName));
+                ex.Data["failedDishId"] = failedId;
+                throw ex;
+            }
+            int orderCode;
+
             var (startUtc, endUtc, dateInt) = TimeUtils.GetVietnamDayRangeUtc();
             orderCode = await _unitOfWork.Orders.GetNextDailyOrderCodeAsync(
                 cart.RestaurantId, startUtc, endUtc, dateInt);
@@ -699,52 +688,54 @@ public class OrderService : IOrderService
          
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
+
+            _backgroundJobService.EnqueueUploadOrderQr(qrBytes, orderId);
            
-            await _menuCacheService.InvalidateMenuAsync(cart.RestaurantId);
-            var orderRealtime = new OrderRealtimeDto
+            try
             {
-                Id = order.Id,
-                OrderCode = order.OrderCode,
-                Phone = order.NumberPhone,
-                TotalAmount = order.FinalAmount,
-                Note = order.Note,
-                Status = (int)order.Status,
-                Items = cart.Items.Select(i => new OrderItemRealtimeDto
+                var reservedTuples = dishQuantities.Select(r => (r.Key, r.Value));
+                await _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples);
+                var orderRealtime = new OrderRealtimeDto
                 {
-                    DishId = i.DishId,
-                    Quantity = i.Quantity,
-                    Price = i.DiscountedPrice
-                }).ToList()
-            };
-            await _realtimeService.SendOrderToKitchen(
-         order.RestaurantId.ToString(),
-         orderRealtime
-     );
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            foreach (var r in reservedItems)
-            {
-                await _unitOfWork.BranchDishConfigs
-                    .RefundDishAvailabilityAsync(cart.RestaurantId, r.DishId, r.Quantity);
+                    Id = order.Id,
+                    OrderCode = order.OrderCode,
+                    Phone = order.NumberPhone,
+                    TotalAmount = order.FinalAmount,
+                    Note = order.Note,
+                    Status = (int)order.Status,
+                    Items = cart.Items.Select(i => new OrderItemRealtimeDto
+                    {
+                        DishId = i.DishId,
+                        Quantity = i.Quantity,
+                        Price = i.DiscountedPrice
+                    }).ToList()
+                };
+                await _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi gửi realtime hoặc invalidate cache cho đơn {OrderId}", order.Id);
+            }
+
+            // Xóa cart vì checkout cash đã thành công
+            await _cartRedisService.DeleteCartAsync(request.CartId);     
+
+            return new CashCheckoutResponse
+            {
+                OrderId = orderId,
+                OrderCode = orderCode,
+                TotalAmount = amount,
+                RestaurantName = restaurant.RestaurantName,
+                Phone = request.Phone,
+                Note = cart.Note,
+                Status = OrderStatus.Unpaid,
+                QrCodeBase64 = qrBase64DataUri
+            };
+        }
+        catch (Exception)
+        {
             throw;
         }
-
-        //await _cartRedisService.DeleteCartAsync(request.CartId);     
-
-        return new CashCheckoutResponse
-        {
-            OrderId = orderId,
-            OrderCode = orderCode,
-            TotalAmount = amount,
-            RestaurantName = restaurant.RestaurantName,
-            Phone = request.Phone,
-            Note = cart.Note,
-            Status = OrderStatus.Unpaid,
-            QrCodeBase64 = qrBase64DataUri
-        };
 
     }
 

@@ -213,6 +213,41 @@ namespace ScanToOrder.Infrastructure.Repositories
             return affected > 0;
         }
 
+        public async Task<List<int>> ReserveDishAvailabilityBatchAsync(int restaurantId, Dictionary<int, int> dishQuantities)
+        {
+            if (dishQuantities == null || !dishQuantities.Any()) return new List<int>();
+
+            var valuesBuilder = new System.Text.StringBuilder();
+            var index = 0;
+            foreach (var kvp in dishQuantities)
+            {
+                if (index > 0) valuesBuilder.Append(", ");
+                valuesBuilder.Append($"({kvp.Key}::integer, {kvp.Value}::integer)");
+                index++;
+            }
+
+            var sql = $@"
+                WITH request(""DishId"", ""Quantity"") AS (
+                    VALUES {valuesBuilder.ToString()}
+                ),
+                updated AS (
+                    UPDATE ""BranchDishConfigs"" b
+                    SET ""DishAvailability"" = b.""DishAvailability"" - r.""Quantity"",
+                        ""IsSoldOut"" = CASE WHEN b.""DishAvailability"" - r.""Quantity"" <= 0 THEN TRUE ELSE b.""IsSoldOut"" END
+                    FROM request r
+                    WHERE b.""RestaurantId"" = {restaurantId} AND b.""DishId"" = r.""DishId""
+                      AND b.""IsDeleted"" = FALSE AND b.""IsSelling"" = TRUE AND b.""IsSoldOut"" = FALSE
+                      AND b.""DishAvailability"" >= r.""Quantity""
+                    RETURNING b.""DishId""
+                )
+                SELECT r.""DishId"" AS ""Value"" FROM request r
+                LEFT JOIN updated u ON r.""DishId"" = u.""DishId""
+                WHERE u.""DishId"" IS NULL;
+            ";
+
+            return await _context.Database.SqlQueryRaw<int>(sql).ToListAsync();
+        }
+
         public async Task<bool> RefundDishAvailabilityAsync(int restaurantId, int dishId, int quantity)
         {
             var affected = await _context.Database.ExecuteSqlInterpolatedAsync($@"

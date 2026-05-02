@@ -11,6 +11,7 @@ namespace ScanToOrder.Domain.Interfaces
         Task<List<BranchDishConfig>> GetAllDishesByRestaurantIdAsync(int restaurantId);
         Task<bool> ReserveDishAvailabilityAsync(int restaurantId, int dishId, int quantity);
         Task<bool> RefundDishAvailabilityAsync(int restaurantId, int dishId, int quantity);
+        Task<List<int>> ReserveDishAvailabilityBatchAsync(int restaurantId, Dictionary<int, int> dishQuantities);
         Task<bool> RefundDishAvailabilityBatchAsync(int restaurantId, Dictionary<int, int> dishQuantities);
         Task<List<BranchDishConfig>> GetSellingDishesByRestaurantIdAndDishIdsAsync(int restaurantId, List<int> dishIds);
     }

@@ -9,4 +9,5 @@ public interface IMenuCacheService
     Task SetMenuAsync(int restaurantId, List<MenuCategoryDto> menu, TimeSpan? expiry = null);
     
     Task InvalidateMenuAsync(int restaurantId);
+    Task UpdateMenuStockInCacheAsync(int restaurantId, IEnumerable<(int DishId, int Quantity)> reservedItems);
 }

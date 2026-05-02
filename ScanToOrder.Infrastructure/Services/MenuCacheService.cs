@@ -73,4 +73,45 @@ public class MenuCacheService : IMenuCacheService
             _logger.LogWarning(ex, "Redis InvalidateMenuAsync failed for restaurantId={RestaurantId}.", restaurantId);
         }
     }
+
+    public async Task UpdateMenuStockInCacheAsync(int restaurantId, IEnumerable<(int DishId, int Quantity)> reservedItems)
+    {
+        try
+        {
+            var menu = await GetMenuAsync(restaurantId);
+            if (menu == null || !menu.Any()) return;
+
+            bool isUpdated = false;
+
+            foreach (var category in menu)
+            {
+                foreach (var dish in category.Dishes)
+                {
+                    var reserved = reservedItems.FirstOrDefault(r => r.DishId == dish.DishId);
+                    if (reserved.Quantity > 0)
+                    {
+                        dish.DishAvailabilityStock -= reserved.Quantity;
+                        if (dish.DishAvailabilityStock <= 0)
+                        {
+                            dish.DishAvailabilityStock = 0;
+                            dish.IsSoldOut = true;
+                        }
+                        isUpdated = true;
+                    }
+                }
+            }
+
+            if (isUpdated)
+            {
+                var key = GetMenuKey(restaurantId);
+                var expiry = await _database.KeyExpireTimeAsync(key);
+                await SetMenuAsync(restaurantId, menu, expiry ?? DefaultMenuTtl);
+                _logger.LogInformation("Menu cache patched successfully for restaurantId={RestaurantId}", restaurantId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis UpdateMenuStockInCacheAsync failed for restaurantId={RestaurantId}.", restaurantId);
+        }
+    }
 }
