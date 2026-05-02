@@ -526,11 +526,21 @@ public class OrderService : IOrderService
                     }).ToList()
                 };
 
-                await Task.WhenAll(
-                    _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
-                    _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime),
-                    _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString())
-                );
+                await _transactionRedisService.SaveOrderPaymentCodeAsync(paymentCode, orderId.ToString());
+
+                _ = Task.WhenAll(
+                        _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
+                        _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime)
+                    )
+                    .ContinueWith(t =>
+                    {
+                        if (t.Exception != null)
+                        {
+                            _logger.LogError(t.Exception,
+                                "Async post-checkout tasks failed for order {OrderId}",
+                                order.Id);
+                        }
+                    }, TaskScheduler.Default);
             }
             catch (Exception ex)
             {
@@ -711,11 +721,23 @@ public class OrderService : IOrderService
                     }).ToList()
                 };
 
-                await Task.WhenAll(
-                    _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
-                    _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime),
-                    _cartRedisService.DeleteCartAsync(request.CartId)
-                );
+                // Critical: xóa cart để tránh checkout lặp
+                await _cartRedisService.DeleteCartAsync(request.CartId);
+
+                // Non-critical: không chặn trả kết quả nếu SignalR/cache chậm
+                _ = Task.WhenAll(
+                        _menuCacheService.UpdateMenuStockInCacheAsync(cart.RestaurantId, reservedTuples),
+                        _realtimeService.SendOrderToKitchen(order.RestaurantId.ToString(), orderRealtime)
+                    )
+                    .ContinueWith(t =>
+                    {
+                        if (t.Exception != null)
+                        {
+                            _logger.LogError(t.Exception,
+                                "Async post-checkout (cash) tasks failed for order {OrderId}",
+                                order.Id);
+                        }
+                    }, TaskScheduler.Default);
             }
             catch (Exception ex)
             {
