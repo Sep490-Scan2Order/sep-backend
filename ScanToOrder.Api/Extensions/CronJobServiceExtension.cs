@@ -15,6 +15,9 @@ public static class CronJobServiceExtension
             .UsePostgreSqlStorage(options =>
             {
                 options.UseNpgsqlConnection(configuration.GetConnectionString("HangFireConnection"));
+            }, new PostgreSqlStorageOptions
+            {
+                DistributedLockTimeout = TimeSpan.FromSeconds(60)
             }));
 
         services.AddHangfireServer();

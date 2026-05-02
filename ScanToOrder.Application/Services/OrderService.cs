@@ -431,7 +431,9 @@ public class OrderService : IOrderService
                     await _unitOfWork.BranchDishConfigs
                         .RefundDishAvailabilityAsync(cart.RestaurantId, r.DishId, r.Quantity);
                 }
-                throw new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
+                var ex = new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
+                ex.Data["failedDishId"] = item.DishId;
+                throw ex;
             }
             reservedItems.Add((item.DishId, item.Quantity, item.DishName));
         }
@@ -625,7 +627,9 @@ public class OrderService : IOrderService
                     await _unitOfWork.BranchDishConfigs
                         .RefundDishAvailabilityAsync(cart.RestaurantId, r.DishId, r.Quantity);
                 }
-                throw new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
+                var ex = new DomainException(string.Format(OrderMessage.OrderError.DISH_OUT_OF_STOCK, item.DishName));
+                ex.Data["failedDishId"] = item.DishId;
+                throw ex;
             }
 
             reservedItems.Add((item.DishId, item.Quantity, item.DishName));

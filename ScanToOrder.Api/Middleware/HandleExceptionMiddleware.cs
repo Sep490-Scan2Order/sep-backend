@@ -28,7 +28,6 @@ namespace ScanToOrder.Api.Middleware
             {
                 var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
                 _logger.LogError(ex, "Exception occurred from IP: {IP} | Message: {Message}", clientIp, ex.Message);
-                _logger.LogError(ex, "Exception occurred: {Message}", ex.Message);
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -46,7 +45,17 @@ namespace ScanToOrder.Api.Middleware
                 case BaseException baseEx:
                     statusCode = baseEx.StatusCode;
                     message = baseEx.Message;
-                    errors = baseEx.Errors;
+                    errors = baseEx.Errors ?? new List<string>();
+                    
+                    if (baseEx.Data != null && baseEx.Data.Count > 0)
+                    {
+                        foreach (System.Collections.DictionaryEntry entry in baseEx.Data)
+                        {
+                            errors.Add($"{entry.Key}:{entry.Value}");
+                        }
+                    }
+                    
+                    if (errors.Count == 0) errors = null;
                     break;
 
                 case ValidationException validationException:
