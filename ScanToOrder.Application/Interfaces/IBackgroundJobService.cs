@@ -7,4 +7,5 @@ public interface IBackgroundJobService
     void EnqueueFullReIndex();
     void EnqueueUploadOrderQr(byte[] qrBytes, Guid orderId);
     void EnqueueGeneratePaymentAudio(int orderCode, decimal amount);
+    void EnqueueSyncDishesToBranchDishConfig(Guid tenantId);
 }

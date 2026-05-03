@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using ScanToOrder.Application.DTOs.Restaurant;
 using ScanToOrder.Application.DTOs.Restaurant.Report;
 using ScanToOrder.Application.Interfaces;
@@ -28,12 +29,14 @@ namespace ScanToOrder.Application.Services
         private readonly IMenuCacheService _menuCacheService;
         private readonly IBackgroundJobService _backgroundJobService;
         private readonly IRealtimeService _realtimeService;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public RestaurantService(IUnitOfWork unitOfWork, IMapper mapper,
             IQrCodeService qrCodeService, IConfiguration configuration,
             IStorageService storageService, IDishRedisService dishRedisService,
             IPlanLimitationService planLimitationService, IMenuCacheService menuCacheService,
-            IBackgroundJobService backgroundJobService, IRealtimeService realtimeService)
+            IBackgroundJobService backgroundJobService, IRealtimeService realtimeService,
+            IServiceScopeFactory serviceScopeFactory)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -45,6 +48,7 @@ namespace ScanToOrder.Application.Services
             _menuCacheService = menuCacheService;
             _backgroundJobService = backgroundJobService;
             _realtimeService = realtimeService;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         public async Task<RestaurantDto?> GetRestaurantByIdAsync(int id)
@@ -139,8 +143,12 @@ namespace ScanToOrder.Application.Services
             {
                 _ when string.IsNullOrEmpty(tenant.TaxNumber) => throw new DomainException(TenantMessage.TenantError
                     .TENANT_MISSING_TAX_NUMBER),
+                _ when !tenant.IsVerifyTax => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_UNVERIFIED_TAX_NUMBER),
                 _ when tenant.BankId == null || tenant.BankId == Guid.Empty => throw new DomainException(TenantMessage
                     .TenantError.TENANT_MISSING_BANK),
+                _ when !tenant.IsVerifyBank => throw new DomainException(TenantMessage.TenantError
+                    .TENANT_UNVERIFIED_BANK),
                 _ when string.IsNullOrEmpty(tenant.CardNumber) => throw new DomainException(TenantMessage.TenantError
                     .TENANT_MISSING_CARD),
                 _ when string.IsNullOrEmpty(request.Phone) => throw new DomainException(TenantMessage.TenantError
@@ -218,6 +226,13 @@ namespace ScanToOrder.Application.Services
             await _unitOfWork.SaveAsync();
 
             _backgroundJobService.EnqueueSearchIndexRestaurant(restaurant.Id);
+            
+            _ = Task.Run(async () =>
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+                var branchDishConfigService = scope.ServiceProvider.GetRequiredService<IBranchDishConfigService>();
+                await branchDishConfigService.SyncDishesToBranchDishConfigAsync(tenantId);
+            });
 
             return _mapper.Map<RestaurantDto>(restaurant);
         }

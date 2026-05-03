@@ -120,6 +120,37 @@ namespace ScanToOrder.Application.Services
             return Message.BranchDishMessage.BranchDishSuccess.BRANCH_DISH_IS_SELLING_UPDATED;
         }
 
+        public async Task<string> UpdateIsSellingBranchDishByCategory(int restaurantId, int categoryId, bool isSelling)
+        {
+            var restaurantIsExist = await _unitOfWork.Restaurants.ExistsAsync(x => x.Id == restaurantId);
+            if (!restaurantIsExist)
+                throw new Exception(Message.RestaurantMessage.RestaurantError.RESTAURANT_NOT_FOUND);
+            
+            var categoryExists = await _unitOfWork.Categories.ExistsAsync(x => x.Id == categoryId && x.IsDeleted == false);
+            if (!categoryExists)
+                throw new Exception(Message.CategoryMessage.CategoryError.CATEGORY_NOT_FOUND);
+
+            var dishes = await _unitOfWork.Dishes.FindAsync(x => x.CategoryId == categoryId && x.IsDeleted == false);
+            var dishIds = dishes.Select(x => x.Id).ToList();
+
+            if (!dishIds.Any())
+                return "Danh mục chưa có món ăn nào.";
+
+            var branchDishConfigs = await _unitOfWork.BranchDishConfigs.FindAsync(x => x.RestaurantId == restaurantId && dishIds.Contains(x.DishId));
+            
+            foreach (var config in branchDishConfigs)
+            {
+                config.IsSelling = isSelling;
+                _unitOfWork.BranchDishConfigs.Update(config);
+                
+                await _dishRedisService.SetDishSellingStatusAsync(restaurantId, config.DishId, isSelling);
+            }
+            
+            await _unitOfWork.SaveAsync();
+            
+            return Message.BranchDishMessage.BranchDishSuccess.BRANCH_DISH_IS_SELLING_UPDATED;
+        }
+
         public async Task<string> SyncDishesToBranchDishConfigAsync(Guid tenantId)
         {
             var categories = await _unitOfWork.Categories.FindAsync(c => c.TenantId == tenantId);

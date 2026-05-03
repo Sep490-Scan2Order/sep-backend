@@ -36,4 +36,9 @@ public class HangfireBackgroundJobService : IBackgroundJobService
     {
         _backgroundJobClient.Enqueue<IStorageService>(x => x.GetOrGeneratePaymentReceivedAudioAsync(orderCode, amount));
     }
+
+    public void EnqueueSyncDishesToBranchDishConfig(Guid tenantId)
+    {
+        _backgroundJobClient.Enqueue<IBranchDishConfigService>(x => x.SyncDishesToBranchDishConfigAsync(tenantId));
+    }
 }

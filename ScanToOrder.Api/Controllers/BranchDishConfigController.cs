@@ -59,6 +59,16 @@ namespace ScanToOrder.Api.Controllers
             return Success(string.Empty, result);
         }
 
+        [HttpPut("update-is-selling-by-category/{restaurantId}/{categoryId}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateIsSellingStatusByCategory(int restaurantId, int categoryId,
+            [FromQuery] bool isSelling)
+        {
+            var result =
+                await _branchDishConfigService.UpdateIsSellingBranchDishByCategory(restaurantId, categoryId, isSelling);
+            return Success(string.Empty, result);
+        }
+
         [HttpPost("sync-dishes-to-branches")]
         [Authorize(Roles = "Tenant")]
         public async Task<ActionResult<ApiResponse<string>>> SyncDishesToBranchDishConfig()

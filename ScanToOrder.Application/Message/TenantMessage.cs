@@ -25,6 +25,8 @@ namespace ScanToOrder.Application.Message
             public const string CANNOT_UPDATE_TAX_CODE_WHEN_VERIFIED = "Không thể cập nhật mã số thuế khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.";
             public const string CANNOT_UPDATE_BANK_INFO_WHEN_VERIFIED = "Không thể cập nhật thông tin ngân hàng khi đã xác thực. Vui lòng liên hệ hỗ trợ để được trợ giúp.";
             public const string BANK_INFO_NOT_YET_UPDATED = "Thông tin ngân hàng chưa được cập nhật";
+            public const string TENANT_UNVERIFIED_TAX_NUMBER = "Vui lòng xác thực mã số thuế trước khi tạo nhà hàng.";
+            public const string TENANT_UNVERIFIED_BANK = "Vui lòng xác thực thông tin ngân hàng trước khi tạo nhà hàng.";
         }
     }
 }

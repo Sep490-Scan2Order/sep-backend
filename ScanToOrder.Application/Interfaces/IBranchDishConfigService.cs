@@ -12,6 +12,7 @@ namespace ScanToOrder.Application.Interfaces
 
         Task<string> UpdateIsSoldOutBranchDish(int restaurantId, int dishId, bool isSoldOut, int quantity);
         Task<string> UpdateIsSellingBranchDish(int restaurantId, int dishId, bool isSelling);
+        Task<string> UpdateIsSellingBranchDishByCategory(int restaurantId, int categoryId, bool isSelling);
         Task<string> SyncDishesToBranchDishConfigAsync(Guid tenantId);
     }
 }
