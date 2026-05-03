@@ -227,12 +227,10 @@ namespace ScanToOrder.Application.Services
 
             _backgroundJobService.EnqueueSearchIndexRestaurant(restaurant.Id);
             
-            _ = Task.Run(async () =>
-            {
-                using var scope = _serviceScopeFactory.CreateScope();
-                var branchDishConfigService = scope.ServiceProvider.GetRequiredService<IBranchDishConfigService>();
-                await branchDishConfigService.SyncDishesToBranchDishConfigAsync(tenantId);
-            });
+            
+            using var scope = _serviceScopeFactory.CreateScope();
+            var branchDishConfigService = scope.ServiceProvider.GetRequiredService<IBranchDishConfigService>();
+            await branchDishConfigService.SyncDishesToBranchDishConfigAsync(tenantId);
 
             return _mapper.Map<RestaurantDto>(restaurant);
         }

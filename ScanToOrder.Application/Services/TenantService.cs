@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.DTOs.User;
@@ -108,7 +108,7 @@ namespace ScanToOrder.Application.Services
             return false;
         }
 
-        public async Task<string> UpdateBankInfoAsync(Guid bankId, string accountNumber)
+        public async Task<(string QrUrl, string PaymentCode)> UpdateBankInfoAsync(Guid bankId, string accountNumber)
         {
             var tenantId = _authenticatedUserService.ProfileId!.Value;
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
@@ -144,7 +144,7 @@ namespace ScanToOrder.Application.Services
             Console.WriteLine(urlToDisplay);
             string codeToSave = qrResult.PaymentCode;
             await _transactionRedisService.SaveTransactionCodeAsync(codeToSave, tenantId);
-            return urlToDisplay;
+            return (urlToDisplay, codeToSave);
         }
 
         public async Task<bool> VerifyBankAccountAsync(string paymentCode, string gateway, string accountNumber)
