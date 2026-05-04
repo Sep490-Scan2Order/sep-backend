@@ -1263,6 +1263,24 @@ public class OrderService : IOrderService
 
         await _unitOfWork.SaveAsync();
 
+        try
+        {
+            if (_realtimeService != null)
+            {
+                await _realtimeService.NotifyOrderStatusChanged(
+                    order.RestaurantId.ToString(),
+                    order.Id.ToString(),
+                    (int)order.Status
+                );
+
+                await _realtimeService.NotifyCustomerOrderStatusChanged(order.Id.ToString(), (int)order.Status);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Lỗi SignalR khi validate scan QR. OrderId={OrderId}", order.Id);
+        }
+
         string textInput =
             $"Đã xác nhận thành công đơn hàng {orderNumber}";
 
