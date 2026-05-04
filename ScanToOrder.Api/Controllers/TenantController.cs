@@ -68,10 +68,11 @@ namespace ScanToOrder.Api.Controllers
 
         [Authorize(Roles = "Tenant")]
         [HttpPut("update-bank-info")]
-        public async Task<ActionResult<ApiResponse<string>>> UpdateBankInfo([FromQuery] Guid bankId, [FromQuery] string accountNumber)
+        public async Task<ActionResult<ApiResponse<object>>> UpdateBankInfo([FromQuery] Guid bankId, [FromQuery] string accountNumber)
         {
             var result = await _tenantService.UpdateBankInfoAsync(bankId, accountNumber);
-            return Success(result, "Cập nhật thông tin ngân hàng thành công, vui lòng chuyen khoản 10.000 VND để xác thực tài khoản");
+            return Success<object>(new { QrUrl = result.QrUrl, PaymentCode = result.PaymentCode }, 
+                "Cập nhật thông tin ngân hàng thành công, vui lòng quét QR hoặc chuyển khoản với nội dung để xác thực.");
         }
         //
 
