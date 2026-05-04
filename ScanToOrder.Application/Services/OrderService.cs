@@ -563,6 +563,7 @@ public class OrderService : IOrderService
                 PaymentCode = paymentCode,
                 TotalAmount = amount,
                 RestaurantName = restaurant.RestaurantName ?? "",
+                Phone = phone,
                 QrCodeBase64 = qrBase64DataUri
             };
         }
