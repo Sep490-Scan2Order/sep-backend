@@ -417,11 +417,11 @@ public class CronJobService : ICronJobService
                     tenant.Account = null;
                 }
 
-                // _unitOfWork.Tenants.UpdateRange(tenants);
-                // if (allRestaurants.Any())
-                // {
-                //     _unitOfWork.Restaurants.UpdateRange(allRestaurants);
-                // }
+                _unitOfWork.Tenants.UpdateRange(tenants);
+                if (allRestaurants.Any())
+                {
+                    _unitOfWork.Restaurants.UpdateRange(allRestaurants);
+                }
 
                 await _unitOfWork.SaveAsync();
                 await dbTxn.CommitAsync();
