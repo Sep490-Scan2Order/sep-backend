@@ -9,7 +9,8 @@ namespace ScanToOrder.Infrastructure.Hubs
             if (!Guid.TryParse(orderId, out var parsed))
                 throw new HubException("OrderId không hợp lệ.");
 
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"order:{parsed}");
+            // Frontend join theo đúng orderId (GUID string) => group name phải là "{orderId}"
+            await Groups.AddToGroupAsync(Context.ConnectionId, parsed.ToString());
         }
 
         public async Task JoinGroup(string groupName)

@@ -61,7 +61,7 @@ namespace ScanToOrder.Infrastructure.Services
 
         public async Task NotifyCustomerOrderStatusChanged(string orderId, int newStatus)
         {
-            var group = $"order:{orderId}";
+            var group = orderId;
             Console.WriteLine($"Sent customer order status change | orderId={orderId} status={newStatus} group={group}");
             await _hubContext.Clients.Group(group).SendAsync("CustomerUpdateStatus", new { OrderId = orderId, Status = newStatus });
         }

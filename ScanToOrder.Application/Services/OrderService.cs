@@ -838,16 +838,31 @@ public class OrderService : IOrderService
             await _unitOfWork.SaveAsync();
             await tx.CommitAsync();
             string audioUrl = string.Empty;
-            if (_realtimeService != null)
+            try
             {
-                await _realtimeService.NotifyOrderStatusChanged(
-                    order.RestaurantId.ToString(),
-                    order.Id.ToString(),
-                    (int)order.Status
-                );
+                if (_realtimeService != null)
+                {
+                    await _realtimeService.NotifyOrderStatusChanged(
+                        order.RestaurantId.ToString(),
+                        order.Id.ToString(),
+                        (int)order.Status
+                    );
+
+                    await _realtimeService.NotifyCustomerOrderStatusChanged(order.Id.ToString(), (int)order.Status);
+
+                    await _realtimeService.NotifyPaymentReceived(
+                        order.RestaurantId.ToString(),
+                        order.OrderCode,
+                        transaction.TotalAmount,
+                        audioUrl);
+                }
             }
-         
-            await _realtimeService.NotifyPaymentReceived(order.RestaurantId.ToString(), order.OrderCode, transaction.TotalAmount, audioUrl);
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Lỗi SignalR khi xác nhận thanh toán tiền mặt. OrderId={OrderId}",
+                    order.Id);
+            }
         }
         catch
         {
@@ -1262,6 +1277,24 @@ public class OrderService : IOrderService
         order.Status = OrderStatus.Served;
 
         await _unitOfWork.SaveAsync();
+
+        try
+        {
+            if (_realtimeService != null)
+            {
+                await _realtimeService.NotifyOrderStatusChanged(
+                    order.RestaurantId.ToString(),
+                    order.Id.ToString(),
+                    (int)order.Status
+                );
+
+                await _realtimeService.NotifyCustomerOrderStatusChanged(order.Id.ToString(), (int)order.Status);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Lỗi SignalR khi validate scan QR. OrderId={OrderId}", order.Id);
+        }
 
         string textInput =
             $"Đã xác nhận thành công đơn hàng {orderNumber}";
