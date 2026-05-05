@@ -89,5 +89,12 @@ namespace ScanToOrder.Infrastructure.Services
 
             await _hubContext.Clients.Group(restaurantId).SendAsync("ReceivingOrdersChanged", new { RestaurantId = restaurantId, IsReceivingOrders = isReceiving });
         }
+
+        public async Task NotifyMenuChanged(string restaurantId)
+        {
+            Console.WriteLine($"MenuChanged | restaurantId={restaurantId}");
+
+            await _hubContext.Clients.Group(restaurantId).SendAsync("MenuChanged", new { RestaurantId = restaurantId });
+        }
     }
 }

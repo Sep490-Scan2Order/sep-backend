@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using ScanToOrder.Application.DTOs.Promotion;
 using ScanToOrder.Application.Interfaces;
 using ScanToOrder.Application.Message;
@@ -16,12 +17,27 @@ public class PromotionService : IPromotionService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IPlanLimitationService _planLimitationService;
+    private readonly IMenuCacheService _menuCacheService;
+    private readonly IRestaurantService _restaurantService;
+    private readonly IRealtimeService _realtimeService;
+    private readonly ILogger<PromotionService> _logger;
 
-    public PromotionService(IUnitOfWork unitOfWork, IMapper mapper, IPlanLimitationService planLimitationService)
+    public PromotionService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        IPlanLimitationService planLimitationService,
+        IMenuCacheService menuCacheService,
+        IRestaurantService restaurantService,
+        IRealtimeService realtimeService,
+        ILogger<PromotionService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _planLimitationService = planLimitationService;
+        _menuCacheService = menuCacheService;
+        _restaurantService = restaurantService;
+        _realtimeService = realtimeService;
+        _logger = logger;
     }
 
     public async Task CreatePromotionAsync(Guid tenantId, CreatePromotionDto dto)
@@ -106,6 +122,12 @@ public class PromotionService : IPromotionService
             await transaction.RollbackAsync();
             throw;
         }
+
+        if (promotion.Scope == PromotionScope.Dish)
+        {
+            await RebuildMenusForPromotionAsync(promotion.TenantId, promotion.IsGlobal,
+                promotion.RestaurantPromotions?.Select(rp => rp.RestaurantId));
+        }
     }
 
     public async Task<PromotionResponseDto> GetPromotionByIdAsync(int id)
@@ -162,6 +184,11 @@ public class PromotionService : IPromotionService
         if (promotion == null || promotion.IsDeleted)
             throw new NotFoundException("Promotion", dto.Id);
 
+        var oldScope = promotion.Scope;
+        var oldIsGlobal = promotion.IsGlobal;
+        var oldTenantId = promotion.TenantId;
+        var oldRestaurantIds = promotion.RestaurantPromotions.Select(rp => rp.RestaurantId).ToList();
+
         _mapper.Map(dto, promotion);
 
         switch (promotion.Type)
@@ -211,17 +238,76 @@ public class PromotionService : IPromotionService
             await transaction.RollbackAsync();
             throw;
         }
+
+        if (oldScope == PromotionScope.Dish)
+        {
+            await RebuildMenusForPromotionAsync(oldTenantId, oldIsGlobal, oldRestaurantIds);
+        }
+
+        if (promotion.Scope == PromotionScope.Dish)
+        {
+            await RebuildMenusForPromotionAsync(promotion.TenantId, promotion.IsGlobal,
+                promotion.RestaurantPromotions?.Select(rp => rp.RestaurantId));
+        }
     }
 
     public async Task DeletePromotionAsync(int id)
     {
-        var promotion = await _unitOfWork.Promotions.GetByIdAsync(id);
+        var promotion = await _unitOfWork.Promotions.GetByFieldsIncludeAsync(p => p.Id == id,
+            p => p.RestaurantPromotions);
         if (promotion == null)
             throw new NotFoundException("Promotion", id);
 
         promotion.IsDeleted = true; // Soft delete
         _unitOfWork.Promotions.Update(promotion);
         await _unitOfWork.SaveAsync();
+
+        if (promotion.Scope == PromotionScope.Dish)
+        {
+            await RebuildMenusForPromotionAsync(promotion.TenantId, promotion.IsGlobal,
+                promotion.RestaurantPromotions?.Select(rp => rp.RestaurantId));
+        }
+    }
+
+    private async Task RebuildMenusForPromotionAsync(Guid tenantId, bool isGlobal, IEnumerable<int>? restaurantIds)
+    {
+        IEnumerable<int> idsToRebuild;
+
+        if (isGlobal)
+        {
+            var tenantRestaurants = await _unitOfWork.Restaurants.GetByTenantIdAsync(tenantId);
+            idsToRebuild = tenantRestaurants.Select(r => r.Id);
+        }
+        else
+        {
+            idsToRebuild = restaurantIds ?? Enumerable.Empty<int>();
+        }
+
+        foreach (var restaurantId in idsToRebuild.Distinct())
+        {
+            try
+            {
+                await _menuCacheService.InvalidateMenuAsync(restaurantId);
+                await _restaurantService.GetRestaurantMenuAsync(restaurantId, isSellingOnly: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Rebuild menu cache failed for restaurantId={RestaurantId} after promotion change. Cache will be lazily rebuilt on next read.",
+                    restaurantId);
+            }
+           
+            try
+            {
+                await _realtimeService.NotifyMenuChanged(restaurantId.ToString());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "NotifyMenuChanged failed for restaurantId={RestaurantId}. Customers will see updated menu on next manual refresh.",
+                    restaurantId);
+            }
+        }
     }
 
 

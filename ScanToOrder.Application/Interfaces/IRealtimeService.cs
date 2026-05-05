@@ -17,5 +17,6 @@ namespace ScanToOrder.Application.Interfaces
         Task NotifyShiftChanged(string staffId, object shift);
         Task NotifyShiftTransferSuccess(string staffId, int shiftId);
         Task NotifyReceivingOrdersChanged(string restaurantId, bool isReceiving);
+        Task NotifyMenuChanged(string restaurantId);
     }
 }
