@@ -433,9 +433,6 @@ namespace ScanToOrder.Application.Services
                             var discountAmount = CalculateDiscountValue(bdc.Price, winningPromo);
                             discountedPrice = (int)Math.Max(bdc.Price - discountAmount, 0);
 
-                            // Round to the nearest thousand (e.g. 21999 -> 22000)
-                            discountedPrice = PricingUtils.RoundToNearestThousand(discountedPrice);
-
                             // Generate UI Label: "-20%" or "-15k"
                             promoLabel = winningPromo.DiscountType == DiscountType.Percentage
                                 ? $"-{winningPromo.DiscountValue}%"

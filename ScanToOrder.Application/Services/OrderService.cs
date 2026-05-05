@@ -1217,9 +1217,6 @@ public class OrderService : IOrderService
                 var discountAmount = CalculateDiscountValue(bdc.Price, winningPromo);
                 discountedPrice = (int)Math.Max(bdc.Price - discountAmount, 0);
 
-                // Round to the nearest thousand (e.g. 21999 -> 22000)
-                discountedPrice = PricingUtils.RoundToNearestThousand(discountedPrice);
-
                 promoLabel = winningPromo.DiscountType == DiscountType.Percentage
                     ? $"-{winningPromo.DiscountValue}%"
                     : $"-{(PricingUtils.RoundToNearestThousand(winningPromo.DiscountValue) / 1000):G}k";
