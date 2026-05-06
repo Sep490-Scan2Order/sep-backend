@@ -118,18 +118,26 @@ namespace ScanToOrder.Application.Services
             {
                 var (refundAmount, refundDetails) = PrepareRefundDetails(originalOrder, request);
 
+                bool isStaffError = request.RefundType == RefundType.StaffError;
+
                 if (request.IsFullRefund)
                 {
                     originalOrder.Status = OrderStatus.Cancelled;
-                    originalOrder.FinalAmount = 0;
+                    if (!isStaffError)
+                    {
+                        originalOrder.FinalAmount = 0;
+                    }
                     _unitOfWork.Orders.Update(originalOrder);
                 }
                 else if (refundAmount > 0)
                 {
-                    var newFinal = originalOrder.FinalAmount - refundAmount;
-                    if (newFinal < 0)
-                        newFinal = 0;
-                    originalOrder.FinalAmount = (decimal)PricingUtils.RoundToNearestThousand(newFinal);
+                    if (!isStaffError)
+                    {
+                        var newFinal = originalOrder.FinalAmount - refundAmount;
+                        if (newFinal < 0)
+                            newFinal = 0;
+                        originalOrder.FinalAmount = (decimal)PricingUtils.RoundToNearestThousand(newFinal);
+                    }
                     _unitOfWork.Orders.Update(originalOrder);
                 }
 
