@@ -15,4 +15,5 @@ public class RestaurantSubscriptionDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string Status { get; set; } = "None";
+    public bool IsTrialPlan { get; set; }
 }

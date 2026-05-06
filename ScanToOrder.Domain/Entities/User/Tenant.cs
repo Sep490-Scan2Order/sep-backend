@@ -26,6 +26,7 @@ namespace ScanToOrder.Domain.Entities.User;
 
     public bool IsSuspended { get; set; }
     public DateTime? SuspendedAt { get; set; }
+    public bool HasUsedTrial { get; set; } = false;
 
     public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
 

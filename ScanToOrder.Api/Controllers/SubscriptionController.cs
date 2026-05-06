@@ -92,5 +92,15 @@ namespace ScanToOrder.Api.Controllers
             await _subscriptionService.MarkPaymentCanceledAsync(orderCode, tenantId);
             return Success("Canceled", "Đã hủy giao dịch thanh toán.");
         }
+
+        [HttpPost("activate-trial/{restaurantId:int}")]
+        [Authorize(Roles = "Tenant")]
+        public async Task<ActionResult<ApiResponse<string>>> ActivateTrialAsync(int restaurantId)
+        {
+            if (_authenticatedUserService.ProfileId == null) throw new DomainException(AuthMessage.AuthError.USER_PROFILE_NOT_FOUND);
+            var tenantId = _authenticatedUserService.ProfileId.Value;
+            await _subscriptionService.ActivateTrialAsync(restaurantId, tenantId);
+            return Success("OK", "Kích hoạt gói trải nghiệm thành công!");
+        }
     }
 }

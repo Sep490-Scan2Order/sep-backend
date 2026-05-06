@@ -1,4 +1,4 @@
-﻿namespace ScanToOrder.Application.DTOs.Plan
+namespace ScanToOrder.Application.DTOs.Plan
 {
     public class PlanResponse
     {
@@ -13,6 +13,8 @@
     
         public int Level { get; set; }
         public string Status { get; set; } = null!;
+        public bool IsTrial { get; set; }
+        public bool IsCommissionExempt { get; set; }
     
         public PlanFeaturesResponse Features { get; set; } = new PlanFeaturesResponse();
     }

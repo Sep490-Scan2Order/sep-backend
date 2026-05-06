@@ -1,4 +1,4 @@
-﻿using ScanToOrder.Domain.Entities.Base;
+using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Enums;
 
 using ScanToOrder.Domain.Entities.Restaurants;
@@ -8,7 +8,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
     public class SubscriptionLog : BaseEntity<int>
     {
         public int RestaurantId { get; set; }   
-        public int PaymentTransactionId { get; set; }
+        public int? PaymentTransactionId { get; set; }  // Nullable: Trial logs have no payment
         public int? OldPlanId { get; set; }
         public int NewPlanId { get; set; }
         public SubscriptionLogStatus ActionType { get; set; }
@@ -24,7 +24,7 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
 
         public Restaurant Restaurants { get; set; } = null!;
 
-        public PaymentTransaction PaymentTransactions { get; set; } = null!;
+        public PaymentTransaction? PaymentTransactions { get; set; }
 
         public Plan Plans { get; set; } = null!;
     }

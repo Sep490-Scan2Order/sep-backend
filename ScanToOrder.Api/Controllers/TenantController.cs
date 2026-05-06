@@ -74,7 +74,6 @@ namespace ScanToOrder.Api.Controllers
             return Success<object>(new { QrUrl = result.QrUrl, PaymentCode = result.PaymentCode }, 
                 "Cập nhật thông tin ngân hàng thành công, vui lòng quét QR hoặc chuyển khoản với nội dung để xác thực.");
         }
-        //
 
         [Authorize(Roles = "Tenant")]
         [HttpPut]
