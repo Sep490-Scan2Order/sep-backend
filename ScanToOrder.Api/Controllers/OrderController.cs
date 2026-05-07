@@ -72,7 +72,7 @@ public class OrderController : BaseController
         var result = await _orderService.GetPaymentQrAsync(
             request.CartId,
             request.Phone,
-            request.IsPreOrder,
+            request.IsPreOrder ?? false,
             request.RequestedPickupAt,
             request.AppliedPromotionId);
         return Success(result);

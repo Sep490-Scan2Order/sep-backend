@@ -355,8 +355,7 @@ public class OrderService : IOrderService
         if (string.IsNullOrWhiteSpace(phone))
             throw new DomainException(OrderMessage.OrderError.PHONE_REQUIRED);
 
-        if (isPreOrder && requestedPickupAt == null)
-            throw new DomainException("RequestedPickupAt là bắt buộc cho đơn đặt trước.");
+        isPreOrder = requestedPickupAt.HasValue;
 
         var json = await _cartRedisService.GetRawCartAsync(cartId);
         if (string.IsNullOrEmpty(json))
@@ -459,7 +458,7 @@ public class OrderService : IOrderService
                 PromotionId = appliedPromotionId,
                 OrderCode = orderCode,
                 IsPreOrder = isPreOrder,
-                RequestedPickupAt = isPreOrder ? requestedPickupAt : null,
+                RequestedPickupAt = requestedPickupAt,
                 Note = cart.Note,
                 TotalAmount = cart.TotalAmount,
                 PromotionDiscount = promotionDiscount,
