@@ -37,6 +37,14 @@ namespace ScanToOrder.Application.Services
             if (exists)
                 throw new InvalidOperationException($"Gói dịch vụ với tên '{request.Name}' đã tồn tại.");
 
+            // Ensure only one Trial plan can exist at a time
+            if (request.IsTrial)
+            {
+                var trialExists = await _unitOfWork.Plans.ExistsAsync(p => p.IsTrial);
+                if (trialExists)
+                    throw new InvalidOperationException("Hệ thống chỉ cho phép tồn tại 1 gói trải nghiệm (Trial) duy nhất. Vui lòng cập nhật gói hiện có hoặc xóa gói cũ trước khi tạo mới.");
+            }
+
             var plan = _mapper.Map<Plan>(request);
             plan.Features = _mapper.Map<PlanFeaturesConfig>(request.Features);
 
@@ -54,6 +62,15 @@ namespace ScanToOrder.Application.Services
             var nameConflict = await _unitOfWork.Plans.ExistsAsync(p => p.Name == request.Name && p.Id != id);
             if (nameConflict)
                 throw new InvalidOperationException($"Gói dịch vụ với tên '{request.Name}' đã tồn tại.");
+
+            // Ensure only one Trial plan can exist: if marking this plan as Trial,
+            // no OTHER plan should already be Trial
+            if (request.IsTrial && !plan.IsTrial)
+            {
+                var otherTrialExists = await _unitOfWork.Plans.ExistsAsync(p => p.IsTrial && p.Id != id);
+                if (otherTrialExists)
+                    throw new InvalidOperationException("Hệ thống chỉ cho phép tồn tại 1 gói trải nghiệm (Trial) duy nhất. Vui lòng bỏ cờ Trial khỏi gói cũ trước.");
+            }
 
             _mapper.Map(request, plan);
             plan.Features = _mapper.Map<PlanFeaturesConfig>(request.Features);

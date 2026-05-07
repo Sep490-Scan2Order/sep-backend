@@ -62,6 +62,10 @@ public class SubscriptionService : ISubscriptionService
             if (!targetPlansDict.TryGetValue(item.TargetPlanId, out var targetPlan)) continue;
             currentSubsDict.TryGetValue(item.RestaurantId, out var currentSub);
 
+            // Block checkout for Trial plans — must be activated via ActivateTrialAsync
+            if (targetPlan.IsTrial)
+                throw new DomainException("Gói trải nghiệm không thể mua qua thanh toán. Vui lòng dùng tính năng kích hoạt gói trải nghiệm.");
+
             // Build the preview detail for this item
             var detail = new CheckoutPreviewItemResponse
             {
@@ -696,8 +700,8 @@ public class SubscriptionService : ISubscriptionService
                 dto.CurrentPlanName = currentSub.Plan?.Name;
                 dto.StartDate = currentSub.StartDate;
                 dto.EndDate = currentSub.EndDate;
-                
                 dto.Status = currentSub.Status.ToString();
+                dto.IsTrialPlan = currentSub.Plan?.IsTrial ?? false;
             }
 
             return dto;
@@ -800,26 +804,31 @@ public class SubscriptionService : ISubscriptionService
     {
         var utcNow = DateTime.UtcNow;
 
-        // 1. Query expired subscriptions with navigation (AsNoTracking - for email & deactivate)
+        // 1. Query expired subscriptions — include Plan to check IsTrial
         var expiredSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
             s => s.Status == SubscriptionStatus.Active && s.EndDate <= utcNow,
             s => s.Restaurant,
             s => s.Restaurant.Tenant,
-            s => s.Restaurant.Tenant.Account
+            s => s.Restaurant.Tenant.Account,
+            s => s.Plan
         );
 
-        if (expiredSubscriptions.Any())
-        {
-            // 2. Collect IDs to process
-            var expiredSubscriptionIds = expiredSubscriptions.Select(s => s.Id).ToList();
-            var expiredRestaurantIds = expiredSubscriptions
-                .Where(s => s.Restaurant != null)
-                .Select(s => s.Restaurant.Id)
-                .Distinct()
-                .ToList();
+        if (!expiredSubscriptions.Any()) return;
 
-            // 3. Send expired notification emails (grouped by tenant) — before DB update
-            var expiredEmailGroups = expiredSubscriptions
+        // 2. Split into Trial vs Normal
+        var trialExpired = expiredSubscriptions.Where(s => s.Plan?.IsTrial == true).ToList();
+        var normalExpired = expiredSubscriptions.Where(s => s.Plan?.IsTrial != true).ToList();
+
+        // NORMAL SUBSCRIPTIONS: send email + set Expired 
+        if (normalExpired.Any())
+        {
+            var normalIds = normalExpired.Select(s => s.Id).ToList();
+            var normalRestaurantIds = normalExpired
+                .Where(s => s.Restaurant != null)
+                .Select(s => s.Restaurant.Id).Distinct().ToList();
+
+            // 3. Send expired notification emails (grouped by tenant)
+            var expiredEmailGroups = normalExpired
                 .Where(s => !string.IsNullOrEmpty(s.Restaurant?.Tenant?.Account?.Email))
                 .GroupBy(s => s.Restaurant.Tenant.Account.Email);
 
@@ -840,18 +849,16 @@ public class SubscriptionService : ISubscriptionService
                 );
             }
 
-            // 4. Batch update Subscriptions (tracked via FindAsync — no AsNoTracking conflict)
+            // 4. Batch update: set Expired
             var subscriptionsToUpdate = await _unitOfWork.Subscriptions.FindAsync(
-                s => expiredSubscriptionIds.Contains(s.Id)
-            );
+                s => normalIds.Contains(s.Id));
             foreach (var sub in subscriptionsToUpdate)
                 sub.Status = SubscriptionStatus.Expired;
             _unitOfWork.Subscriptions.UpdateRange(subscriptionsToUpdate);
 
-            // 5. Batch update Restaurants in the same transaction (avoid per-entity SaveAsync → identity conflict)
+            // 5. Deactivate restaurants
             var restaurantsToDeactivate = await _unitOfWork.Restaurants.FindAsync(
-                r => expiredRestaurantIds.Contains(r.Id)
-            );
+                r => normalRestaurantIds.Contains(r.Id));
             foreach (var restaurant in restaurantsToDeactivate)
             {
                 restaurant.IsActive = false;
@@ -859,12 +866,37 @@ public class SubscriptionService : ISubscriptionService
                 restaurant.IsReceivingOrders = false;
             }
             _unitOfWork.Restaurants.UpdateRange(restaurantsToDeactivate);
-
-            // 6. Single SaveAsync for all changes
-            await _unitOfWork.SaveAsync();
         }
 
-        // 5. Send warning emails for subscriptions expiring within 24h
+        // TRIAL SUBSCRIPTIONS: hard delete + deactivate
+        if (trialExpired.Any())
+        {
+            var trialIds = trialExpired.Select(s => s.Id).ToList();
+            var trialRestaurantIds = trialExpired
+                .Where(s => s.Restaurant != null)
+                .Select(s => s.Restaurant.Id).Distinct().ToList();
+
+            // Hard delete trial subscriptions (row is removed, SubscriptionLog stays intact)
+            var trialSubsToDelete = await _unitOfWork.Subscriptions.FindAsync(
+                s => trialIds.Contains(s.Id));
+            _unitOfWork.Subscriptions.RemoveRange(trialSubsToDelete);
+
+            // Deactivate trial restaurants
+            var trialRestaurants = await _unitOfWork.Restaurants.FindAsync(
+                r => trialRestaurantIds.Contains(r.Id));
+            foreach (var restaurant in trialRestaurants)
+            {
+                restaurant.IsActive = false;
+                restaurant.IsOpened = false;
+                restaurant.IsReceivingOrders = false;
+            }
+            _unitOfWork.Restaurants.UpdateRange(trialRestaurants);
+        }
+
+        // 7. Single SaveAsync for all changes
+        await _unitOfWork.SaveAsync();
+
+        // 8. Send warning emails for subscriptions expiring within 24h
         var tomorrow = utcNow.AddDays(1);
         var expiringSubscriptions = await _unitOfWork.Subscriptions.GetAllAsync(
             s => s.Status == SubscriptionStatus.Active && s.EndDate > utcNow && s.EndDate <= tomorrow,
@@ -889,7 +921,7 @@ public class SubscriptionService : ISubscriptionService
                 new
                 {
                     restaurant_list = $"<ul>{restaurantListHtml}</ul>",
-                    admin_url = "https://admin.scantoorder.com"
+                    admin_url = "https://scan2order.io.vn"
                 }
             );
         }
@@ -908,5 +940,83 @@ public class SubscriptionService : ISubscriptionService
         }
 
         return sb.ToString();
+    }
+
+    public async Task ActivateTrialAsync(int restaurantId, Guid currentTenantId)
+    {
+        // 1. Check Tenant has not used trial before
+        var tenant = await _unitOfWork.Tenants.GetByIdAsync(currentTenantId)
+            ?? throw new DomainException("Không tìm thấy thông tin tài khoản.");
+
+        if (tenant.HasUsedTrial)
+            throw new DomainException("Tài khoản của bạn đã sử dụng gói trải nghiệm trước đó và không thể kích hoạt lại.");
+
+        // 2. Validate restaurant belongs to this tenant
+        var restaurant = await _unitOfWork.Restaurants.GetByFieldsIncludeAsync(
+            r => r.Id == restaurantId && r.TenantId == currentTenantId,
+            r => r.Subscription
+        ) ?? throw new DomainException("Không tìm thấy nhà hàng hoặc bạn không có quyền truy cập.");
+
+        // 3. Restaurant must not already have an active subscription
+        if (restaurant.Subscription != null && restaurant.Subscription.Status == SubscriptionStatus.Active)
+            throw new DomainException("Nhà hàng này đang có gói dịch vụ hoạt động. Vui lòng hủy hoặc chờ hết hạn trước khi kích hoạt gói trải nghiệm.");
+
+        // 4. Find the Trial plan (auto-detect — Admin creates it with IsTrial = true)
+        var trialPlan = await _unitOfWork.Plans.GetByFieldsIncludeAsync(
+            p => p.IsTrial && p.Status == PlanStatus.Active
+        ) ?? throw new DomainException("Hệ thống chưa cấu hình gói trải nghiệm. Vui lòng liên hệ Admin.");
+
+        var now = DateTime.UtcNow;
+        var endDate = now.AddDays(trialPlan.DurationInDays);
+
+        // 5. Create the Subscription
+        var subscription = new Subscription
+        {
+            RestaurantId = restaurantId,
+            PlanId = trialPlan.Id,
+            StartDate = now,
+            EndDate = endDate,
+            Status = SubscriptionStatus.Active
+        };
+        await _unitOfWork.Subscriptions.AddAsync(subscription);
+
+        // 6. Write SubscriptionLog (no PaymentTransaction — free, nullable FK)
+        var log = new SubscriptionLog
+        {
+            RestaurantId = restaurantId,
+            NewPlanId = trialPlan.Id,
+            OldPlanId = null,
+            PaymentTransactionId = null,
+            ActionType = SubscriptionLogStatus.Trial,
+            AmountAllocated = 0,
+            BalanceConvereted = 0,
+            DaysAdded = trialPlan.DurationInDays,
+            OldExpired = null,
+            NewExpired = endDate,
+            CreatedAt = now
+        };
+        await _unitOfWork.SubscriptionLogs.AddAsync(log);
+
+        // 7. Mark tenant as used trial
+        tenant.HasUsedTrial = true;
+        _unitOfWork.Tenants.Update(tenant);
+
+        // 8. Activate the restaurant
+        restaurant.IsActive = true;
+        _unitOfWork.Restaurants.Update(restaurant);
+
+        await _unitOfWork.SaveAsync();
+
+        // 9. Notify via SignalR
+        var tenantIdStr = currentTenantId.ToString();
+        await _realtimeService.SendNotificationToTenant(tenantIdStr, new
+        {
+            type = "SubscriptionChanged",
+            message = $"Gói trải nghiệm đã được kích hoạt cho nhà hàng. Thời hạn: {endDate.ToLocalTime():dd/MM/yyyy HH:mm}."
+        });
+        await _realtimeService.SendNotificationToTenant(tenantIdStr, new
+        {
+            type = "ProfileChanged"
+        });
     }
 }

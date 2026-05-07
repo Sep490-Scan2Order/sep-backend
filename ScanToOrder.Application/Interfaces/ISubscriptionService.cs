@@ -20,5 +20,6 @@ namespace ScanToOrder.Application.Interfaces
         Task<List<RestaurantSubscriptionDto>> GetSubscriptionsByTenantAsync(Guid tenantId);
         Task<List<PaymentTransactionHistoryDto>> GetPaymentTransactionsByTenantAsync(Guid tenantId);
         Task ProcessSubscriptionExpirationsAsync();
+        Task ActivateTrialAsync(int restaurantId, Guid currentTenantId);
     }
 }

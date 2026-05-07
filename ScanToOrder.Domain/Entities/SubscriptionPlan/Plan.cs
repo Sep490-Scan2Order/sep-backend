@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using ScanToOrder.Domain.Entities.Base;
 using ScanToOrder.Domain.Enums;
 
@@ -13,6 +13,8 @@ namespace ScanToOrder.Domain.Entities.SubscriptionPlan
         public decimal DailyRateMonth { get; set; }
         public decimal DailyRateYear { get; set; }
         public int Level { get; set; } = 0;
+        public bool IsTrial { get; set; } = false;
+        public bool IsCommissionExempt { get; set; } = false;
         public PlanStatus Status { get; set; }
         [Column(TypeName = "jsonb")]
         public PlanFeaturesConfig Features { get; set; } = new PlanFeaturesConfig();

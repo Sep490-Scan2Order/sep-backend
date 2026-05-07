@@ -24,6 +24,9 @@ namespace ScanToOrder.Application.DTOs.Plan
         [Range(0, int.MaxValue)]
         public int Level { get; set; }
 
+        public bool IsTrial { get; set; } = false;
+        public bool IsCommissionExempt { get; set; } = false;
+
         public CreatePlanFeaturesRequest Features { get; set; } = new CreatePlanFeaturesRequest();
     }
 

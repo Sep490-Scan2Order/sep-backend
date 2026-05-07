@@ -28,6 +28,9 @@ namespace ScanToOrder.Application.DTOs.Plan
         [Required]
         public PlanStatus Status { get; set; }
 
+        public bool IsTrial { get; set; } = false;
+        public bool IsCommissionExempt { get; set; } = false;
+
         public UpdatePlanFeaturesRequest Features { get; set; } = new UpdatePlanFeaturesRequest();
     }
 

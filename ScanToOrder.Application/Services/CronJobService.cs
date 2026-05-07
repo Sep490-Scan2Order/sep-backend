@@ -249,7 +249,9 @@ public class CronJobService : ICronJobService
 
                 var servedUnscannedOrders = await _unitOfWork.Orders.GetAllAsync(
                     o => o.Status == OrderStatus.Served && !o.IsScanned,
-                    o => o.Restaurant);
+                    o => o.Restaurant,
+                    o => o.Restaurant.Subscription,
+                    o => o.Restaurant.Subscription.Plan);
 
                 var configuration = (await _unitOfWork.Configurations.GetAllAsync()).FirstOrDefault();
                 var commissionRatePercent = configuration?.CommissionRate is > 0
@@ -264,7 +266,23 @@ public class CronJobService : ICronJobService
                     return;
                 }
 
-                var ordersByTenant = servedUnscannedOrders
+                // Split into 2 groups:
+                // - exemptOrders: belonging to plan with IsCommissionExempt=true (e.g. Trial) → mark scanned only, no fee
+                // - chargeableOrders: normal plans → calculate commission as usual
+                var exemptOrders = servedUnscannedOrders
+                    .Where(o => o.Restaurant?.Subscription != null
+                                && o.Restaurant.Subscription.Status == SubscriptionStatus.Active
+                                && o.Restaurant.Subscription.Plan?.IsCommissionExempt == true)
+                    .ToList();
+
+                var chargeableOrders = servedUnscannedOrders
+                    .Except(exemptOrders)
+                    .ToList();
+
+                if (exemptOrders.Any())
+                    _logger.LogInformation("{Count} đơn thuộc gói miễn hoa hồng — đánh IsScanned nhưng không tính phí.", exemptOrders.Count);
+
+                var ordersByTenant = chargeableOrders
                     .GroupBy(o => o.Restaurant.TenantId)
                     .ToList();
 
@@ -295,6 +313,7 @@ public class CronJobService : ICronJobService
                     updatedTenants.Add(tenant);
                 }
 
+                // Mark ALL orders (exempt + chargeable) as scanned to prevent future re-processing
                 foreach (var order in servedUnscannedOrders)
                 {
                     order.IsScanned = true;
@@ -311,10 +330,11 @@ public class CronJobService : ICronJobService
                 await dbTxn.CommitAsync();
 
                 _logger.LogInformation(
-                    "Đã tính phí hoa hồng với tỷ lệ {CommissionRatePercent}% cho {TenantCount} tenant từ {OrderCount} đơn hàng.",
+                    "Đã tính phí hoa hồng với tỷ lệ {CommissionRatePercent}% cho {TenantCount} tenant từ {OrderCount} đơn hàng ({ExemptCount} đơn miễn phí).",
                     commissionRatePercent,
                     updatedTenants.Select(t => t.Id).Distinct().Count(),
-                    servedUnscannedOrders.Count);
+                    chargeableOrders.Count,
+                    exemptOrders.Count);
             }
             catch (OperationCanceledException)
             {
