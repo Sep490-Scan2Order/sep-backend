@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ScanToOrder.Application.DTOs.External;
 using ScanToOrder.Application.DTOs.Orders;
 using ScanToOrder.Application.DTOs.User;
@@ -48,6 +49,7 @@ namespace ScanToOrder.Api.Controllers
         }
 
         // Validation
+        [EnableRateLimiting("ip-limit")]
         [Authorize(Roles = "Tenant")]
         [HttpPut("tax-validation")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateTaxCodeTenant([FromQuery] string taxCode)
@@ -59,6 +61,7 @@ namespace ScanToOrder.Api.Controllers
             return Success(string.Empty);
         }
 
+        [EnableRateLimiting("ip-limit")]
         [Authorize(Roles = "Tenant")]
         [HttpPost("bank-lookup")]
         public async Task<ActionResult<ApiResponse<object?>>> LookupBank([FromBody] BankLookRequest request)
